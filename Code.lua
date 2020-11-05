@@ -1,4 +1,9 @@
 local settings = {
+    header = {
+        anchor = "CENTER",
+        xOffset = 10,
+        yOffset = 10
+    },
     hp = {
         width = 100,
         height = 50
@@ -17,7 +22,11 @@ local unsaved = {
     flag = false,
     buttons = {}
 }
-local units = {}
+local units = {} -- tracks auras and frames
+local bars = {} -- tracks current bar widths
+function srslylawlUI_Log(text)
+    print("|cff4D00FFsrslylawlUI:|r " .. text)
+end
 function srslylawlUI_GetSettings()
     return settings
 end
@@ -37,19 +46,30 @@ function deepcopy(orig)
 end
 local powerUpdateType = "UNIT_POWER_UPDATE" --"UNIT_POWER_UPDATE" or "UNIT_POWER_FRQUENT"
 local function LoadSettings(reset)
-    print("Settings Loaded")
+    srslylawlUI_Log("Settings Loaded")
     settings = deepcopy(srslylawl_saved.settings)
     if srslylawlUI_ConfigFrame then
         srslylawlUI_ConfigFrame.sliders.height:SetValue(settings.hp.height)
         srslylawlUI_ConfigFrame.sliders.hpwidth:SetValue(settings.hp.width)
     end
+    srslylawlUI_PartyHeader:ClearAllPoints()
+    srslylawlUI_PartyHeader:SetPoint(settings.header.anchor, settings.header.xOffset, settings.header.yOffset)
     srslylawlUI_RemoveDirtyFlag()
     if (reset) then
         srslylawlUI_Frame_Reset_All()
     end
 end
+function srslylawlUI_ToggleConfigVisible(visible)
+    if visible then
+        srslylawlUI_ConfigFrame:Show()
+        srslylawlUI_PartyHeader:SetMovable(true)
+    else
+        srslylawlUI_ConfigFrame:Hide()
+        srslylawlUI_PartyHeader:SetMovable(false)
+    end
+end
 local function SaveSettings()
-    print("Settings Saved")
+    srslylawlUI_Log("Settings Saved")
     srslylawl_saved.settings = deepcopy(settings)
     srslylawlUI_RemoveDirtyFlag()
 end
@@ -225,12 +245,20 @@ function srslylawlUI_ResetPowerBar(button, unit)
     button.powerBar:SetValue(UnitPower(unit))
 end
 function srslylawlUI_Button_OnDragStart(self, button)
+    if not srslylawlUI_PartyHeader:IsMovable() then
+        return
+    end
     srslylawlUI_PartyHeader:StartMoving()
     srslylawlUI_PartyHeader.isMoving = true
 end
 function srslylawlUI_Button_OnDragStop(self, button)
     if srslylawlUI_PartyHeader.isMoving then
         srslylawlUI_PartyHeader:StopMovingOrSizing()
+        local point, relativeTo, relativePoint, xOfs, yOfs = srslylawlUI_PartyHeader:GetPoint()
+        settings.header.anchor = point
+        settings.header.xOffset = xOfs
+        settings.header.yOffset = yOfs
+        srslylawlUI_SetDirtyFlag()
     end
 end
 local function ShowHideAllUnits()
@@ -280,11 +308,11 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         elseif event == "UNIT_CONNECTION" then
             srslylawlUI_ResetHealthBar(self.unit, unit)
             srslylawlUI_ResetPowerBar(self.unit, unit)
-            print(UnitName(unit) .. " went on/offline")
+            srslylawlUI_Log(UnitName(unit) .. " went on/offline")
         elseif event == "UNIT_AURA" then
             srslylawlUI_Frame_HandleAuras(self.unit, unit)
         elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
-            srslylawlUI_Frame_HandleAuras(self.unit, unit)
+            srslylawlUI_Frame_HandleAuras(self.unit, unit, true)
         elseif event == "UNIT_HEAL_PREDICTION" then
         --UnitGetIncomingHeals(unit)
         end
@@ -317,14 +345,14 @@ local function srslylawlUI_RememberSpellID(id)
             hasAbsorbKeyWord = keyWordAbsorb
         }
         srslylawl_saved.settings.approvedSpells = deepcopy(settings.approvedSpells)
-        print("srslylawlUI: spell auto-approved " .. n .. "!")
+        srslylawlUI_Log("spell auto-approved " .. n .. "!")
     else
         settings.pendingSpells[id] = {
             name = n,
             text = t,
             hasAbsorbKeyWord = keyWordAbsorb
         }
-        print("srslylawlUI: new spell: " .. n .. "!")
+        srslylawlUI_Log("new spell: " .. n .. "!")
     end
 
     srslylawl_saved.settings.spellList = deepcopy(settings.spellList)
@@ -334,7 +362,7 @@ local function srslylawlUI_ApproveSpellID(id)
     if settings.spellList[id] then
         return
     end
-    print("srslylawlUI: spell approved: " .. id .. "!")
+    srslylawlUI_Log("spell approved: " .. id .. "!")
     settings.approvedSpells[id] = {
         name = GetSpellInfo(id)
     }
@@ -342,12 +370,14 @@ local function srslylawlUI_ApproveSpellID(id)
     srslylawl_saved.settings.spellList = deepcopy(settings.spellList)
     srslylawl_saved.settings.pendingSpells = deepcopy(settings.pendingSpells)
 end
-function srslylawlUI_Frame_HandleAuras(unitbutton, unit)
+function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     -- Buffs --
     ---create frames for this unittype
     if units[unit] == nil then
         unitbutton.buffFrames = {}
-        units[unit] = {}
+        units[unit] = {
+            absorbAuras = {}
+        }
         for i = 1, 40 do
             local xOffset = -17
             local parent = _G[unit .. "_" .. (i - 1)]
@@ -389,6 +419,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit)
     end
     --frames exist and unit owns them
     for i = 1, 40 do
+        --loop through all frames on standby and assign them based on their index
         local f = unitbutton.buffFrames[i]
         local name,
             icon,
@@ -406,13 +437,55 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit)
             nameplateShowAll,
             timeMod,
             args = UnitAura(unit, i, "HELPFUL")
-        if name then
+        if name then --if aura on this index exists, assign it
+            srslylawlUI_RememberSpellID(spellId)
             f:Show()
             local f = unitbutton.buffFrames[i]
             CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i, "HELPFUL"))
             f:SetID(i)
-            srslylawlUI_RememberSpellID(spellId)
-        else
+            if settings.approvedSpells[spellId] then --spell is approved absorb
+                --track absorb if it isnt currently being tracked
+                if units[unit].absorbAuras[castByPlayer] == nil or units[unit].absorbAuras[castByPlayer][spellId] == nil then
+                    srslylawlUI_Log(name .. "added to active absorbs")
+                    units[unit].absorbAuras[castByPlayer] = {
+                        [spellId] = {
+                            ["name"] = name,
+                            ["index"] = i
+                        }
+                    }
+                elseif units[unit].absorbAuras[castByPlayer][spellId].index ~= i then
+                    --else refresh its index
+                    srslylawlUI_Log("index changed " .. name)
+                    units[unit].absorbAuras[castByPlayer][spellId].index = i
+                end
+            end
+        else --index no longer exists (could just have been shifted), need to look for it to make sure and remove if no longer exists
+            for k, v in pairs(units[unit].absorbAuras) do
+                for key, val in pairs(units[unit].absorbAuras[k]) do
+                    --spell id per player
+                    if units[unit].absorbAuras[k][key]["index"] == i then
+                        local doesExist = false
+                        --in theory, this part should not be needed but its there as a precaution
+                        for j = 1, 40 do
+                            if UnitAura(unit, j, "HELPFUL") then
+                                --aura exists at this index, now check if its the aura we are looking for
+                                if select(10, UnitAura(unit, j, "HELPFUL")) == key then
+                                    --aura found at index j, change tracking index and move on
+                                    --end
+                                    doesExist = true
+                                    srslylawlUI_Log("aura exists even though it should not, uhhh have fun fixing that")
+                                end
+                            else
+                                break
+                            end
+                        end
+                        if not doesExist then
+                            units[unit].absorbAuras[k][key] = nil
+                            print("aura removed from tracking")
+                        end
+                    end
+                end
+            end
             f:Hide()
         end
     end
@@ -422,6 +495,7 @@ local function HeaderSetup()
     header:SetAttribute("initialConfigFunction", configString)
     header.initialConfigFunction = srslylawlUI_InitialConfig
     header:Show()
+    header:SetPoint(settings.header.anchor, settings.header.xOffset, settings.header.yOffset)
 end
 local function CreateCustomSlider(name, min, max, defaultValue, parent, offset)
     local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
@@ -628,7 +702,7 @@ local function CreateConfig()
         CreateFrame("Button", "srslylawlUI_Config_CloseButton", srslylawlUI_ConfigFrame, "UIPanelCloseButton")
     local c = cFrame.CloseButton
     c:SetPoint("TOPRIGHT", 0, 0)
-    cFrame:Hide()
+    srslylawlUI_ToggleConfigVisible(false)
 end
 local function CreateSlashCommands()
     -- Setting Slash Commands
@@ -642,7 +716,7 @@ local function CreateSlashCommands()
         if msg and msg == "save" then
             SaveSettings()
         else
-            srslylawlUI_ConfigFrame:Show()
+            srslylawlUI_ToggleConfigVisible(true)
         end
     end
 end
@@ -665,7 +739,7 @@ frame:SetScript(
             self:UnregisterEvent("PLAYER_LOGIN")
         elseif (event == "ADDON_LOADED" and (addon == "Blizzard_ArenaUI" or addon == "Blizzard_CompactRaidFrames")) then
             --ShadowUF:HideBlizzardFrames()
-            print(addon)
+            print(addon .. " loaded")
         end
     end
 )

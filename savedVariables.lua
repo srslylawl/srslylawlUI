@@ -1,5 +1,10 @@
 srslylawl_saved = {
     settings = {
+        header = {
+            anchor = "CENTER",
+            xOffset = 10,
+            yOffset = 10
+        },
         hp = {
             width = 100,
             height = 50
