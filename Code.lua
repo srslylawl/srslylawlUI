@@ -23,15 +23,14 @@ local unsaved = {
     buttons = {}
 }
 local units = {} -- tracks auras and frames
-local tooltip = CreateFrame("GameTooltip", "BuffTextDebuffScanTooltip", UIParent, "GameTooltipTemplate")
-local tooltipTextLeft = BuffTextDebuffScanTooltipTextLeft2
+local tooltip = CreateFrame("GameTooltip", "srslylawl_ScanTooltip", UIParent, "GameTooltipTemplate")
 
-local function GetBuffText(buffIndex, unit)
+local function GetBuffText(buffIndex, unit, spellId)
     tooltip:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
     tooltip:SetUnitBuff(unit, buffIndex)
-    local n = tooltipTextLeft:GetText()
+    local n2 = srslylawl_ScanTooltipTextLeft2:GetText()
     tooltip:Hide()
-    return n
+    return n2
 end
 function srslylawlUI_Log(text)
     print("|cff4D00FFsrslylawlUI:|r " .. text)
@@ -334,55 +333,83 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         end
     end
 end
+
 local function srslylawlUI_RememberSpellID(id, buffIndex, unit)
+    local function ProcessID(spellId, buffIndex, unit)
+        local spellName = GetSpellInfo(id)
+        local buffText = GetBuffText(buffIndex, unit)
+        local buffLower
+        local buffLower = buffText
+        if buffText ~= nil then
+            buffLower = string.lower(buffText)
+        else
+            buffLower = ""
+        end
+        local keyWordAbsorb = buffLower:match("absorb") and true or false --returns true if has absorb in text, false if otherwise
+
+        settings.spellList[id] = {
+            name = spellName,
+            text = buffText,
+            hasAbsorbKeyWord = keyWordAbsorb
+        }
+
+        if keyWordAbsorb and settings.autoApproveAbsorbKeyWord then
+            if (settings.approvedSpells[id] == nil) then
+                --first time entry
+                srslylawlUI_Log("spell auto-approved " .. spellName .. "!")
+            else
+                --srslylawlUI_Log("spell updated " .. spellName .. "!")
+            end
+
+            settings.approvedSpells[id] = {
+                name = spellName,
+                text = buffText,
+                hasAbsorbKeyWord = keyWordAbsorb
+            }
+            srslylawl_saved.settings.approvedSpells = deepcopy(settings.approvedSpells)
+        else
+            if settings.pendingSpells[id] == nil then
+                --first time entry
+                srslylawlUI_Log("new spell encountered: " .. spellName .. "!")
+            else
+                --srslylawlUI_Log("spell updated " .. spellName .. "!")
+            end
+
+            settings.pendingSpells[id] = {
+                name = spellName,
+                text = buffText,
+                hasAbsorbKeyWord = keyWordAbsorb
+            }
+        end
+
+        srslylawl_saved.settings.spellList = deepcopy(settings.spellList)
+        srslylawl_saved.settings.pendingSpells = deepcopy(settings.pendingSpells)
+    end
     if settings.spellList[id] then
-        return
-    end
-
-    local n = GetSpellInfo(id)
-    local s = GetBuffText(buffIndex, unit)
-    local t
-    if s ~= nil then
-        t = string.lower(s)
+        --already seen
+        --does it have a new tooltip though?
+        local s = GetBuffText(buffIndex, unit)
+        if
+            settings.spellList[id].text == nil or settings.spellList[id].text ~= s or settings.approvedSpells[id] == nil or
+                settings.pendingSpells[id]
+         then
+            --update text
+            ProcessID(id, buffIndex, unit)
+        end
     else
-        t = ""
+        ProcessID(id, buffIndex, unit)
     end
-
-    local keyWordAbsorb = t:match("absorb") and true or false --returns true if has absorb in text, false if otherwise
-    settings.spellList[id] = {
-        name = n,
-        text = t,
-        hasAbsorbKeyWord = keyWordAbsorb
-    }
-    if keyWordAbsorb and settings.autoApproveAbsorbKeyWord then
-        settings.approvedSpells[id] = {
-            name = n,
-            text = t,
-            hasAbsorbKeyWord = keyWordAbsorb
-        }
-        srslylawl_saved.settings.approvedSpells = deepcopy(settings.approvedSpells)
-        srslylawlUI_Log("spell auto-approved " .. n .. "!")
-    else
-        settings.pendingSpells[id] = {
-            name = n,
-            text = t,
-            hasAbsorbKeyWord = keyWordAbsorb
-        }
-        srslylawlUI_Log("new spell: " .. n .. "!")
-    end
-
-    srslylawl_saved.settings.spellList = deepcopy(settings.spellList)
-    srslylawl_saved.settings.pendingSpells = deepcopy(settings.pendingSpells)
 end
-local function srslylawlUI_ApproveSpellID(id)
-    if settings.spellList[id] then
-        return
-    end
+function srslylawlUI_ApproveSpellID(id)
+    --we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it
+    --it should get added updated though once we ever see it on any party members
     srslylawlUI_Log("spell approved: " .. id .. "!")
     settings.approvedSpells[id] = {
         name = GetSpellInfo(id)
     }
-    table.remove(settings.pendingSpells, id)
+    if settings.pendingSpells[id] ~= nil then
+        table.remove(settings.pendingSpells, id)
+    end
     srslylawl_saved.settings.spellList = deepcopy(settings.spellList)
     srslylawl_saved.settings.pendingSpells = deepcopy(settings.pendingSpells)
 end
@@ -968,7 +995,16 @@ local function CreateSlashCommands()
     SLASH_SRSLYLAWLUI4 = "/srslylawl"
     SLASH_SRSLYLAWLUI5 = "/srslylawl save"
 
+    SLASH_SRLYLAWLAPPROVESPELL1 = "/approvespell id"
+
     SlashCmdList["SRSLYLAWLUI"] = function(msg, txt)
+        if msg and msg == "save" then
+            SaveSettings()
+        else
+            srslylawlUI_ToggleConfigVisible(true)
+        end
+    end
+    SlashCmdList["SLASH_SRLYLAWLAPPROVESPELL1"] = function(msg, txt)
         if msg and msg == "save" then
             SaveSettings()
         else
