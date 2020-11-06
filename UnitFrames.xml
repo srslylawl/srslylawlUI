@@ -4,13 +4,6 @@ xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 http://wowprogramming.com/FrameXML/UI.xsd">
 	<Frame name="srslylawlUI_UnitTemplate" virtual="true">
 		<Size x="36" y="50"/>
-		<Layers>
-			<Layer level="BACKGROUND">
-			<Texture setAllPoints="true" alpha="0.5">
-				<Color r="0.0" g="0.0" b="0.0"/>
-			</Texture>
-			</Layer>
-		</Layers>
 		<Frames>
 		<!-- unitButton -->
 			<Button name="$parent_Unit" parentKey="unit" inherits="SecureUnitButtonTemplate" registerForClicks="AnyUp" enableMouse="true">
@@ -35,8 +28,8 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 						<BarTexture file="Interface\Addons\srslylawlUI\media\healthBar" />
 						<BarColor r="1.0" g="1.0" b="1.0" />
 						<Layers>
-						<Layer level="OVERLAY">
-						<FontString name="$parent_Text" parentKey="text" inherits="GameFontHighlight"/>
+							<Layer level="OVERLAY">
+								<FontString name="$parent_Text" parentKey="text" inherits="GameFontHighlight"/>
 							</Layer>
 						</Layers>
 					</StatusBar>
@@ -111,15 +104,15 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 			<Attribute name="showRaid" type="boolean" value="true"/>
 			<Attribute name="showPlayer" type="boolean" value="true"/>
 			<Attribute name="showSolo" type="boolean" value="true"/>
-			<Attribute name="maxColumns" type="number" value="5"/>
-			<Attribute name="unitsPerColumn" type="number" value="1"/>
-			<Attribute name="columnAnchorPoint" type="string" value="TOP"/>
-			<Attribute name="point" type="string" value="LEFT"/>
+			<!-- <Attribute name="maxColumns" type="number" value="5"/> -->
+			<!-- <Attribute name="unitsPerColumn" type="number" value="1"/> -->
+			<!-- <Attribute name="columnAnchorPoint" type="string" value="TOPLEFT"/> -->
+			<Attribute name="point" type="string" value="TOPLEFT"/>
 			<Attribute name="template" type="string" value="srslylawlUI_UnitTemplate"/>
 			<Attribute name="templateType" type="string" value="Frame"/>
-			<Attribute name="xOffset" type="number" value="2"/>
-			<Attribute name="yOffset" type="number" value="2"/>
-			<Attribute name="columnSpacing" type="number" value="1"/>
+			<!-- <Attribute name="xOffset" type="number" value="-50"/> --> -->
+			<!-- <Attribute name="yOffset" type="number" value="2"/> -->
+			<!-- <Attribute name="columnSpacing" type="number" value="-10"/> --> -->
 		</Attributes>
 	</Frame>
 </Ui>
