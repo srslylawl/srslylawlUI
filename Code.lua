@@ -236,12 +236,13 @@ function srslylawlUI_ResetHealthBar(button, unit)
         button.healthBar:SetStatusBarColor(classColor.r, classColor.g, classColor.b)
         button.healthBar:SetMinMaxValues(0, healthMax)
         button.healthBar:SetValue(health)
+        srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
         button.dead = false
     end
 end
 function srslylawlUI_ResetPowerBar(button, unit)
     local powerType, powerToken = UnitPowerType(unit)
-    local powerColor = PowerBarColor[powerToken]
+    local powerColor = srlylawlUI_GetCustomPowerColor(powerToken)
     local alive = not UnitIsDeadOrGhost(unit)
     local online = UnitIsConnected(unit)
     if alive and online then
@@ -251,6 +252,13 @@ function srslylawlUI_ResetPowerBar(button, unit)
     end
     button.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
     button.powerBar:SetValue(UnitPower(unit))
+end
+function srlylawlUI_GetCustomPowerColor(powerToken)
+    local color = PowerBarColor[powerToken]
+    if powerToken == "MANA" then
+        color.r, color.g, color.b = 0.349, 0.522, 0.953
+    end
+    return color
 end
 function srslylawlUI_Button_OnDragStart(self, button)
     if not srslylawlUI_PartyHeader:IsMovable() then
@@ -283,7 +291,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
     -- Handle any events that don’t accept a unit argument
     if event == "PLAYER_ENTERING_WORLD" then
         srslylawlUI_Frame_ResetDimensions(self)
-        srslylawlUI_Frame_HandleAuras(self.unit, unit)
+        srslylawlUI_Frame_HandleAuras(self.unit, unit, true)
     elseif event == "PLAYER_TARGET_CHANGED" then
         if UnitIsUnit(unit, "target") then
             self.unit.selected:Show()
@@ -465,17 +473,17 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             unitbutton.buffFrames[i] = f
         end
     elseif unitbutton["buffFrames"] == nil then --frames exist but this unit doesnt own them yet
-        print("exist, reassigning")
+        --print("exist, reassigning")
         unitbutton.buffFrames = {}
         unitbutton.buffFrames = units[unit].buffFrames
         unitbutton.buffFrames[1]:SetParent(unitbutton)
     end
     local function trackSpell(castBy, id, name, index, absorb, icon, duration, expirationTime, verify)
-        if verify ~= true then
-            srslylawlUI_Log(name .. " added")
-        else
-            --srslylawlUI_Log(name .. " verified ")
-        end
+        --if verify ~= true then
+        --srslylawlUI_Log(name .. " added")
+        --else
+        --srslylawlUI_Log(name .. " verified ")
+        --end
 
         if units[unit].absorbAuras[castBy] == nil then
             units[unit].absorbAuras[castBy] = {
@@ -500,17 +508,19 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
         local flagRefreshed = (diff > 0.1)
 
-        units[unit].absorbAurasByIndex[index] = {
-            ["castBy"] = castBy,
-            ["name"] = name,
-            ["spellID"] = id,
-            ["checkedThisEvent"] = true,
-            ["absorb"] = absorb,
-            ["icon"] = icon,
-            ["duration"] = duration,
-            ["expiration"] = expirationTime,
-            ["wasRefreshed"] = flagRefreshed
-        }
+        if units[unit].absorbAurasByIndex[index] == nil then
+            units[unit].absorbAurasByIndex[index] = {}
+        end
+        --doing it this way since we dont want our tracked fragment to reset
+        units[unit].absorbAurasByIndex[index]["castBy"] = castBy
+        units[unit].absorbAurasByIndex[index]["name"] = name
+        units[unit].absorbAurasByIndex[index]["spellID"] = id
+        units[unit].absorbAurasByIndex[index]["checkedThisEvent"] = true
+        units[unit].absorbAurasByIndex[index]["absorb"] = absorb
+        units[unit].absorbAurasByIndex[index]["icon"] = icon
+        units[unit].absorbAurasByIndex[index]["duration"] = duration
+        units[unit].absorbAurasByIndex[index]["expiration"] = expirationTime
+        units[unit].absorbAurasByIndex[index]["wasRefreshed"] = flagRefreshed
     end
     local function unTrackSpell(index)
         --print("untrack spell" .. units[unit].absorbAurasByIndex[index].name)
@@ -547,17 +557,34 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
         local flagRefreshed = (diff > 0.1)
 
-        units[unit].absorbAurasByIndex[i] = {
-            ["castBy"] = source,
-            ["name"] = name,
-            ["spellID"] = spellId,
-            ["checkedThisEvent"] = true,
-            ["absorb"] = absorb,
-            ["icon"] = icon,
-            ["duration"] = duration,
-            ["expiration"] = expirationTime,
-            ["wasRefreshed"] = flagRefreshed
-        }
+        if units[unit].absorbAurasByIndex[i] == nil then
+            units[unit].absorbAurasByIndex[i] = {}
+        end
+        units[unit].absorbAurasByIndex[i]["castBy"] = source
+        units[unit].absorbAurasByIndex[i]["name"] = name
+        units[unit].absorbAurasByIndex[i]["spellID"] = spellId
+        units[unit].absorbAurasByIndex[i]["checkedThisEvent"] = true
+        units[unit].absorbAurasByIndex[i]["absorb"] = absorb
+        units[unit].absorbAurasByIndex[i]["icon"] = icon
+        units[unit].absorbAurasByIndex[i]["duration"] = duration
+        units[unit].absorbAurasByIndex[i]["expiration"] = expirationTime
+        units[unit].absorbAurasByIndex[i]["wasRefreshed"] = flagRefreshed
+
+        if units[unit].absorbAurasByIndex[oldIndex]["trackedSegments"] ~= nil then
+            if units[unit].absorbAurasByIndex[i]["trackedSegments"] == nil then
+                units[unit].absorbAurasByIndex[i]["trackedSegments"] = {}
+            end
+
+            for index, segment in pairs(units[unit].absorbAurasByIndex[oldIndex]["trackedSegments"]) do
+                units[unit].absorbAurasByIndex[i]["trackedSegments"][index] = segment
+            end
+        end
+
+        local trackedApplyTime = units[unit].absorbAurasByIndex[oldIndex]["trackedApplyTime"]
+        if trackedApplyTime ~= nil then
+            units[unit].absorbAurasByIndex[i]["trackedApplyTime"] = trackedApplyTime
+        end
+
         units[unit].absorbAurasByIndex[oldIndex] = nil
     end
 
@@ -681,13 +708,12 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             local t = f:CreateTexture(nil, "BACKGROUND")
             t:SetColorTexture(0, 0, 0, .5)
             t:SetPoint("CENTER", f, "CENTER")
-            --t:SetParent(f)
             t:SetHeight(height + 2)
             t:SetWidth(42)
             f.background = t
             f:Hide()
             f["icon"] = f:CreateTexture(nil, "OVERLAY")
-            f["icon"]:SetPoint("CENTER")
+            f["icon"]:SetPoint("TOP")
             f["icon"]:SetHeight(15)
             f["icon"]:SetWidth(15)
             f["icon"]:Hide()
@@ -702,6 +728,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             units[unit]["absorbFrames"][i] = f
         end
     end
+    --make sure that our first absorb anchor moves with the bar fill amount
+    srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
 
     if remainingTrackedAuraCount == 0 and units[unit].activeAbsorbFrames > 0 then
         --no more absorbs, done here
@@ -717,34 +745,98 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     local absorbFrameCount = tablelength(units[unit]["absorbFrames"])
 
     local curBarIndex = 1
-    for key, value in pairs(units[unit].absorbAurasByIndex) do
-        local absorbAmount = units[unit].absorbAurasByIndex[key].absorb
-        local current = units[unit]["absorbFrames"][curBarIndex]
-        local iconID = units[unit].absorbAurasByIndex[key].icon
-        local duration = units[unit].absorbAurasByIndex[key].duration
-        local expirationTime = units[unit].absorbAurasByIndex[key].expiration
-        local startTime = expirationTime - duration
-        local wasRefreshed = units[unit].absorbAurasByIndex[key].wasRefreshed
-        --check if our current frame is already set up correctly
-        if current:GetAttribute("absorbAmount") ~= absorbAmount then
-            srslylawlUI_ChangeAbsorbSegment(current, pixelPerHp, absorbAmount, height)
-        end
-        if not current:IsVisible() then
+
+    local function CheckSegments(tAura, curBarIndex)
+        local function SetupSegments(tAura, curBarIndex, useOldTimer)
+            local segmentPool = units[unit]["absorbFrames"]
+            local absorbAmount = tAura.absorb
+            local iconID = tAura.icon
+            local duration = tAura.duration
+            local expirationTime = tAura.expiration
+            local startTime = expirationTime - duration
+            local wasRefreshed = tAura.wasRefreshed
+            local doesTrackSegments = trackedSegments ~= nil
+
+            if not doesTrackSegments then
+                tAura["trackedSegments"] = {}
+            end
+
+            local trackedSegments = tAura["trackedSegments"]
+            local currentBar = segmentPool[curBarIndex]
+            srslylawlUI_ChangeAbsorbSegment(currentBar, pixelPerHp, absorbAmount, height)
             units[unit].activeAbsorbFrames = units[unit].activeAbsorbFrames + 1
+
+            local t
+            if useOldTimer then
+                print("resegment ", tAura.name)
+                t = tAura["trackedApplyTime"]
+                duration = expirationTime - t
+            else
+                print("initial setup ", tAura.name)
+                --may display wrong time on certain auras that are still active if ui has just been reloaded, very niche though
+                t = GetTime()
+                tAura["trackedApplyTime"] = t
+            end
+
+            CooldownFrame_Set(currentBar.cooldown, t, duration, true)
+
+            currentBar.icon:SetTexture(iconID)
+            currentBar.icon:Show()
+            currentBar:Show()
+            --track the segment
+            trackedSegments[curBarIndex] = currentBar
+            return curBarIndex + 1
         end
-        if wasRefreshed then
-            CooldownFrame_Set(current.cooldown, GetTime(), duration, true)
-        else
-            CooldownFrame_Set(current.cooldown, startTime, duration, true)
+        --tAura = units[unit].absorbAurasByIndex[key]
+        local segmentPool = units[unit]["absorbFrames"]
+        local absorbAmount = tAura.absorb
+        local iconID = tAura.icon
+        local duration = tAura.duration
+        local expirationTime = tAura.expiration
+        local startTime = expirationTime - duration
+        local wasRefreshed = tAura.wasRefreshed
+        local doesTrackSegments = tAura["trackedSegments"] ~= nil
+
+        if not doesTrackSegments then
+            tAura["trackedSegments"] = {}
         end
 
-        current.icon:SetTexture(iconID)
-        current.icon:Show()
-        current:Show()
-        curBarIndex = curBarIndex + 1
-        if (curBarIndex >= maxFrames) then
-            print("frame limit reached")
+        local trackedSegments = tAura["trackedSegments"]
+
+        --print(tAura.name, "does track segments? ", doesTrackSegments, "curIndex ", curBarIndex)
+        if doesTrackSegments then
+            --this aura has active segments, check if they still make sense
+
+            --go through all tracked segments
+            for bIndex, cBar in pairs(trackedSegments) do
+                local segmentNumberIsfine = (segmentPool[curBarIndex] == cBar)
+                local absorbIsSame = (absorbAmount == cBar:GetAttribute("absorbAmount"))
+
+                if not segmentNumberIsfine then
+                    --print("segment number changed")
+                    local tempIndex = 1
+                    for key, value in pairs(units[unit].absorbAurasByIndex) do
+                        tempIndex = SetupSegments(units[unit].absorbAurasByIndex[key], tempIndex, true)
+                    end
+                end
+                if not absorbIsSame then
+                    srslylawlUI_ChangeAbsorbSegment(cBar, pixelPerHp, absorbAmount, height)
+                end
+                if wasRefreshed then
+                    print(tAura.name, "was refreshed this frame")
+                    local t = GetTime()
+                    CooldownFrame_Set(cBar.cooldown, t, duration, true)
+                    tAura["trackedApplyTime"] = t
+                end
+            end
+            curBarIndex = curBarIndex + 1
+        else
+            curBarIndex = SetupSegments(tAura, curBarIndex, false)
         end
+        return curBarIndex
+    end
+    for key, value in pairs(units[unit].absorbAurasByIndex) do
+        curBarIndex = CheckSegments(units[unit].absorbAurasByIndex[key], curBarIndex)
     end
     for i = curBarIndex, maxFrames do
         if units[unit]["absorbFrames"][i]:IsVisible() then
@@ -760,6 +852,19 @@ function srslylawlUI_ChangeAbsorbSegment(frame, pixelPerHp, absorbAmount, height
     frame:SetWidth(barWidth)
     frame.background:SetHeight(height + 2)
     frame.background:SetWidth(barWidth + 2)
+end
+function srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
+    if units[unit] == nil or units[unit]["absorbFrames"] == nil then
+        return
+    end
+    local buttonFrame = srslylawlUI_GetFrameByUnitType(unit)
+    local height = buttonFrame.unit:GetHeight()
+    local width = buttonFrame.unit.healthBar:GetWidth()
+    local pixelPerHp = width / UnitHealthMax(unit)
+    local playerCurrentHP = UnitHealth(unit)
+
+    local baseAnchorOffset = (playerCurrentHP * pixelPerHp) + 1
+    units[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset, 0)
 end
 local function HeaderSetup()
     local header = srslylawlUI_PartyHeader
