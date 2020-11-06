@@ -23,7 +23,16 @@ local unsaved = {
     buttons = {}
 }
 local units = {} -- tracks auras and frames
-local bars = {} -- tracks current bar widths
+local tooltip = CreateFrame("GameTooltip", "BuffTextDebuffScanTooltip", UIParent, "GameTooltipTemplate")
+local tooltipTextLeft = BuffTextDebuffScanTooltipTextLeft2
+
+local function GetBuffText(buffIndex, unit)
+    tooltip:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
+    tooltip:SetUnitBuff(unit, buffIndex)
+    local n = tooltipTextLeft:GetText()
+    tooltip:Hide()
+    return n
+end
 function srslylawlUI_Log(text)
     print("|cff4D00FFsrslylawlUI:|r " .. text)
 end
@@ -115,8 +124,8 @@ function srslylawlUI_InitialConfig(header, buttonFrame)
             print("show pet")
         end
     )
-    buttonFrame.unit.name:SetPoint("BOTTOM", buttonFrame.unit, "TOP", 0, 0)
-    buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 0, 2)
+    buttonFrame.unit.name:SetPoint("BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
+    buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 2, 2)
     buttonFrame.unit.auras = {}
     srslylawlUI_Frame_ResetDimensions(buttonFrame)
 end
@@ -325,13 +334,20 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         end
     end
 end
-local function srslylawlUI_RememberSpellID(id)
+local function srslylawlUI_RememberSpellID(id, buffIndex, unit)
     if settings.spellList[id] then
         return
     end
 
     local n = GetSpellInfo(id)
-    local t = GetSpellDescription(id)
+    local s = GetBuffText(buffIndex, unit)
+    local t
+    if s ~= nil then
+        t = string.lower(s)
+    else
+        t = ""
+    end
+
     local keyWordAbsorb = t:match("absorb") and true or false --returns true if has absorb in text, false if otherwise
     settings.spellList[id] = {
         name = n,
@@ -370,13 +386,23 @@ local function srslylawlUI_ApproveSpellID(id)
     srslylawl_saved.settings.spellList = deepcopy(settings.spellList)
     srslylawl_saved.settings.pendingSpells = deepcopy(settings.pendingSpells)
 end
+function tablelength(T)
+    local count = 0
+    for _ in pairs(T) do
+        count = count + 1
+    end
+    return count
+end
 function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     -- Buffs --
     ---create frames for this unittype
     if units[unit] == nil then
         unitbutton.buffFrames = {}
         units[unit] = {
-            absorbAuras = {}
+            absorbAuras = {},
+            absorbAurasByIndex = {},
+            buffFrames = {},
+            activeAbsorbFrames = 0
         }
         for i = 1, 40 do
             local xOffset = -17
@@ -408,19 +434,115 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                     end
                 end
             )
-            units[unit][unit .. "_" .. i] = f
+            units[unit].buffFrames[i] = f
             unitbutton.buffFrames[i] = f
         end
     elseif unitbutton["buffFrames"] == nil then --frames exist but this unit doesnt own them yet
         print("exist, reassigning")
         unitbutton.buffFrames = {}
-        unitbutton.buffFrames = units[unit]
+        unitbutton.buffFrames = units[unit].buffFrames
         unitbutton.buffFrames[1]:SetParent(unitbutton)
     end
+    local function trackSpell(castBy, id, name, index, absorb, icon, duration, expirationTime, verify)
+        if verify ~= true then
+            srslylawlUI_Log(name .. " added")
+        else
+            --srslylawlUI_Log(name .. " verified ")
+        end
+
+        if units[unit].absorbAuras[castBy] == nil then
+            units[unit].absorbAuras[castBy] = {
+                [id] = {
+                    ["name"] = name,
+                    ["index"] = index
+                }
+            }
+        else
+            units[unit].absorbAuras[castBy][id] = {
+                ["name"] = name,
+                ["index"] = index
+            }
+        end
+
+        local diff = 0
+        if verify then
+            if units[unit].absorbAurasByIndex[index] ~= nil and units[unit].absorbAurasByIndex[index].expiration ~= nil then
+                diff = expirationTime - units[unit].absorbAurasByIndex[index].expiration
+            end
+        end
+
+        local flagRefreshed = (diff > 0.1)
+
+        units[unit].absorbAurasByIndex[index] = {
+            ["castBy"] = castBy,
+            ["name"] = name,
+            ["spellID"] = id,
+            ["checkedThisEvent"] = true,
+            ["absorb"] = absorb,
+            ["icon"] = icon,
+            ["duration"] = duration,
+            ["expiration"] = expirationTime,
+            ["wasRefreshed"] = flagRefreshed
+        }
+    end
+    local function unTrackSpell(index)
+        --print("untrack spell" .. units[unit].absorbAurasByIndex[index].name)
+        local c = units[unit].absorbAurasByIndex[index].castBy
+        local s = units[unit].absorbAurasByIndex[index].spellID
+        local t = tablelength(units[unit].absorbAuras[c])
+
+        --should be redundant check
+        if t > 0 then
+            units[unit].absorbAuras[c][s] = nil
+        end
+
+        units[unit].absorbAuras[c][s] = nil
+        units[unit].absorbAurasByIndex[index] = nil
+        t = tablelength(units[unit].absorbAuras[c])
+
+        if t == 0 then
+            units[unit].absorbAuras[c] = nil
+        end
+    end
+    local function changeTrackingIndex(name, source, spellId, i, absorb, icon, duration, expirationTime)
+        --srslylawlUI_Log("index changed " .. name)
+        local oldIndex = units[unit].absorbAuras[source][spellId].index
+        units[unit].absorbAuras[source][spellId].index = i
+
+        --flag for timer refresh
+        local diff = 0
+        if
+            units[unit].absorbAurasByIndex[oldIndex] ~= nil and
+                units[unit].absorbAurasByIndex[oldIndex].expiration ~= nil
+         then
+            diff = expirationTime - units[unit].absorbAurasByIndex[oldIndex].expiration
+        end
+
+        local flagRefreshed = (diff > 0.1)
+
+        units[unit].absorbAurasByIndex[i] = {
+            ["castBy"] = source,
+            ["name"] = name,
+            ["spellID"] = spellId,
+            ["checkedThisEvent"] = true,
+            ["absorb"] = absorb,
+            ["icon"] = icon,
+            ["duration"] = duration,
+            ["expiration"] = expirationTime,
+            ["wasRefreshed"] = flagRefreshed
+        }
+        units[unit].absorbAurasByIndex[oldIndex] = nil
+    end
+
     --frames exist and unit owns them
+    --reset frame check verifier
+    for k, v in pairs(units[unit].absorbAurasByIndex) do
+        v["checkedThisEvent"] = false
+    end
     for i = 1, 40 do
         --loop through all frames on standby and assign them based on their index
         local f = unitbutton.buffFrames[i]
+        local nextFrame = unitbutton.buffFrames[i + 1]
         local name,
             icon,
             count,
@@ -436,59 +558,181 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             castByPlayer,
             nameplateShowAll,
             timeMod,
-            args = UnitAura(unit, i, "HELPFUL")
+            absorb = UnitAura(unit, i, "HELPFUL")
         if name then --if aura on this index exists, assign it
-            srslylawlUI_RememberSpellID(spellId)
-            f:Show()
-            local f = unitbutton.buffFrames[i]
-            CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i, "HELPFUL"))
-            f:SetID(i)
-            if settings.approvedSpells[spellId] then --spell is approved absorb
-                --track absorb if it isnt currently being tracked
-                if units[unit].absorbAuras[castByPlayer] == nil or units[unit].absorbAuras[castByPlayer][spellId] == nil then
-                    srslylawlUI_Log(name .. "added to active absorbs")
-                    units[unit].absorbAuras[castByPlayer] = {
-                        [spellId] = {
-                            ["name"] = name,
-                            ["index"] = i
-                        }
-                    }
-                elseif units[unit].absorbAuras[castByPlayer][spellId].index ~= i then
-                    --else refresh its index
-                    srslylawlUI_Log("index changed " .. name)
-                    units[unit].absorbAuras[castByPlayer][spellId].index = i
-                end
+            if absorb ~= nil and absorb > 1 then
+                srslylawlUI_RememberSpellID(spellId, i, unit)
             end
-        else --index no longer exists (could just have been shifted), need to look for it to make sure and remove if no longer exists
-            for k, v in pairs(units[unit].absorbAuras) do
-                for key, val in pairs(units[unit].absorbAuras[k]) do
-                    --spell id per player
-                    if units[unit].absorbAuras[k][key]["index"] == i then
-                        local doesExist = false
-                        --in theory, this part should not be needed but its there as a precaution
-                        for j = 1, 40 do
-                            if UnitAura(unit, j, "HELPFUL") then
-                                --aura exists at this index, now check if its the aura we are looking for
-                                if select(10, UnitAura(unit, j, "HELPFUL")) == key then
-                                    --aura found at index j, change tracking index and move on
-                                    --end
-                                    doesExist = true
-                                    srslylawlUI_Log("aura exists even though it should not, uhhh have fun fixing that")
-                                end
-                            else
-                                break
-                            end
-                        end
-                        if not doesExist then
-                            units[unit].absorbAuras[k][key] = nil
-                            print("aura removed from tracking")
-                        end
+            CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
+            f:SetID(i)
+            f:Show()
+
+            if units[unit].absorbAurasByIndex[i] == nil then
+                --no aura is currently tracked for that index
+                if settings.approvedSpells[spellId] then --spell is approved absorb
+                    -- print(i)
+                    -- if units[unit].absorbAuras[source] == nil then
+                    --     print("no spells by this unit")
+                    -- elseif units[unit].absorbAuras[source][spellId] == nil then
+                    --     print("unit does not track " .. name .. " yet")
+                    -- end
+                    if units[unit].absorbAuras[source] == nil or units[unit].absorbAuras[source][spellId] == nil then
+                        --aura is not tracked at all, track it!
+                        -- print("added here 1")
+                        trackSpell(source, spellId, name, i, absorb, icon, duration, expirationTime)
+                    else
+                        --aura is being tracked but at another index, change that
+                        changeTrackingIndex(name, source, spellId, i, absorb, icon, duration, expirationTime)
                     end
                 end
+            else
+                -- print(i .. "_else")
+                --an aura at this index is currently being tracked, see if its this one
+                if units[unit].absorbAurasByIndex[i]["spellID"] ~= spellId then
+                    --the aura we are currently tracking at this index is not the displayed one
+                    --stop tracking it
+                    unTrackSpell(i)
+                    --do we want to track our aura?
+                    if settings.approvedSpells[spellId] then --spell is approved absorb
+                        if units[unit].absorbAuras[source] == nil or units[unit].absorbAuras[source][spellId] == nil then
+                            --aura is not tracked at all, track it!
+                            trackSpell(source, spellId, name, i, absorb, icon, duration, expirationTime)
+                        else
+                            --aura is being tracked but at another index, change that
+                            changeTrackingIndex(name, source, spellId, i, absorb, icon, duration, expirationTime)
+                        end
+                    end
+                else
+                    --aura is tracked and at same index, update that we verified that this frame
+                    trackSpell(source, spellId, name, i, absorb, icon, duration, expirationTime, true)
+                end
             end
+        else -- no more buffs, hide this frame and stop iterating if its the last visible frame
             f:Hide()
+            if type(nextFrame) ~= "nil" and not nextFrame:IsVisible() then
+                break
+            end
         end
     end
+    --we checked all frames, untrack any that are gone
+    -- print("untrack all that are gone")
+    for k, v in pairs(units[unit].absorbAurasByIndex) do
+        if (v["checkedThisEvent"] == false) then
+            unTrackSpell(k)
+        end
+    end
+    local remainingTrackedAuraCount = tablelength(units[unit].absorbAurasByIndex)
+    if not absorbChanged then
+        return
+    end
+    --we tracked all absorbs, now we have to visualize them. if absorbchange fired, we need to rearrange them
+    --check if segments already exist for unit
+    local buttonFrame = srslylawlUI_GetFrameByUnitType(unit)
+    local height = buttonFrame.unit:GetHeight()
+    local width = buttonFrame.unit.healthBar:GetWidth()
+    local pixelPerHp = width / UnitHealthMax(unit)
+    local playerCurrentHP = UnitHealth(unit)
+
+    ---create frames if needed
+    local maxFrames = 15
+    if units[unit]["absorbFrames"] == nil then
+        --create frames
+        units[unit]["absorbFrames"] = {}
+        for i = 1, maxFrames do
+            local parentFrame = units[unit]["absorbFrames"][i - 1]
+            if i == 1 then
+                parentFrame = buttonFrame.unit.healthBar or UIParent
+            end
+            local n = unit .. "AbsorbFrame" .. i
+            local f = CreateFrame("StatusBar", n, parentFrame)
+            f:SetStatusBarTexture("Interface/RAIDFRAME/Shield-Fill")
+            f:SetStatusBarColor(1, 1, 1, .8)
+            f:SetPoint("TOPLEFT", parentFrame, "TOPRIGHT", 1, 0)
+            f:SetHeight(height)
+            f:SetWidth(40)
+            f:CreateTexture()
+            local t = f:CreateTexture(nil, "BACKGROUND")
+            t:SetColorTexture(0, 0, 0, .5)
+            t:SetPoint("CENTER", f, "CENTER")
+            --t:SetParent(f)
+            t:SetHeight(height + 2)
+            t:SetWidth(42)
+            f.background = t
+            f:Hide()
+            f["icon"] = f:CreateTexture(nil, "OVERLAY")
+            f["icon"]:SetPoint("CENTER")
+            f["icon"]:SetHeight(15)
+            f["icon"]:SetWidth(15)
+            f["icon"]:Hide()
+            f["cooldown"] = CreateFrame("Cooldown", n .. "CD", f, "CooldownFrameTemplate")
+
+            f["cooldown"]:SetPoint("CENTER")
+            f["cooldown"]:SetHeight(100)
+            f["cooldown"]:SetWidth(100)
+            f["cooldown"]:SetReverse(true)
+            f["cooldown"]:Show()
+
+            units[unit]["absorbFrames"][i] = f
+        end
+    end
+
+    if remainingTrackedAuraCount == 0 and units[unit].activeAbsorbFrames > 0 then
+        --no more absorbs, done here
+        for k, v in pairs(units[unit]["absorbFrames"]) do
+            if v:IsVisible() then
+                v:Hide()
+                units[unit].activeAbsorbFrames = units[unit].activeAbsorbFrames - 1
+            end
+        end
+        return
+    end
+    --- made sure that frames exist, now use those frames for each absorb effect
+    local absorbFrameCount = tablelength(units[unit]["absorbFrames"])
+
+    local curBarIndex = 1
+    for key, value in pairs(units[unit].absorbAurasByIndex) do
+        local absorbAmount = units[unit].absorbAurasByIndex[key].absorb
+        local current = units[unit]["absorbFrames"][curBarIndex]
+        local iconID = units[unit].absorbAurasByIndex[key].icon
+        local duration = units[unit].absorbAurasByIndex[key].duration
+        local expirationTime = units[unit].absorbAurasByIndex[key].expiration
+        local startTime = expirationTime - duration
+        local wasRefreshed = units[unit].absorbAurasByIndex[key].wasRefreshed
+        --check if our current frame is already set up correctly
+        if current:GetAttribute("absorbAmount") ~= absorbAmount then
+            srslylawlUI_ChangeAbsorbSegment(current, pixelPerHp, absorbAmount, height)
+        end
+        if not current:IsVisible() then
+            units[unit].activeAbsorbFrames = units[unit].activeAbsorbFrames + 1
+        end
+        if wasRefreshed then
+            CooldownFrame_Set(current.cooldown, GetTime(), duration, true)
+        else
+            CooldownFrame_Set(current.cooldown, startTime, duration, true)
+        end
+
+        current.icon:SetTexture(iconID)
+        current.icon:Show()
+        current:Show()
+        curBarIndex = curBarIndex + 1
+        if (curBarIndex >= maxFrames) then
+            print("frame limit reached")
+        end
+    end
+    for i = curBarIndex, maxFrames do
+        if units[unit]["absorbFrames"][i]:IsVisible() then
+            units[unit]["absorbFrames"][i]:Hide()
+            units[unit].activeAbsorbFrames = units[unit].activeAbsorbFrames - 1
+        end
+    end
+end
+function srslylawlUI_ChangeAbsorbSegment(frame, pixelPerHp, absorbAmount, height)
+    local barWidth = floor(pixelPerHp * absorbAmount)
+    frame:SetAttribute("absorbAmount", absorbAmount)
+    frame:SetHeight(height)
+    frame:SetWidth(barWidth)
+    frame.background:SetHeight(height + 2)
+    frame.background:SetWidth(barWidth + 2)
 end
 local function HeaderSetup()
     local header = srslylawlUI_PartyHeader
@@ -584,6 +828,18 @@ local function MakeFrameMoveable(frame)
     frame:RegisterForDrag("LeftButton")
     frame:SetMovable(true)
     frame:EnableMouse(true)
+end
+function srslylawlUI_GetFrameByUnitType(unit)
+    --returns buttonframe that matches unit attribute
+    for k, v in pairs(srslylawlUI_PartyHeader) do
+        local b = type(v) == "table" and v or nil
+        local c = type(b) == "table" and b:GetAttribute("unit") == unit or false
+        if c then
+            return b
+        else
+            return nil
+        end
+    end
 end
 function srslylawlUI_Frame_Reset_All()
     for k, v in ipairs(srslylawlUI_PartyHeader) do

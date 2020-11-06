@@ -12,6 +12,7 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 			</Layer>
 		</Layers>
 		<Frames>
+		<!-- unitButton -->
 			<Button name="$parent_Unit" parentKey="unit" inherits="SecureUnitButtonTemplate" registerForClicks="AnyUp" enableMouse="true">
 				<Size x="34" y="50" />
 				<Anchors>
@@ -116,8 +117,8 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 			<Attribute name="point" type="string" value="LEFT"/>
 			<Attribute name="template" type="string" value="srslylawlUI_UnitTemplate"/>
 			<Attribute name="templateType" type="string" value="Frame"/>
-			<Attribute name="xOffset" type="number" value="7"/>
-			<Attribute name="yOffset" type="number" value="7"/>
+			<Attribute name="xOffset" type="number" value="2"/>
+			<Attribute name="yOffset" type="number" value="2"/>
 			<Attribute name="columnSpacing" type="number" value="10"/>
 		</Attributes>
 	</Frame>
