@@ -25,6 +25,42 @@ local unsaved = {
 local units = {} -- tracks auras and frames
 local tooltip = CreateFrame("GameTooltip", "srslylawl_ScanTooltip", UIParent, "GameTooltipTemplate")
 
+function reversePairs(aTable)
+    local keys = {}
+
+    for k, v in pairs(aTable) do
+        table.insert(keys, k)
+    end
+    table.sort(
+        keys,
+        function(a, b)
+            return a > b
+        end
+    )
+
+    local n = 0
+
+    return function()
+        n = n + 1
+        return keys[n], aTable[keys[n]]
+    end
+end
+
+function AbsorbAuraBySpellIDDescending(absorbAuraTable)
+    local t = {}
+
+    for k, v in pairs(absorbAuraTable) do
+        t[#t + 1] = absorbAuraTable[k]
+    end
+    table.sort(
+        t,
+        function(a, b)
+            return b.spellID < a.spellID
+        end
+    )
+    return t
+end
+
 local function GetBuffText(buffIndex, unit, spellId)
     tooltip:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
     tooltip:SetUnitBuff(unit, buffIndex)
@@ -682,6 +718,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     --we tracked all absorbs, now we have to visualize them. if absorbchange fired, we need to rearrange them
     --check if segments already exist for unit
     local buttonFrame = srslylawlUI_GetFrameByUnitType(unit)
+    print(type(buttonFrame))
     local height = buttonFrame.unit:GetHeight()
     local width = buttonFrame.unit.healthBar:GetWidth()
     local pixelPerHp = width / UnitHealthMax(unit)
@@ -718,10 +755,6 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             f["icon"]:SetWidth(15)
             f["icon"]:Hide()
             f["cooldown"] = CreateFrame("Cooldown", n .. "CD", f, "CooldownFrameTemplate")
-
-            f["cooldown"]:SetPoint("CENTER")
-            f["cooldown"]:SetHeight(100)
-            f["cooldown"]:SetWidth(100)
             f["cooldown"]:SetReverse(true)
             f["cooldown"]:Show()
 
@@ -745,12 +778,15 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     local absorbFrameCount = tablelength(units[unit]["absorbFrames"])
 
     local curBarIndex = 1
-    print("event")
-    local s = ""
-    for key, value in pairs(units[unit].absorbAurasByIndex) do
-        s = s .. units[unit].absorbAurasByIndex[key].name .. " "
-    end
-    print("tracked auras: ", s)
+    --print("event")
+    --local s = ""
+    --for key, value in ipairs(AbsorbAuraBySpellIDDescending(units[unit].absorbAurasByIndex)) do
+    --print(key, value.name)
+    -- s = s .. value.name .. " "
+    --end
+    --print("tracked auras: ", s)
+
+    local absorbAurasBySpellId = {}
     local function CheckSegments(tAura, curBarIndex)
         local function SetupSegments(tAura, curBarIndex, useOldTimer)
             local segmentPool = units[unit]["absorbFrames"]
@@ -773,12 +809,12 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
             local t
             if useOldTimer then
-                print("resegment ", tAura.name, "absorb amount: ", absorbAmount, "to index ", curBarIndex)
+                --print("resegment ", tAura.name, "absorb amount: ", absorbAmount, "to index ", curBarIndex)
                 currentBar:GetAttribute("")
                 t = tAura["trackedApplyTime"]
                 duration = expirationTime - t
             else
-                print("initial setup ", tAura.name, "absorb amount: ", absorbAmount, "to index ", curBarIndex)
+                --print("initial setup ", tAura.name, "absorb amount: ", absorbAmount, "to index ", curBarIndex)
                 --may display wrong time on certain auras that are still active if ui has just been reloaded, very niche though
                 t = GetTime()
                 duration = expirationTime - t
@@ -810,30 +846,37 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
         local trackedSegments = tAura["trackedSegments"]
 
-        print(tAura.name, "does track segments? ", doesTrackSegments, "curIndex ", curBarIndex)
+        --print(tAura.name, "does track segments? ", doesTrackSegments, "curIndex ", curBarIndex)
         if doesTrackSegments then
             --this aura has active segments, check if they still make sense
 
             --go through all tracked segments
             for bIndex, cBar in pairs(trackedSegments) do
-                print("tracking at ", bIndex)
+                --print("tracking at ", bIndex)
+
                 local segmentNumberIsfine = (segmentPool[curBarIndex] == cBar)
                 local absorbIsSame = (absorbAmount == cBar:GetAttribute("absorbAmount"))
 
-                if not segmentNumberIsfine then
-                    print("segment number changed")
+                if bIndex < curBarIndex then
+                    --print("already updated, just changing this one")
+                    --we already refreshed the segment we were tracking with something else, so we just have to update this one now
+                    curBarIndex = SetupSegments(tAura, curBarIndex, true)
+                elseif not segmentNumberIsfine then
+                    --print("segment number changed")
                     local tempIndex = 1
-                    for key, value in pairs(units[unit].absorbAurasByIndex) do
-                        tempIndex = SetupSegments(units[unit].absorbAurasByIndex[key], tempIndex, true)
+                    -- for key, value in pairs(units[unit].absorbAurasByIndex) do
+                    for key, value in ipairs(AbsorbAuraBySpellIDDescending(units[unit].absorbAurasByIndex)) do
+                        tempIndex = SetupSegments(value, tempIndex, true)
                     end
                 elseif not absorbIsSame then
                     --since resegmenting fixes all absorb values, we only have to check for that if segment number is fine
-                    print("absorb not same, changing")
+                    --print("absorb not same, changing")
                     srslylawlUI_ChangeAbsorbSegment(cBar, pixelPerHp, absorbAmount, height)
                 end
                 if wasRefreshed then
-                    print(tAura.name, "was refreshed this frame")
+                    --print(tAura.name, "was refreshed this frame")
                     local t = GetTime()
+                    duration = expirationTime - t
                     CooldownFrame_Set(cBar.cooldown, t, duration, true)
                     tAura["trackedApplyTime"] = t
                 end
@@ -844,8 +887,11 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
         return curBarIndex
     end
-    for key, value in pairs(units[unit].absorbAurasByIndex) do
-        curBarIndex = CheckSegments(units[unit].absorbAurasByIndex[key], curBarIndex)
+
+    -- absorb auras seem to get consumed in order by their spellid, ascending,
+    -- so we sort by descending to visualize which one gets removed first
+    for key, value in ipairs(AbsorbAuraBySpellIDDescending(units[unit].absorbAurasByIndex)) do
+        curBarIndex = CheckSegments(value, curBarIndex)
     end
     for i = curBarIndex, maxFrames do
         if units[unit]["absorbFrames"][i]:IsVisible() then
@@ -861,6 +907,19 @@ function srslylawlUI_ChangeAbsorbSegment(frame, pixelPerHp, absorbAmount, height
     frame:SetWidth(barWidth)
     frame.background:SetHeight(height + 2)
     frame.background:SetWidth(barWidth + 2)
+
+    --resize icon
+    local maxIconSize = height --floor(height / 2)
+    if (barWidth < 15) then
+        frame.icon:Hide()
+    elseif (barWidth >= maxIconSize) then
+        frame.icon:Show()
+        frame.icon:SetHeight(maxIconSize)
+        frame.icon:SetWidth(maxIconSize)
+    else
+        frame.icon:SetHeight(barWidth)
+        frame.icon:SetWidth(barWidth)
+    end
 end
 function srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
     if units[unit] == nil or units[unit]["absorbFrames"] == nil then
@@ -977,10 +1036,10 @@ function srslylawlUI_GetFrameByUnitType(unit)
         local c = type(b) == "table" and b:GetAttribute("unit") == unit or false
         if c then
             return b
-        else
-            return nil
         end
     end
+
+    return nil
 end
 function srslylawlUI_Frame_Reset_All()
     for k, v in ipairs(srslylawlUI_PartyHeader) do
