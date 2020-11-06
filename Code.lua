@@ -745,7 +745,12 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     local absorbFrameCount = tablelength(units[unit]["absorbFrames"])
 
     local curBarIndex = 1
-
+    print("event")
+    local s = ""
+    for key, value in pairs(units[unit].absorbAurasByIndex) do
+        s = s .. units[unit].absorbAurasByIndex[key].name .. " "
+    end
+    print("tracked auras: ", s)
     local function CheckSegments(tAura, curBarIndex)
         local function SetupSegments(tAura, curBarIndex, useOldTimer)
             local segmentPool = units[unit]["absorbFrames"]
@@ -768,13 +773,15 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
             local t
             if useOldTimer then
-                print("resegment ", tAura.name)
+                print("resegment ", tAura.name, "absorb amount: ", absorbAmount, "to index ", curBarIndex)
+                currentBar:GetAttribute("")
                 t = tAura["trackedApplyTime"]
                 duration = expirationTime - t
             else
-                print("initial setup ", tAura.name)
+                print("initial setup ", tAura.name, "absorb amount: ", absorbAmount, "to index ", curBarIndex)
                 --may display wrong time on certain auras that are still active if ui has just been reloaded, very niche though
                 t = GetTime()
+                duration = expirationTime - t
                 tAura["trackedApplyTime"] = t
             end
 
@@ -803,23 +810,25 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
         local trackedSegments = tAura["trackedSegments"]
 
-        --print(tAura.name, "does track segments? ", doesTrackSegments, "curIndex ", curBarIndex)
+        print(tAura.name, "does track segments? ", doesTrackSegments, "curIndex ", curBarIndex)
         if doesTrackSegments then
             --this aura has active segments, check if they still make sense
 
             --go through all tracked segments
             for bIndex, cBar in pairs(trackedSegments) do
+                print("tracking at ", bIndex)
                 local segmentNumberIsfine = (segmentPool[curBarIndex] == cBar)
                 local absorbIsSame = (absorbAmount == cBar:GetAttribute("absorbAmount"))
 
                 if not segmentNumberIsfine then
-                    --print("segment number changed")
+                    print("segment number changed")
                     local tempIndex = 1
                     for key, value in pairs(units[unit].absorbAurasByIndex) do
                         tempIndex = SetupSegments(units[unit].absorbAurasByIndex[key], tempIndex, true)
                     end
-                end
-                if not absorbIsSame then
+                elseif not absorbIsSame then
+                    --since resegmenting fixes all absorb values, we only have to check for that if segment number is fine
+                    print("absorb not same, changing")
                     srslylawlUI_ChangeAbsorbSegment(cBar, pixelPerHp, absorbAmount, height)
                 end
                 if wasRefreshed then
