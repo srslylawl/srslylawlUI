@@ -899,7 +899,6 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             CooldownFrame_Set(currentBar.cooldown, t, duration, true)
 
             currentBar.icon:SetTexture(iconID)
-            currentBar.icon:Show()
             currentBar:Show()
             --track the segment
             trackedSegments[curBarIndex] = currentBar
@@ -982,10 +981,13 @@ function srslylawlUI_ChangeAbsorbSegment(frame, pixelPerHp, absorbAmount, height
     frame:SetWidth(barWidth)
     frame.background:SetHeight(height + 2)
     frame.background:SetWidth(barWidth + 2)
-
+    print("change", barWidth)
     --resize icon
-    local maxIconSize = height --floor(height / 2)
-    if (barWidth < 15) then
+    local minSize = 15
+    local maxIconSize = floor(height * 0.8)
+    if (barWidth < minSize) then
+        frame.icon:SetWidth(minSize)
+        frame.icon:SetHeight(minSize)
         frame.icon:Hide()
     elseif (barWidth >= maxIconSize) then
         frame.icon:Show()
@@ -994,6 +996,7 @@ function srslylawlUI_ChangeAbsorbSegment(frame, pixelPerHp, absorbAmount, height
     else
         frame.icon:SetHeight(barWidth)
         frame.icon:SetWidth(barWidth)
+        frame.icon:Show()
     end
 end
 function srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
