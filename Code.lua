@@ -162,6 +162,13 @@ function srslylawlUI_InitialConfig(header, buttonFrame)
     buttonFrame:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
     buttonFrame:RegisterEvent("UNIT_HEAL_PREDICTION")
     buttonFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    buttonFrame.unit:SetScript(
+        "OnEnter",
+        function(self)
+            GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
+            GameTooltip:SetUnit("player")
+        end
+    )
 
     RegisterUnitWatch(buttonFrame.pet)
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
@@ -332,6 +339,31 @@ function srslylawlUI_Button_OnDragStart(self, button)
     if not srslylawlUI_PartyHeader:IsMovable() then
         return
     end
+
+    local grpMembers = GetNumGroupMembers()
+    for i = 1, grpMembers do
+        local u = i == 1 and "player" or "party" .. i
+
+        local buttonFrame
+        if i == 1 then
+            buttonFrame = srslylawlUI_PartyHeaderUnitButton1
+        else
+            buttonFrame = srslylawlUI_GetFrameByUnitType(u)
+        end
+        if (buttonFrame) then
+            buttonFrame:ClearAllPoints()
+            if i == 1 then
+                buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
+            else
+                local parent = srslylawlUI_GetFrameByUnitType("party" .. i - 1)
+                if i == 2 then
+                    parent = srslylawlUI_PartyHeaderUnitButton1
+                end
+                buttonFrame:SetPoint("TOPLEFT", parent, "BOTTOMLEFT")
+            end
+            srslylawlUI_ResetUnitButton(buttonFrame.unit, "party" .. i)
+        end
+    end
     srslylawlUI_PartyHeader:StartMoving()
     srslylawlUI_PartyHeader.isMoving = true
 end
@@ -343,6 +375,7 @@ function srslylawlUI_Button_OnDragStop(self, button)
         settings.header.xOffset = xOfs
         settings.header.yOffset = yOfs
         srslylawlUI_SetDirtyFlag()
+        SortPartyFrames()
     end
 end
 local function ShowHideAllUnits()
@@ -1438,24 +1471,27 @@ function SortPartyFrames()
             srslylawlUI_ResetUnitButton(buttonFrame.unit, list[i].unit)
         end
     end
-    local clearAfterSort = function()
-        if not srslylawlUI.clearTimerActive then
-            srslylawlUI.clearTimerActive = true
-            C_Timer.After(
-                0.5,
-                function()
+    ClearAfterSort()
+    --print("done sorting")
+end
+function ClearAfterSort()
+    if not srslylawlUI.clearTimerActive then
+        srslylawlUI.clearTimerActive = true
+        C_Timer.After(
+            0.5,
+            function()
+                if not InCombatLockdown() then
                     srslylawlUI.clearTimerActive = false
                     ClearPointsAllPartyFrames()
                     if not srslylawlUI.AreFramesVisible() then
-                        --print(srslylawlUI.AreFramesVisible())
                         srslylawlUI.UpdateEverything()
                     end
+                else
+                    ClearAfterSort()
                 end
-            )
-        end
+            end
+        )
     end
-    clearAfterSort()
-    --print("done sorting")
 end
 function ClearPointsAllPartyFrames()
     for k, v in ipairs(srslylawlUI_PartyHeader) do
@@ -1572,7 +1608,7 @@ srslylawlUI_EventFrame:SetScript(
             elseif arg1 then
                 --srslylawlUI.SortAfterLogin()
                 --since it takes a while for everything to load, we just wait until all our frames are visible before we do anything else
-                --print("initiallogin")
+                SortPartyFrames()
             elseif arg2 then
                 --print("reload ui")
                 srslylawlUI_ResizeHealthBarScale()
