@@ -22,11 +22,23 @@ local unsaved = {
     flag = false,
     buttons = {}
 }
+local anchored
 local units = {} -- tracks auras and frames
 local tooltip = CreateFrame("GameTooltip", "srslylawl_ScanTooltip", UIParent, "GameTooltipTemplate")
 
 srslylawlUI = {}
 
+srslylawlUI.sortTimerActive = false
+srslylawlUI.clearTimerActive = false
+
+--TODO: char tooltip
+--      replace buffframes table stuff
+--      incoming heal
+--      debuffs
+--      magic absorb
+--      necrotic
+--      defensive cooldowns
+--      config window
 srslylawlUI.AbsorbAuraBySpellIDDescending = function(absorbAuraTable)
     local t = {}
 
@@ -41,7 +53,36 @@ srslylawlUI.AbsorbAuraBySpellIDDescending = function(absorbAuraTable)
     )
     return t
 end
+function tableEquals(table1, table2)
+    if table1 == table2 then
+        return true
+    end
+    local table1Type = type(table1)
+    local table2Type = type(table2)
+    if table1Type ~= table2Type then
+        return false
+    end
+    if table1Type ~= "table" then
+        return false
+    end
 
+    local keySet = {}
+
+    for key1, value1 in pairs(table1) do
+        local value2 = table2[key1]
+        if value2 == nil or tableEquals(value1, value2) == false then
+            return false
+        end
+        keySet[key1] = true
+    end
+
+    for key2, _ in pairs(table2) do
+        if not keySet[key2] then
+            return false
+        end
+    end
+    return true
+end
 local function GetBuffText(buffIndex, unit, spellId)
     tooltip:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
     tooltip:SetUnitBuff(unit, buffIndex)
@@ -99,12 +140,14 @@ local function SaveSettings()
     srslylawlUI_RemoveDirtyFlag()
 end
 function srslylawlUI_InitialConfig(header, buttonFrame)
-    -- Nudge the status bar frame levels down
     -- header = PartyHeader
     buttonFrame = _G[buttonFrame]
-    local frameLevel = buttonFrame.unit:GetFrameLevel()
-    buttonFrame.unit.healthBar:SetFrameLevel(frameLevel)
-    buttonFrame.unit.powerBar:SetFrameLevel(frameLevel)
+    --local frameLevel = buttonFrame.unit:GetFrameLevel()
+    --buttonFrame.unit:SetFrameLevel(2)
+    buttonFrame.unit.healthBar:SetFrameLevel(2)
+    buttonFrame.unit.powerBar:SetFrameLevel(2)
+    buttonFrame.pet:SetFrameLevel(2)
+    buttonFrame.pet.healthBar:SetFrameLevel(1)
     buttonFrame.unit:RegisterForDrag("LeftButton")
     buttonFrame:RegisterEvent("UNIT_HEALTH")
     buttonFrame:RegisterEvent("UNIT_MAXHEALTH")
@@ -118,22 +161,15 @@ function srslylawlUI_InitialConfig(header, buttonFrame)
     buttonFrame:RegisterEvent("UNIT_AURA")
     buttonFrame:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
     buttonFrame:RegisterEvent("UNIT_HEAL_PREDICTION")
+    buttonFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 
     RegisterUnitWatch(buttonFrame.pet)
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
-    -- Create background for
-    -- local background = CreateFrame("Frame", "$parent_background", buttonFrame.pet)
-    -- local t = background:CreateTexture(nil, "BACKGROUND")
-    -- t:SetColorTexture(0, 0, 0, .5)
-    -- t:SetAllPoints(background)
-    -- background:SetPoint("CENTER", 0, 0)
-    -- background:SetWidth(15 + 2)
-    -- background:SetHeight(settings.hp.height + 2)
-    -- background.texture = t
-    -- background:Show()
-    -- buttonFrame.pet.bg = background
+
     srslylawlUI_CreateBackground(buttonFrame.pet)
-    srslylawlUI_CreateBackground(buttonFrame.unit.healthBar)
+    if (buttonFrame.unit.healthBar["bg"] == nil) then
+        srslylawlUI_CreateBackground(buttonFrame.unit.healthBar)
+    end
     --buttonFrame.pet.unit = buttonFrame.unit
     buttonFrame.pet:HookScript(
         "OnShow",
@@ -141,10 +177,9 @@ function srslylawlUI_InitialConfig(header, buttonFrame)
             --print("show pet")
         end
     )
-    buttonFrame.unit.name:SetPoint("BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
+    buttonFrame.unit.healthBar.name:SetPoint("BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
     buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 2, 2)
-    buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY")
-    --buttonFrame.unit.healthBar.text:SetFrameLevel(6)
+    --buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY")
     buttonFrame.unit.auras = {}
     srslylawlUI_Frame_ResetDimensions(buttonFrame)
 end
@@ -158,7 +193,8 @@ function srslylawlUI_CreateBackground(frame)
     background:SetHeight(settings.hp.height + 2)
     background.texture = t
     background:Show()
-    background:SetFrameLevel(2)
+    background:SetFrameStrata("BACKGROUND")
+    background:SetFrameLevel(1)
     frame.bg = background
 end
 local configString =
@@ -170,7 +206,13 @@ local configString =
 ]]
 function srslylawlUI_Frame_OnShow(button)
     -- button = UnitButtonX
+    if button:GetName() == "srsylawlUI_PartyHeaderUnitButton2" then
+        print("worked")
+    --srslylawlUI.SortAfterLogin()
+    end
+
     local unit = button:GetAttribute("unit")
+    --i think the code below never executes since the button will never have the unit attribute on show (gets assigned later)
     if unit then
         local guid = UnitGUID(unit)
         if guid ~= button.guid then
@@ -196,11 +238,6 @@ end
 function srslylawlUI_ResetName(button, unit)
     -- This function can return a substring of a UTF-8 string, properly handling UTF-8 codepoints. Rather than taking a start index and optionally an end index, it takes the string, the start index, and
     -- the number of characters to select from the string.
-    -- UTF-8 Reference:
-    -- 0xxxxxx - ASCII character
-    -- 110yyyxx - 2 byte UTF codepoint
-    -- 1110yyyy - 3 byte UTF codepoint
-    -- 11110zzz - 4 byte UTF codepoint
     local function utf8sub(str, start, numChars)
         local currentIndex = start
         while numChars > 0 and currentIndex <= #str do
@@ -224,8 +261,8 @@ function srslylawlUI_ResetName(button, unit)
     local maxLength = settings.hp.width
     for length = #name, 1, -1 do
         substring = utf8sub(name, 1, length)
-        button.name:SetText(substring)
-        if button.name:GetStringWidth() <= maxLength then
+        button.healthBar.name:SetText(substring)
+        if button.healthBar.name:GetStringWidth() <= maxLength then
             return
         end
     end
@@ -321,8 +358,9 @@ srslylawlUI_Frame_OnEvent = function(self, event, arg1, ...)
     end
     -- Handle any events that don’t accept a unit argument
     if event == "PLAYER_ENTERING_WORLD" then
-        srslylawlUI_ResizeHealthBarScale()
         srslylawlUI_Frame_HandleAuras(self.unit, unit, true)
+    elseif event == "GROUP_ROSTER_UPDATE" then
+        srslylawlUI_ResetUnitButton(self.unit, unit)
     elseif event == "PLAYER_TARGET_CHANGED" then
         if UnitIsUnit(unit, "target") then
             self.unit.selected:Show()
@@ -331,6 +369,11 @@ srslylawlUI_Frame_OnEvent = function(self, event, arg1, ...)
         end
     elseif arg1 and UnitIsUnit(unit, arg1) then
         if event == "UNIT_MAXHEALTH" then
+            -- if InCombatLockdown() then
+            --     eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+            -- else
+            --     SortPartyFrames()
+            -- end
             srslylawlUI_ResizeHealthBarScale()
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
                 srslylawlUI_ResetUnitButton(self.unit, unit)
@@ -344,14 +387,16 @@ srslylawlUI_Frame_OnEvent = function(self, event, arg1, ...)
         elseif event == powerUpdateType then
             self.unit.powerBar:SetValue(UnitPower(unit))
         elseif event == "UNIT_NAME_UPDATE" then
+            --print("sort nameupdate")
+            --SortPartyFrames()
             srslylawlUI_ResetName(self.unit, unit)
         elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
             local status = UnitThreatSituation(unit)
             if status and status > 0 then
                 local r, g, b = GetThreatStatusColor(status)
-                self.unit.name:SetTextColor(r, g, b)
+                self.unit.healthBar.name:SetTextColor(r, g, b)
             else
-                self.unit.name:SetTextColor(1, 1, 1)
+                self.unit.healthBar.name:SetTextColor(1, 1, 1)
             end
         elseif event == "UNIT_CONNECTION" then
             srslylawlUI_ResetHealthBar(self.unit, unit)
@@ -374,10 +419,11 @@ srslylawlUI_Frame_OnEvent = function(self, event, arg1, ...)
     end
 end
 function srslylawlUI_ResizeHealthBarScale()
-    local highestHP, averageHP = srslylawlUI_GetPartyHealth()
+    --print("resize scale")
+    local list, highestHP, averageHP = srslylawlUI_GetPartyHealth()
 
     local scaleByHighest = true
-    local lowerCap = 0.33 --bars can not get smaller than this percent of highest
+    local lowerCap = 0.45 --bars can not get smaller than this percent of highest
     local pixelPerHp = settings.hp.width / highestHP
     local minWidth = floor(highestHP * pixelPerHp * lowerCap)
 
@@ -391,21 +437,21 @@ function srslylawlUI_ResizeHealthBarScale()
     end
     srslylawlUI_Frame_Reset_All()
 end
-function GetNameList()
-    local _, _, list = srslylawlUI_GetPartyHealth()
+function srslylawlUI_CreateNameListString()
+    local list = srslylawlUI_GetPartyHealth()
 
-    local nameList = ""
+    local nameString = ""
 
     for i = 1, #list do
         local u = list[i].name
         if i == 1 then
-            nameList = nameList .. u
+            nameString = nameString .. u
         else
-            nameList = nameList .. "," .. u
+            nameString = nameString .. "," .. u
         end
     end
-    print(nameList)
-    return nameList
+    print(nameString)
+    return nameString
 end
 local function GetUnitNameWithServer(unit)
     local name, server
@@ -418,48 +464,56 @@ local function GetUnitNameWithServer(unit)
     return name
 end
 function srslylawlUI_GetPartyHealth()
+    --print("gethealth called")
     if units["healthBars"] == nil then
         units["healthBars"] = {}
     end
 
-    for k, v in pairs(srslylawlUI_PartyHeader) do
-        local buttonFrame = type(v) == "table" and v or nil
-        if buttonFrame then
-            local u = buttonFrame:GetAttribute("unit")
-            if u then
-                if units["healthBars"][u] == nil then
-                    units["healthBars"][u] = {}
-                end
-                units["healthBars"][u]["maxHealth"] = UnitHealthMax(u)
-                units["healthBars"][u]["unit"] = u
-                units["healthBars"][u]["name"] = GetUnitNameWithServer(u)
-            end
-        end
-    end
-
-    local nameListSortedByHealthDesc = {}
+    local nameStringSortedByHealthDesc = {}
+    local hasUnknownMember = false
 
     local highestHP, averageHP, memberCount = 0, 0, 0
-    for key, value in pairs(units["healthBars"]) do
-        local maxHealth = units["healthBars"][key].maxHealth
-        --units["healthBars"][key].
-        if maxHealth > highestHP then
-            highestHP = maxHealth
-        end
-        averageHP = averageHP + maxHealth
-        table.insert(nameListSortedByHealthDesc, units["healthBars"][key])
-        memberCount = memberCount + 1
+
+    local currentUnit = "player"
+    local partyIndex = 0
+    if not UnitExists("player") then
+        print("XXXXXX player doesnt exist? XXXXX")
+    else
+        --loop through all units
+        repeat
+            if units["healthBars"][currentUnit] == nil then
+                units["healthBars"][currentUnit] = {}
+            end
+            local maxHealth = UnitHealthMax(currentUnit)
+            if maxHealth > highestHP then
+                highestHP = maxHealth
+            end
+            local name = GetUnitNameWithServer(currentUnit)
+
+            if name == "Unknown" or maxHealth == 1 then
+                hasUnknownMember = true
+            end
+
+            units["healthBars"][currentUnit]["maxHealth"] = maxHealth
+            units["healthBars"][currentUnit]["unit"] = currentUnit
+            units["healthBars"][currentUnit]["name"] = name
+
+            averageHP = averageHP + maxHealth
+            table.insert(nameStringSortedByHealthDesc, units["healthBars"][currentUnit])
+            memberCount = memberCount + 1
+            currentUnit = "party" .. memberCount
+        until not UnitExists(currentUnit)
     end
 
     table.sort(
-        nameListSortedByHealthDesc,
+        nameStringSortedByHealthDesc,
         function(a, b)
             return b.maxHealth < a.maxHealth
         end
     )
     averageHP = floor(averageHP / memberCount)
 
-    return highestHP, averageHP, nameListSortedByHealthDesc
+    return nameStringSortedByHealthDesc, highestHP, averageHP, hasUnknownMember
 end
 local function srslylawlUI_RememberSpellID(id, buffIndex, unit)
     local function ProcessID(spellId, buffIndex, unit)
@@ -527,7 +581,6 @@ local function srslylawlUI_RememberSpellID(id, buffIndex, unit)
         ProcessID(id, buffIndex, unit)
     end
 end
-
 function srslylawlUI_ApproveSpellID(id)
     --we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it
     --it should get added updated though once we ever see it on any party members
@@ -832,12 +885,14 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             f.background = t
             f:Hide()
             f["icon"] = f:CreateTexture(nil, "OVERLAY")
-            f["icon"]:SetPoint("TOP")
+            f["icon"]:SetPoint("CENTER")
             f["icon"]:SetHeight(15)
             f["icon"]:SetWidth(15)
+            f["icon"]:SetTexCoord(.08, .92, .08, .92)
             f["icon"]:Hide()
             f["cooldown"] = CreateFrame("Cooldown", n .. "CD", f, "CooldownFrameTemplate")
             f["cooldown"]:SetReverse(true)
+            f:SetFrameLevel(1)
             f["cooldown"]:Show()
 
             units[unit]["absorbFrames"][i] = f
@@ -861,6 +916,9 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
     local curBarIndex = 1
 
+    --some absorbs are too small to display, so we group them together and display them if they reach a certain amount
+    local variousAbsorbAmount = 0
+
     local absorbAurasBySpellId = {}
     local function CheckSegments(tAura, curBarIndex)
         local function SetupSegments(tAura, curBarIndex, useOldTimer)
@@ -879,7 +937,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
             local trackedSegments = tAura["trackedSegments"]
             local currentBar = segmentPool[curBarIndex]
-            srslylawlUI_ChangeAbsorbSegment(currentBar, pixelPerHp, absorbAmount, height)
+            local barWidth = floor(pixelPerHp * absorbAmount)
+            srslylawlUI_ChangeAbsorbSegment(currentBar, barWidth, absorbAmount, height)
             units[unit].activeAbsorbFrames = units[unit].activeAbsorbFrames + 1
 
             local t
@@ -913,6 +972,14 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         local startTime = expirationTime - duration
         local wasRefreshed = tAura.wasRefreshed
         local doesTrackSegments = tAura["trackedSegments"] ~= nil
+        local barWidth = floor(pixelPerHp * absorbAmount)
+
+        if (barWidth < 2) then
+            --bar is too small to display, dont bother creating it,
+            --add it to our various frame
+            variousAbsorbAmount = variousAbsorbAmount + absorbAmount
+            return curBarIndex
+        end
 
         if not doesTrackSegments then
             tAura["trackedSegments"] = {}
@@ -929,7 +996,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                 --print("tracking at ", bIndex)
 
                 local segmentNumberIsfine = (segmentPool[curBarIndex] == cBar)
-                local absorbIsSame = (absorbAmount == cBar:GetAttribute("absorbAmount"))
+                local oldAbsorb = cBar:GetAttribute("absorbAmount")
+                local absorbIsSame = (absorbAmount == oldAbsorb)
 
                 if bIndex < curBarIndex then
                     --print("already updated, just changing this one")
@@ -944,8 +1012,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                     end
                 elseif not absorbIsSame then
                     --since resegmenting fixes all absorb values, we only have to check for that if segment number is fine
-                    --print("absorb not same, changing")
-                    srslylawlUI_ChangeAbsorbSegment(cBar, pixelPerHp, absorbAmount, height)
+                    --print("absorb not same, changing from", oldAbsorb, "to", absorbAmount)
+                    srslylawlUI_ChangeAbsorbSegment(cBar, barWidth, absorbAmount, height)
                 end
                 if wasRefreshed then
                     --print(tAura.name, "was refreshed this frame")
@@ -962,11 +1030,21 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         return curBarIndex
     end
 
-    -- absorb auras seem to get consumed in order by their spellid, ascending,
+    -- absorb auras seem to get consumed in order by their spellid, ascending, (not confirmed)
     -- so we sort by descending to visualize which one gets removed first
     for key, value in ipairs(srslylawlUI.AbsorbAuraBySpellIDDescending(units[unit].absorbAurasByIndex)) do
         curBarIndex = CheckSegments(value, curBarIndex)
     end
+
+    --see if we should display our various frame
+    local variousFrameLength = floor(variousAbsorbAmount * pixelPerHp)
+    if variousFrameLength >= 2 then
+        local variousBar = units[unit]["absorbFrames"][curBarIndex]
+        srslylawlUI_ChangeAbsorbSegment(segmentPool[curBarIndex], variousFrameLength, variousAbsorbAmount, height)
+        variousBar:Show()
+        curBarIndex = curBarIndex + 1
+    end
+
     for i = curBarIndex, maxFrames do
         if units[unit]["absorbFrames"][i]:IsVisible() then
             units[unit]["absorbFrames"][i]:Hide()
@@ -974,14 +1052,12 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
     end
 end
-function srslylawlUI_ChangeAbsorbSegment(frame, pixelPerHp, absorbAmount, height)
-    local barWidth = floor(pixelPerHp * absorbAmount)
+function srslylawlUI_ChangeAbsorbSegment(frame, barWidth, absorbAmount, height)
     frame:SetAttribute("absorbAmount", absorbAmount)
     frame:SetHeight(height)
     frame:SetWidth(barWidth)
     frame.background:SetHeight(height + 2)
     frame.background:SetWidth(barWidth + 2)
-    print("change", barWidth)
     --resize icon
     local minSize = 15
     local maxIconSize = floor(height * 0.8)
@@ -990,12 +1066,12 @@ function srslylawlUI_ChangeAbsorbSegment(frame, pixelPerHp, absorbAmount, height
         frame.icon:SetHeight(minSize)
         frame.icon:Hide()
     elseif (barWidth >= maxIconSize) then
-        frame.icon:Show()
         frame.icon:SetHeight(maxIconSize)
         frame.icon:SetWidth(maxIconSize)
+        frame.icon:Show()
     else
-        frame.icon:SetHeight(barWidth)
-        frame.icon:SetWidth(barWidth)
+        frame.icon:SetHeight(barWidth - 5)
+        frame.icon:SetWidth(barWidth - 5)
         frame.icon:Show()
     end
 end
@@ -1012,20 +1088,38 @@ function srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
     local baseAnchorOffset = (playerCurrentHP * pixelPerHp) + 1
     units[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset, 0)
 end
+local function UpdateHeaderNameList()
+    srslylawlUI_PartyHeader:SetAttribute("nameList", srslylawlUI_CreateNameListString())
+end
 local function HeaderSetup()
     local header = srslylawlUI_PartyHeader
+    UpdateHeaderNameList()
     header:SetAttribute("initialConfigFunction", configString)
     header.initialConfigFunction = srslylawlUI_InitialConfig
-    header:SetScript(
-        "OnEvent",
-        function(self, event, ...)
-            if ((event == "GROUP_ROSTER_UPDATE" or event == "UNIT_NAME_UPDATE") and self:IsVisible()) then
-                ClearPointsAllPartyFrames()
-                SecureGroupHeader_Update(self)
-                SortPartyFrames()
-            end
-        end
-    )
+    --header:SetScript(
+    --    "OnEvent",
+    --    nil
+    -- function(self, event, ...)
+    --     if ((event == "GROUP_ROSTER_UPDATE" or event == "UNIT_NAME_UPDATE") and self:IsVisible()) then
+    --         print("event")
+    --         if not InCombatLockdown() then
+    --             ClearPointsAllPartyFrames()
+    --             SecureGroupHeader_Update(self)
+    --         end
+    --     --SecureGroupHeader_Update(self)
+    --     end
+    -- end
+    --)
+
+    -- header:HookScript(
+    --     "OnEvent",
+    --     function(self, event, ...)
+    --         if event == "GROUP_ROSTER_UPDATE" or event == "UNIT_NAME_UPDATE" then
+    --             print("sort in hookscript")
+    --         --UpdateAfterLockDown()
+    --         end
+    --     end,
+    -- )
     header:Show()
     header:SetPoint(settings.header.anchor, settings.header.xOffset, settings.header.yOffset)
 end
@@ -1149,11 +1243,16 @@ function srslylawlUI_Frame_ResetDimensions(button)
             end
         end
     end
-    if abs(button.unit.healthBar:GetWidth() - w) > 1 then
+
+    local needsResize = abs(button.unit.healthBar:GetWidth() - w) > 1 or abs(button.unit.healthBar:GetHeight() - h) > 1
+    if needsResize then
         --print("sizing req, cur:", button.unit.healthBar:GetWidth(), "tar", w)
         button.unit.healthBar:SetWidth(w)
         button.unit.healthBar:SetHeight(h)
-        button.unit.healthBar.bg:SetWidth(w + 2)
+        if button.unit.healthBar["bg"] == nil then
+            srslylawlUI_CreateBackground(button.unit.healthBar)
+        end
+        button.unit.healthBar.bg:SetWidth(w + 2) --TODO: showed nil once, why?
         button.unit.healthBar.bg:SetHeight(h + 2)
         button.unit.powerBar:SetHeight(h)
         button.unit.powerBar.background:SetHeight(h + 2)
@@ -1277,7 +1376,7 @@ local function CreateSlashCommands()
 
     SlashCmdList["SRSLYLAWLUI"] = function(msg, txt)
         if InCombatLockdown() then
-            srslylawlUI_Log("accessing menu while in combat will lead to taint.")
+            srslylawlUI_Log("Can't access menu while in combat.")
             return
         end
         if msg and msg == "save" then
@@ -1295,25 +1394,68 @@ local function CreateSlashCommands()
     end
 end
 function SortPartyFrames()
-    local _, _, list = srslylawlUI_GetPartyHealth()
+    --print("sort called")
+    local list, _, _, hasUnknownMember = srslylawlUI_GetPartyHealth()
 
     if not list then
         return
     end
 
+    --print(#list, GetNumGroupMembers())
+    if InCombatLockdown() then
+        srslylawlUI.SortAfterCombat()
+        return
+    end
+
+    if hasUnknownMember then
+        --all units arent properly loaded yet, lets check again in a few secs
+        --print("has unknown, checking again soon")
+        if not srslylawlUI.sortTimerActive then
+            srslylawlUI.sortTimerActive = true
+            C_Timer.After(
+                1,
+                function()
+                    srslylawlUI.sortTimerActive = false
+                    SortPartyFrames()
+                end
+            )
+        end
+        return
+    end
+
     for i = 1, #list do
         local buttonFrame = srslylawlUI_GetFrameByUnitType(list[i].unit)
+        --print(i, ".", list[i].unit, list[i].name, list[i].maxHealth)
+
         if (buttonFrame) then
             buttonFrame:ClearAllPoints()
-            local s = list[i].unit, buttonFrame:GetName() .. " to "
             if i == 1 then
                 buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
             else
                 local parent = srslylawlUI_GetFrameByUnitType(list[i - 1].unit)
                 buttonFrame:SetPoint("TOPLEFT", parent, "BOTTOMLEFT")
             end
+            srslylawlUI_ResetUnitButton(buttonFrame.unit, list[i].unit)
         end
     end
+    local clearAfterSort = function()
+        if not srslylawlUI.clearTimerActive then
+            srslylawlUI.clearTimerActive = true
+            C_Timer.After(
+                0.5,
+                function()
+                    srslylawlUI.clearTimerActive = false
+                    ClearPointsAllPartyFrames()
+                    if not srslylawlUI.AreFramesVisible() then
+                        --print(srslylawlUI.AreFramesVisible())
+                        srslylawlUI.UpdateEverything()
+                    end
+                end
+            )
+        end
+    end
+    clearAfterSort()
+    --print("done sorting")
 end
 function ClearPointsAllPartyFrames()
     for k, v in ipairs(srslylawlUI_PartyHeader) do
@@ -1323,29 +1465,136 @@ function ClearPointsAllPartyFrames()
             button:ClearAllPoints()
         end
     end
+    --print("points cleared")
 end
 local function srslylawlUI_Initialize()
     LoadSettings()
     HeaderSetup()
     CreateSlashCommands()
     CreateConfig()
-    SortPartyFrames()
+end
+srslylawlUI.AreFramesVisible = function()
+    local base = "srslylawlUI_PartyHeaderUnitButton"
+    local index = 1
+    local b = _G[base .. index]
+    print(GetNumGroupMembers())
+
+    if not b then
+        --print("not ", base .. index)
+        return false
+    end
+    repeat
+        --print(base .. index, b)
+        if b:IsVisible() == false then
+            --print(b:GetName(), "not visible")
+            --means we dont have as many group members as buttons (someone left)
+            if GetNumGroupMembers() < index then
+                return true
+            end
+        end
+        local dist = b:GetLeft()
+
+        if dist == nil or dist < 1 then
+            --print("left", dist)
+            return false
+        end
+        dist = b:GetRight()
+        if dist == nil or dist < 1 then
+            --print("right", dist)
+            return false
+        end
+        --print(dist)
+
+        index = index + 1
+        b = _G[base .. index]
+    until not b
+    --print("frames are visible")
+    return true
+end
+srslylawlUI.SortAfterCombat = function()
+    srslylawlUI_EventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+end
+srslylawlUI.SortAfterLogin = function()
+    print("sort after login")
+    local list, _, _, hasUnknownMember = srslylawlUI_GetPartyHealth()
+    print(#list, GetNumGroupMembers(), IsInGroup(), hasUnknownMember)
+    if srslylawlUI.AreFramesVisible and not hasUnknownMember then
+        srslylawlUI_EventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+        srslylawlUI_EventFrame:RegisterEvent("UNIT_MAXHEALTH")
+        srslylawlUI.UpdateEverything()
+    else
+        C_Timer.After(
+            .5,
+            function()
+                srslylawlUI.SortAfterLogin()
+            end
+        )
+    end
+end
+srslylawlUI.UpdateEverything = function()
+    print("update everything")
+    if not InCombatLockdown() then
+        UpdateHeaderNameList()
+        SortPartyFrames()
+        srslylawlUI_ResizeHealthBarScale()
+    else
+        C_Timer.After(
+            1,
+            function()
+                srslylawlUI.UpdateEverything()
+            end
+        )
+    end
 end
 
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("PLAYER_LOGIN")
-frame:RegisterEvent("UNIT_MAXHEALTH")
-frame:RegisterEvent("GROUP_ROSTER_UPDATE")
-frame:SetScript(
+srslylawlUI_EventFrame = CreateFrame("Frame")
+srslylawlUI_EventFrame:RegisterEvent("PLAYER_LOGIN")
+srslylawlUI_EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+srslylawlUI_EventFrame:SetScript(
     "OnEvent",
-    function(self, event)
+    function(self, event, arg1, arg2)
         if (event == "PLAYER_LOGIN") then
             srslylawlUI_Initialize()
             self:UnregisterEvent("PLAYER_LOGIN")
         elseif event == "UNIT_MAXHEALTH" or event == "GROUP_ROSTER_UPDATE" then
-            if not InCombatLockdown() then
-            --SortPartyFrames()
+            --delay since it bugs if it happens at the same frame for some reason
+            --print("roster update")
+            C_Timer.After(
+                .1,
+                function()
+                    --print("sort after maxhealth/grp change")
+                    SortPartyFrames()
+                end
+            )
+        elseif event == "PLAYER_ENTERING_WORLD" then
+            if not (arg1 or arg2) then
+                --print("just zoning between maps")
+            elseif arg1 then
+                --srslylawlUI.SortAfterLogin()
+                --since it takes a while for everything to load, we just wait until all our frames are visible before we do anything else
+                --print("initiallogin")
+            elseif arg2 then
+                --print("reload ui")
+                srslylawlUI_ResizeHealthBarScale()
+                SortPartyFrames()
             end
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            --print("regen enabled sort")
+            srslylawlUI.UpdateEverything()
+            self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        end
+    end
+)
+--since events seem to fire in arbitrary order after login, we use this frame for the first time the maxhealth event fires
+srslylawlUI_FirstMaxHealthEventFrame = CreateFrame("Frame")
+srslylawlUI_FirstMaxHealthEventFrame:RegisterEvent("UNIT_MAXHEALTH")
+srslylawlUI_FirstMaxHealthEventFrame:SetScript(
+    "OnEvent",
+    function(self, event, ...)
+        if event == "UNIT_MAXHEALTH" then
+            --print("maxhealth event in event frame")
+            srslylawlUI.SortAfterLogin()
+            self:UnregisterEvent("UNIT_MAXHEALTH")
         end
     end
 )

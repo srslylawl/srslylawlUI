@@ -15,7 +15,6 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 				</Anchors>
 				<Layers>
 					<Layer level="OVERLAY">
-						<FontString name="$parent_Name" parentKey="name" inherits="GameFontHighlight"/>
 						<Texture name="$parent_Selected" parentKey="selected" setAllPoints="true" file="Interface\AddOns\srslylawlUI\media\healthBarHighlight" alphaMode="ADD" hidden="true"/>
 					</Layer>
 				</Layers>
@@ -25,14 +24,16 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 						<Anchors>
 							<Anchor point="TOPLEFT" />
 						</Anchors>
-						<BarTexture file="Interface\Addons\srslylawlUI\media\healthBar" />
+						<BarTexture name="$parent_texture" file="Interface\Addons\srslylawlUI\media\healthBar" />
 						<BarColor r="1.0" g="1.0" b="1.0" />
 						<Layers>
 							<Layer level="OVERLAY">
+								<FontString name="$parent_Name" parentKey="name" inherits="GameFontHighlight"/>
 								<FontString name="$parent_Text" parentKey="text" inherits="GameFontHighlight"/>
 							</Layer>
 						</Layers>
 					</StatusBar>
+
 					<StatusBar name="$parent_PowerBar" parentKey="powerBar" orientation="VERTICAL">
 						<Size x="10" y="50" />
 						<Anchors>
@@ -40,7 +41,7 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 								<Offset x="-1" y="0" />
 							</Anchor>
 						</Anchors>
-						<BarTexture file="Interface\AddOns\srslylawlUI\media\healthBar"/>
+						<BarTexture name="$parent_texture" file="Interface\AddOns\srslylawlUI\media\healthBar"/>
 						<BarColor r="1.0" g="1.0" b="1.0" />
 						<Layers>
 							<Layer level="BACKGROUND">
@@ -55,7 +56,7 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 								</Texture>
 							</Layer>
 						</Layers>
-					</StatusBar>
+					</StatusBar>				
 				</Frames>
 				<Scripts>
 					<OnDragStart function="srslylawlUI_Button_OnDragStart"/>
@@ -67,7 +68,7 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 					<Attribute name="*type1" type="string" value="target"/>
 					<Attribute name="type2" type="string" value="togglemenu"/>
 				</Attributes>
-				<HighlightTexture file="Interface\AddOns\srslylawlUI\media\healthBarHighlight" alphaMode="ADD"/>
+				<HighlightTexture name="$parent_Highlight" file="Interface\AddOns\srslylawlUI\media\healthBarHighlight" alphaMode="ADD"/>
 			</Button>
 			<!-- PET -->
 			<Button name="$parent_Pet" parentKey="pet" inherits="SecureHandlerShowHideTemplate,SecureUnitButtonTemplate" emableMouse="true">
@@ -78,11 +79,16 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 					</Anchor>
 				</Anchors>
 				<Frames>
-					<StatusBar name="$parent_HealthBar" parentKey="healthBar" setAllPoints="true" orientation="vertical">
-						<BarTexture file="Interface\AddOns\srslylawlUI\media\healthBar"/>
-						<BarColor r="0.0" g="1.0" b="0.0"/>
+					<StatusBar name="$parent_HealthBar" parentKey="healthBar" setallpoints="true" orientation="vertical" enableMouse="true">
+					<BarTexture file="Interface\AddOns\srslylawlUI\media\healthBar"/>
+					<BarColor r="0.4" g="1" b="0.2"/>
 					</StatusBar>
 				</Frames>
+				<Layers>
+					<Layer level="HIGHLIGHT">
+					<Texture name="$parent_Highlight" parentKey="selected" setAllPoints="true" file="Interface\BUTTONS\ButtonHilight-Square" alphaMode="ADD"/>
+					</Layer>
+				</Layers>
 				<Attributes>
 					<Attribute name="useparent-unit" type="boolean" value="true"/>
 					<Attribute name="unitsuffix" type="string" value="pet"/>
@@ -97,23 +103,22 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 	</Frame>
 	<Frame name="srslylawlUI_PartyHeader" parent="UIParent" inherits="SecurePartyHeaderTemplate" movable="true">
 		<Anchors>
-			<Anchor point="CENTER"/>
+			<Anchor point="TOPLEFT"/>
 		</Anchors>
 		<Attributes>
 			<Attribute name="showParty" type="boolean" value="true"/>
 			<Attribute name="showRaid" type="boolean" value="true"/>
 			<Attribute name="showPlayer" type="boolean" value="true"/>
 			<Attribute name="showSolo" type="boolean" value="true"/>
-			<!-- <Attribute name="maxColumns" type="number" value="5"/> -->
-			<!-- <Attribute name="unitsPerColumn" type="number" value="1"/> -->
-			<!-- <Attribute name="columnAnchorPoint" type="string" value="TOPLEFT"/> -->
+			<Attribute name="maxColumns" type="number" value="1"/>
+			<Attribute name="unitsPerColumn" type="number" value="5"/>
 			<Attribute name="point" type="string" value="TOP"/>
 			<Attribute name="sortMethod" type="string" value="NAMELIST"/>
 			<Attribute name="template" type="string" value="srslylawlUI_UnitTemplate"/>
 			<Attribute name="templateType" type="string" value="Frame"/>
 			<!-- <Attribute name="xOffset" type="number" value="-50"/> --> -->
 			<!-- <Attribute name="yOffset" type="number" value="2"/> -->
-			<!-- <Attribute name="columnSpacing" type="number" value="-10"/> --> -->
+			<Attribute name="columnSpacing" type="number" value="1"/>
 		</Attributes>
 	</Frame>
 </Ui>
