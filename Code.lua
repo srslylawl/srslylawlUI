@@ -33,7 +33,6 @@ srslylawlUI.clearTimerActive = false
 
 --TODO: char tooltip
 --      replace buffframes table stuff
---      incoming heal
 --      debuffs
 --      magic absorb
 --      necrotic
@@ -111,8 +110,10 @@ function deepcopy(orig)
     return copy
 end
 local powerUpdateType = "UNIT_POWER_UPDATE" --"UNIT_POWER_UPDATE" or "UNIT_POWER_FRQUENT"
-local function LoadSettings(reset)
-    srslylawlUI_Log("Settings Loaded")
+local function LoadSettings(reset, announce)
+    if announce then
+        srslylawlUI_Log("Settings Loaded")
+    end
     settings = deepcopy(srslylawl_saved.settings)
     if srslylawlUI_ConfigFrame then
         srslylawlUI_ConfigFrame.sliders.height:SetValue(settings.hp.height)
@@ -177,13 +178,6 @@ function srslylawlUI_InitialConfig(header, buttonFrame)
     if (buttonFrame.unit.healthBar["bg"] == nil) then
         srslylawlUI_CreateBackground(buttonFrame.unit.healthBar)
     end
-    --buttonFrame.pet.unit = buttonFrame.unit
-    buttonFrame.pet:HookScript(
-        "OnShow",
-        function(self)
-            --print("show pet")
-        end
-    )
     buttonFrame.unit.healthBar.name:SetPoint("BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
     buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 2, 2)
     --buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY")
@@ -402,11 +396,6 @@ srslylawlUI_Frame_OnEvent = function(self, event, arg1, ...)
         end
     elseif arg1 and UnitIsUnit(unit, arg1) then
         if event == "UNIT_MAXHEALTH" then
-            -- if InCombatLockdown() then
-            --     eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-            -- else
-            --     SortPartyFrames()
-            -- end
             srslylawlUI_ResizeHealthBarScale()
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
                 srslylawlUI_ResetUnitButton(self.unit, unit)
@@ -420,8 +409,6 @@ srslylawlUI_Frame_OnEvent = function(self, event, arg1, ...)
         elseif event == powerUpdateType then
             self.unit.powerBar:SetValue(UnitPower(unit))
         elseif event == "UNIT_NAME_UPDATE" then
-            --print("sort nameupdate")
-            --SortPartyFrames()
             srslylawlUI_ResetName(self.unit, unit)
         elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
             local status = UnitThreatSituation(unit)
@@ -440,7 +427,8 @@ srslylawlUI_Frame_OnEvent = function(self, event, arg1, ...)
         elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
             srslylawlUI_Frame_HandleAuras(self.unit, unit, true)
         elseif event == "UNIT_HEAL_PREDICTION" then
-        --UnitGetIncomingHeals(unit)
+            --srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
+            srslylawlUI_Frame_HandleAuras(self.unit, unit, true)
         end
     elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
         if event == "UNIT_MAXHEALTH" then
@@ -483,7 +471,6 @@ function srslylawlUI_CreateNameListString()
             nameString = nameString .. "," .. u
         end
     end
-    print(nameString)
     return nameString
 end
 local function GetUnitNameWithServer(unit)
@@ -726,6 +713,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         units[unit].absorbAurasByIndex[index]["duration"] = duration
         units[unit].absorbAurasByIndex[index]["expiration"] = expirationTime
         units[unit].absorbAurasByIndex[index]["wasRefreshed"] = flagRefreshed
+        units[unit].absorbAurasByIndex[index]["index"] = index --double index here to make it easier to get it again for tooltip
     end
     local function unTrackSpell(index)
         --print("untrack spell" .. units[unit].absorbAurasByIndex[index].name)
@@ -774,6 +762,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         units[unit].absorbAurasByIndex[i]["duration"] = duration
         units[unit].absorbAurasByIndex[i]["expiration"] = expirationTime
         units[unit].absorbAurasByIndex[i]["wasRefreshed"] = flagRefreshed
+        units[unit].absorbAurasByIndex[i]["index"] = i
 
         if units[unit].absorbAurasByIndex[oldIndex]["trackedSegments"] ~= nil then
             if units[unit].absorbAurasByIndex[i]["trackedSegments"] == nil then
@@ -889,9 +878,11 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     local buttonFrame = srslylawlUI_GetFrameByUnitType(unit)
     local height = buttonFrame.unit:GetHeight()
     local width = buttonFrame.unit.healthBar:GetWidth()
-    local pixelPerHp = width / UnitHealthMax(unit)
+    local playerHealthMax = UnitHealthMax(unit)
+    local pixelPerHp = width / playerHealthMax
     local playerCurrentHP = UnitHealth(unit)
-
+    local playerMissingHP = playerHealthMax - playerCurrentHP
+    local statusBarTex = "Interface/RAIDFRAME/Shield-Fill"
     ---create frames if needed
     local maxFrames = 15
     if units[unit]["absorbFrames"] == nil then
@@ -904,20 +895,20 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             end
             local n = unit .. "AbsorbFrame" .. i
             local f = CreateFrame("StatusBar", n, parentFrame)
-            f:SetStatusBarTexture("Interface/RAIDFRAME/Shield-Fill")
+            f:SetStatusBarTexture(statusBarTex, "ARTWORK")
             f:SetStatusBarColor(1, 1, 1, .8)
             f:SetPoint("TOPLEFT", parentFrame, "TOPRIGHT", 1, 0)
             f:SetHeight(height)
             f:SetWidth(40)
-            f:CreateTexture()
-            local t = f:CreateTexture(nil, "BACKGROUND")
+            --f:CreateTexture()
+            local t = f:CreateTexture("background", "BACKGROUND")
             t:SetColorTexture(0, 0, 0, .5)
             t:SetPoint("CENTER", f, "CENTER")
             t:SetHeight(height + 2)
             t:SetWidth(42)
             f.background = t
             f:Hide()
-            f["icon"] = f:CreateTexture(nil, "OVERLAY")
+            f["icon"] = f:CreateTexture("icon", "OVERLAY", nil, 2)
             f["icon"]:SetPoint("CENTER")
             f["icon"]:SetHeight(15)
             f["icon"]:SetWidth(15)
@@ -927,14 +918,35 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             f["cooldown"]:SetReverse(true)
             f:SetFrameLevel(1)
             f["cooldown"]:Show()
+            f:SetAttribute("unit", unit)
+            f:SetScript(
+                "OnEnter",
+                function(self)
+                    local index = self:GetAttribute("buffIndex")
+                    if index then
+                        GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                        GameTooltip:SetUnitBuff(self:GetAttribute("unit"), index)
+                    end
+                end
+            )
+            f:SetScript(
+                "OnLeave",
+                function(self)
+                    if GameTooltip:IsOwned(f) then
+                        GameTooltip:Hide()
+                    end
+                end
+            )
 
             units[unit]["absorbFrames"][i] = f
+            units[unit]["absorbFrames"][i].wasHealthPrediction = false
         end
     end
     --make sure that our first absorb anchor moves with the bar fill amount
     srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
 
-    if remainingTrackedAuraCount == 0 and units[unit].activeAbsorbFrames > 0 then
+    local incomingHeal = UnitGetIncomingHeals(unit)
+    if remainingTrackedAuraCount == 0 and units[unit].activeAbsorbFrames > 0 and incomingHeal < 1 then
         --no more absorbs, done here
         for k, v in pairs(units[unit]["absorbFrames"]) do
             if v:IsVisible() then
@@ -990,6 +1002,13 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
             CooldownFrame_Set(currentBar.cooldown, t, duration, true)
 
+            if currentBar.wasHealthPrediction then
+                currentBar:SetStatusBarTexture(statusBarTex, "ARTWORK")
+                currentBar:SetStatusBarColor(1, 1, 1, .8)
+                currentBar.wasHealthPrediction = false
+            end
+
+            currentBar:SetAttribute("buffIndex", tAura.index)
             currentBar.icon:SetTexture(iconID)
             currentBar:Show()
             --track the segment
@@ -1063,6 +1082,18 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         return curBarIndex
     end
 
+    --if our incoming heal is bigger than max hp, we only display the actual healing done
+    incomingHeal = incomingHeal > playerMissingHP and playerMissingHP or incomingHeal
+    local incomingHealWidth = floor(incomingHeal * pixelPerHp)
+    if incomingHealWidth > 5 then
+        local incomingHealBar = units[unit]["absorbFrames"][curBarIndex]
+        srslylawlUI_ChangeAbsorbSegment(incomingHealBar, incomingHealWidth, incomingHeal, height, true)
+        incomingHealBar:SetStatusBarTexture("Interface/AddOns/srslylawlUI/media/healthBar", ARTWORK)
+        incomingHealBar:SetStatusBarColor(.2, .9, .1, 0.9)
+        incomingHealBar.wasHealthPrediction = true
+        incomingHealBar:Show()
+        curBarIndex = curBarIndex + 1
+    end
     -- absorb auras seem to get consumed in order by their spellid, ascending, (not confirmed)
     -- so we sort by descending to visualize which one gets removed first
     for key, value in ipairs(srslylawlUI.AbsorbAuraBySpellIDDescending(units[unit].absorbAurasByIndex)) do
@@ -1085,27 +1116,33 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
     end
 end
-function srslylawlUI_ChangeAbsorbSegment(frame, barWidth, absorbAmount, height)
+
+function srslylawlUI_ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, isHealPrediction)
     frame:SetAttribute("absorbAmount", absorbAmount)
     frame:SetHeight(height)
     frame:SetWidth(barWidth)
     frame.background:SetHeight(height + 2)
     frame.background:SetWidth(barWidth + 2)
     --resize icon
-    local minSize = 15
-    local maxIconSize = floor(height * 0.8)
-    if (barWidth < minSize) then
-        frame.icon:SetWidth(minSize)
-        frame.icon:SetHeight(minSize)
+    if isHealPrediction ~= nil and true then
         frame.icon:Hide()
-    elseif (barWidth >= maxIconSize) then
-        frame.icon:SetHeight(maxIconSize)
-        frame.icon:SetWidth(maxIconSize)
-        frame.icon:Show()
+        frame.cooldown:Clear()
     else
-        frame.icon:SetHeight(barWidth - 5)
-        frame.icon:SetWidth(barWidth - 5)
-        frame.icon:Show()
+        local minSize = 15
+        local maxIconSize = floor(height * 0.8)
+        if (barWidth < minSize) then
+            frame.icon:SetWidth(minSize)
+            frame.icon:SetHeight(minSize)
+            frame.icon:Hide()
+        elseif (barWidth >= maxIconSize) then
+            frame.icon:SetHeight(maxIconSize)
+            frame.icon:SetWidth(maxIconSize)
+            frame.icon:Show()
+        else
+            frame.icon:SetHeight(barWidth - 5)
+            frame.icon:SetWidth(barWidth - 5)
+            frame.icon:Show()
+        end
     end
 end
 function srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
@@ -1117,8 +1154,8 @@ function srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
     local width = buttonFrame.unit.healthBar:GetWidth()
     local pixelPerHp = width / UnitHealthMax(unit)
     local playerCurrentHP = UnitHealth(unit)
-
-    local baseAnchorOffset = (playerCurrentHP * pixelPerHp) + 1
+    local incomingHeal = UnitGetIncomingHeals(unit)
+    local baseAnchorOffset = (playerCurrentHP * pixelPerHp) + 1 --((playerCurrentHP + incomingHeal) * pixelPerHp) + 1
     units[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset, 0)
 end
 local function UpdateHeaderNameList()
@@ -1324,6 +1361,7 @@ local function CreateConfig()
     srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "BackdropTemplate")
     local cFrame = srslylawlUI_ConfigFrame
 
+    cFrame.name = "srslylawlUI"
     cFrame:SetWidth(320)
     cFrame:SetHeight(300)
     cFrame:SetPoint("CENTER", 0, 0)
@@ -1385,7 +1423,7 @@ local function CreateConfig()
     l:SetScript(
         "OnClick",
         function(self)
-            LoadSettings(true)
+            LoadSettings(true, true)
         end
     )
     table.insert(unsaved.buttons, l)
@@ -1396,6 +1434,7 @@ local function CreateConfig()
     local c = cFrame.CloseButton
     c:SetPoint("TOPRIGHT", 0, 0)
     srslylawlUI_ToggleConfigVisible(false)
+    InterfaceOptions_AddCategory(srslylawlUI_ConfigFrame)
 end
 local function CreateSlashCommands()
     -- Setting Slash Commands
@@ -1513,7 +1552,6 @@ srslylawlUI.AreFramesVisible = function()
     local base = "srslylawlUI_PartyHeaderUnitButton"
     local index = 1
     local b = _G[base .. index]
-    print(GetNumGroupMembers())
 
     if not b then
         --print("not ", base .. index)
@@ -1551,9 +1589,8 @@ srslylawlUI.SortAfterCombat = function()
     srslylawlUI_EventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 end
 srslylawlUI.SortAfterLogin = function()
-    print("sort after login")
     local list, _, _, hasUnknownMember = srslylawlUI_GetPartyHealth()
-    print(#list, GetNumGroupMembers(), IsInGroup(), hasUnknownMember)
+    --print(#list, GetNumGroupMembers(), IsInGroup(), hasUnknownMember)
     if srslylawlUI.AreFramesVisible and not hasUnknownMember then
         srslylawlUI_EventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
         srslylawlUI_EventFrame:RegisterEvent("UNIT_MAXHEALTH")
@@ -1568,7 +1605,7 @@ srslylawlUI.SortAfterLogin = function()
     end
 end
 srslylawlUI.UpdateEverything = function()
-    print("update everything")
+    --print("update everything")
     if not InCombatLockdown() then
         UpdateHeaderNameList()
         SortPartyFrames()
@@ -1628,7 +1665,6 @@ srslylawlUI_FirstMaxHealthEventFrame:SetScript(
     "OnEvent",
     function(self, event, ...)
         if event == "UNIT_MAXHEALTH" then
-            --print("maxhealth event in event frame")
             srslylawlUI.SortAfterLogin()
             self:UnregisterEvent("UNIT_MAXHEALTH")
         end
