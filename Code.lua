@@ -32,6 +32,7 @@ srslylawlUI.sortTimerActive = false
 srslylawlUI.clearTimerActive = false
 
 --TODO: char tooltip
+--      cleanup functions (sort by abc)
 --      replace buffframes table stuff
 --      debuffs
 --      magic absorb
@@ -89,7 +90,7 @@ local function GetBuffText(buffIndex, unit, spellId)
     tooltip:Hide()
     return n2
 end
-function srslylawlUI_Log(text)
+function srslylawlUI.Log(text)
     print("|cff4D00FFsrslylawlUI:|r " .. text)
 end
 function srslylawlUI_GetSettings()
@@ -112,7 +113,7 @@ end
 local powerUpdateType = "UNIT_POWER_UPDATE" --"UNIT_POWER_UPDATE" or "UNIT_POWER_FRQUENT"
 local function LoadSettings(reset, announce)
     if announce then
-        srslylawlUI_Log("Settings Loaded")
+        srslylawlUI.Log("Settings Loaded")
     end
     settings = deepcopy(srslylawl_saved.settings)
     if srslylawlUI_ConfigFrame then
@@ -123,7 +124,7 @@ local function LoadSettings(reset, announce)
     srslylawlUI_PartyHeader:SetPoint(settings.header.anchor, settings.header.xOffset, settings.header.yOffset)
     srslylawlUI_RemoveDirtyFlag()
     if (reset) then
-        srslylawlUI_ResizeHealthBarScale()
+        srslylawlUI.UpdateEverything()
     end
 end
 function srslylawlUI_ToggleConfigVisible(visible)
@@ -136,7 +137,7 @@ function srslylawlUI_ToggleConfigVisible(visible)
     end
 end
 local function SaveSettings()
-    srslylawlUI_Log("Settings Saved")
+    srslylawlUI.Log("Settings Saved")
     srslylawl_saved.settings = deepcopy(settings)
     srslylawlUI_RemoveDirtyFlag()
 end
@@ -335,27 +336,30 @@ function srslylawlUI_Button_OnDragStart(self, button)
     end
 
     local grpMembers = GetNumGroupMembers()
-    for i = 1, grpMembers do
-        local u = i == 1 and "player" or "party" .. i
-
-        local buttonFrame
-        if i == 1 then
-            buttonFrame = srslylawlUI_PartyHeaderUnitButton1
-        else
-            buttonFrame = srslylawlUI_GetFrameByUnitType(u)
-        end
-        if (buttonFrame) then
-            buttonFrame:ClearAllPoints()
+    if grpMembers == 0 then
+        srslylawlUI_PartyHeaderUnitButton1:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
+    else
+        for i = 1, grpMembers do
+            local buttonFrame
             if i == 1 then
-                buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
+                buttonFrame = srslylawlUI_PartyHeaderUnitButton1
+                print(buttonFrame:GetName())
             else
-                local parent = srslylawlUI_GetFrameByUnitType("party" .. i - 1)
-                if i == 2 then
-                    parent = srslylawlUI_PartyHeaderUnitButton1
-                end
-                buttonFrame:SetPoint("TOPLEFT", parent, "BOTTOMLEFT")
+                buttonFrame = srslylawlUI_GetFrameByUnitType(u)
             end
-            srslylawlUI_ResetUnitButton(buttonFrame.unit, "party" .. i)
+            if (buttonFrame) then
+                buttonFrame:ClearAllPoints()
+                if i == 1 then
+                    buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
+                else
+                    local parent = srslylawlUI_GetFrameByUnitType("party" .. i - 1)
+                    if i == 2 then
+                        parent = srslylawlUI_PartyHeaderUnitButton1
+                    end
+                    buttonFrame:SetPoint("TOPLEFT", parent, "BOTTOMLEFT")
+                end
+                srslylawlUI_ResetUnitButton(buttonFrame.unit, "party" .. i)
+            end
         end
     end
     srslylawlUI_PartyHeader:StartMoving()
@@ -421,7 +425,7 @@ srslylawlUI_Frame_OnEvent = function(self, event, arg1, ...)
         elseif event == "UNIT_CONNECTION" then
             srslylawlUI_ResetHealthBar(self.unit, unit)
             srslylawlUI_ResetPowerBar(self.unit, unit)
-            srslylawlUI_Log(UnitName(unit) .. " went on/offline")
+            srslylawlUI.Log(UnitName(unit) .. " went on/offline")
         elseif event == "UNIT_AURA" then
             srslylawlUI_Frame_HandleAuras(self.unit, unit)
         elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
@@ -557,9 +561,9 @@ local function srslylawlUI_RememberSpellID(id, buffIndex, unit)
         if keyWordAbsorb and settings.autoApproveAbsorbKeyWord then
             if (settings.approvedSpells[id] == nil) then
                 --first time entry
-                srslylawlUI_Log("spell auto-approved " .. spellName .. "!")
+                srslylawlUI.Log("spell auto-approved " .. spellName .. "!")
             else
-                --srslylawlUI_Log("spell updated " .. spellName .. "!")
+                --srslylawlUI.Log("spell updated " .. spellName .. "!")
             end
 
             settings.approvedSpells[id] = {
@@ -571,9 +575,9 @@ local function srslylawlUI_RememberSpellID(id, buffIndex, unit)
         else
             if settings.pendingSpells[id] == nil then
                 --first time entry
-                srslylawlUI_Log("new spell encountered: " .. spellName .. "!")
+                srslylawlUI.Log("new spell encountered: " .. spellName .. "!")
             else
-                --srslylawlUI_Log("spell updated " .. spellName .. "!")
+                --srslylawlUI.Log("spell updated " .. spellName .. "!")
             end
 
             settings.pendingSpells[id] = {
@@ -604,7 +608,7 @@ end
 function srslylawlUI_ApproveSpellID(id)
     --we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it
     --it should get added updated though once we ever see it on any party members
-    srslylawlUI_Log("spell approved: " .. id .. "!")
+    srslylawlUI.Log("spell approved: " .. id .. "!")
     settings.approvedSpells[id] = {
         name = GetSpellInfo(id)
     }
@@ -669,9 +673,9 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     end
     local function trackSpell(castBy, id, name, index, absorb, icon, duration, expirationTime, verify)
         --if verify ~= true then
-        --srslylawlUI_Log(name .. " added")
+        --srslylawlUI.Log(name .. " added")
         --else
-        --srslylawlUI_Log(name .. " verified ")
+        --srslylawlUI.Log(name .. " verified ")
         --end
 
         if castBy == nil then
@@ -735,7 +739,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
     end
     local function changeTrackingIndex(name, source, spellId, i, absorb, icon, duration, expirationTime)
-        --srslylawlUI_Log("index changed " .. name)
+        --srslylawlUI.Log("index changed " .. name)
         local oldIndex = units[unit].absorbAuras[source][spellId].index
         units[unit].absorbAuras[source][spellId].index = i
 
@@ -1389,7 +1393,7 @@ local function CreateConfig()
         function(self, value)
             local v = value
             settings.hp.height = v
-            srslylawlUI_ResizeHealthBarScale()
+            srslylawlUI.UpdateEverything()
             srslylawlUI_SetDirtyFlag()
         end
     )
@@ -1399,7 +1403,7 @@ local function CreateConfig()
         function(self, value)
             local v = value
             settings.hp.width = v
-            srslylawlUI_ResizeHealthBarScale()
+            srslylawlUI.UpdateEverything()
             srslylawlUI_SetDirtyFlag()
         end
     )
@@ -1448,7 +1452,7 @@ local function CreateSlashCommands()
 
     SlashCmdList["SRSLYLAWLUI"] = function(msg, txt)
         if InCombatLockdown() then
-            srslylawlUI_Log("Can't access menu while in combat.")
+            srslylawlUI.Log("Can't access menu while in combat.")
             return
         end
         if msg and msg == "save" then
