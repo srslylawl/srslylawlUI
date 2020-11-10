@@ -1431,19 +1431,14 @@ function srslylawlUI_RemoveDirtyFlag()
     end
 end
 local function CreateConfig()
-    local function CreateConfigSubFrame(name, parent)
-        local offset = 60
-        local f = CreateFrame("Frame", "$parent_" .. name, parent, "BackdropTemplate")
-        f:CreateFontString("$parent_Title", "OVERLAY", "GameFontHighlight")
-        f:SetPoint("TOP", 0, -offset)
-        f:SetWidth(parent:GetWidth() - 10)
-        f:SetHeight(parent:GetHeight() - offset - 50)
-        f.Title = f:CreateFontString("$parent_Title", "OVERLAY", "DialogButtonHighlightText")
-        f.Title:SetParent(f)
-        f.Title:SetPoint("TOP", 0, -5)
-        f.Title:SetText(name)
-        f.Title:SetFont("Fonts\\FRIZQT__.TTF", 18)
-
+    local function CreateConfigBody(name, parent)
+        local f = CreateFrame("Frame", name, parent, "BackdropTemplate")
+        f:SetSize(500, 500)
+        -- f.Title = f:CreateFontString("$parent_Title", "OVERLAY", "DialogButtonHighlightText")
+        -- f.Title:SetParent(f)
+        -- f.Title:SetPoint("TOP", 0, -5)
+        -- f.Title:SetText(name)
+        -- f.Title:SetFont("Fonts\\FRIZQT__.TTF", 18)
         f:SetBackdrop(
             {
                 bgFile = "Interface/Tooltips/UI-Tooltip-Background",
@@ -1452,11 +1447,131 @@ local function CreateConfig()
                 insets = {left = 4, right = 4, top = 4, bottom = 4}
             }
         )
-        f:SetBackdropColor(0, 0, 0, 1)
+        f:SetBackdropColor(0, 0, 0, .4)
+        f:SetPoint("TOP", 0, -80)
+        f:SetPoint("BOTTOM", parent, "BOTTOM", 0, 0)
+        f:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 10, 10)
+        f:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -7, 10)
 
         return f
     end
-    srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "BackdropTemplate")
+    local function ScrollFrame_OnMouseWheel(self, delta)
+        local newValue = self:GetVerticalScroll() - (delta * 20)
+
+        if newValue < 0 then
+            newValue = 0
+        elseif newValue > self:GetVerticalScrollRange() then
+            newValue = self:GetVerticalScrollRange()
+        end
+        self:SetVerticalScroll(newValue)
+    end
+    local function CreateFrameWBG(name, parent)
+        local f = CreateFrame("Frame", name, parent, "BackdropTemplate")
+        f:SetSize(500, 500)
+        f:SetBackdrop(
+            {
+                bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+                edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+                edgeSize = 10,
+                insets = {left = 4, right = 4, top = 4, bottom = 4}
+            }
+        )
+        f:SetBackdropColor(0, 0, 0, .4)
+        return f
+    end
+    local function Tab_OnClick(self)
+        local parent = self:GetParent()
+        PanelTemplates_SetTab(parent, self:GetID())
+        self.content:Show()
+
+        for k, tab in ipairs(parent.Tabs) do
+            if tab:GetID() ~= parent.selectedTab then
+                tab.content:Hide()
+            end
+        end
+    end
+    local function SetTabs(frame, ...)
+        local numTabs = select("#", ...)
+        frame.numTabs = numTabs
+        frame.Tabs = {}
+
+        local contents = {}
+        --local name = frame:GetName()
+        local tab
+
+        for i = 1, numTabs do
+            tab = CreateFrame("Button", select(i, ...), frame, "OptionsFrameTabButtonTemplate") --name .. "Tab" .. i, frame
+            tab:SetID(i)
+            tab:SetText(select(i, ...))
+            tab:SetScript("OnClick", Tab_OnClick)
+
+            local width = tab:GetWidth()
+            PanelTemplates_TabResize(tab, -10, nil, width)
+            tab.content = CreateFrame("Frame", nil, frame)
+            tab.content:SetAllPoints()
+            tab.content:Hide()
+
+            frame.Tabs[i] = tab
+            table.insert(contents, tab.content)
+
+            if i == 1 then
+                tab:SetPoint("BOTTOMLEFT", frame, "TOPLEFT")
+            else
+                tab:SetPoint("BOTTOMLEFT", frame.Tabs[i - 1], "BOTTOMRIGHT")
+            end
+        end
+
+        Tab_OnClick(frame.Tabs[1])
+
+        return unpack(contents)
+    end
+    local function GenerateSpellList(parent, spellList)
+        local first = true
+        local last
+        local firstButton
+        local buttonParent = parent
+        local iconSize = 25
+        local offset = 3
+        for spellId, v in pairs(spellList) do
+            local name, rank, icon = GetSpellInfo(spellId)
+            if not first then
+                buttonParent = last
+            end
+            local button = CreateFrame("Button", name, parent, "UIMenuButtonStretchTemplate")
+
+            if first then
+                first = false
+                firstButton = button
+                firstButton:SetPoint("TOPLEFT", parent, "TOPLEFT", iconSize + offset, -10)
+            else
+                button:SetPoint("TOPLEFT", buttonParent, "BOTTOMLEFT", 0, 0)
+            end
+            button:SetText(name)
+            button:SetPoint("RIGHT", parent, "RIGHT")
+            button.icon = CreateFrame("Frame", spellId, button)
+            button.icon:SetSize(iconSize, iconSize)
+            button.icon.texture = button.icon:CreateTexture("icon", "ARTWORK")
+            button.icon.texture:SetTexture(icon)
+            button.icon.texture:SetAllPoints()
+            button.icon:SetPoint("RIGHT", button, "LEFT")
+
+            last = button
+        end
+
+        return firstButton
+    end
+    local function CreateScrollFrame(parent)
+        local ScrollFrame
+        ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", parent, "UIPanelScrollFrameTemplate")
+        ScrollFrame:SetClipsChildren(true)
+        ScrollFrame:SetScript("OnMouseWheel", ScrollFrame_OnMouseWheel)
+        ScrollFrame.ScrollBar:ClearAllPoints()
+        ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -20, -20)
+        ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -3, 20)
+
+        return ScrollFrame
+    end
+    srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "UIPanelDialogTemplate")
     local cFrame = srslylawlUI_ConfigFrame
     local cFrameSizeX = 500
     local cFrameSizeY = 500
@@ -1464,34 +1579,110 @@ local function CreateConfig()
 
     --Main Config Frame
     cFrame.name = "srslylawlUI"
-    cFrame:SetWidth(cFrameSizeX)
-    cFrame:SetHeight(cFrameSizeY)
-    cFrame:SetPoint("CENTER", 0, 0)
-    cFrame:SetBackdrop(
+    cFrame:SetSize(cFrameSizeX, cFrameSizeY)
+    cFrame:SetPoint("CENTER")
+    cFrame.Title:SetText("srslylawlUI Configuration")
+    MakeFrameMoveable(cFrame)
+
+    --ScrollFrame
+    -- cFrame.TabButton = CreateFrame("Button", "$parent_Tab", cFrame, "CharacterFrameTabButtonTemplate")
+    -- cFrame.TabButton:SetWidth(100)
+    -- cFrame.TabButton:SetHeight(100)
+    -- cFrame.TabButton:Show()
+
+    --cFrame.barFrame = CreateConfigSubFrame("Health Bar", cFrame.ScrollFrame, 100, 200)
+    --cFrame.barFrame:SetSize(350, 700)
+    --cFrame.spellFrame = CreateConfigSubFrame("Spells", cFrame.ScrollFrame, 300, 1000)
+    --cFrame.spellFrame:Hide()
+
+    cFrame.body = CreateConfigBody("Body", cFrame)
+
+    local barsTab, spellsTab = SetTabs(cFrame.body, "Bars", "Spells")
+
+    -- Create Spells Tab
+    spellsTab:ClearAllPoints()
+    spellsTab:SetPoint("TOP", cFrame.body, "TOP", 0, -35)
+    spellsTab:SetPoint("BOTTOMLEFT", cFrame.body, "BOTTOMLEFT", 4, 4)
+    spellsTab:SetPoint("BOTTOMRIGHT", cFrame.body, "BOTTOMRIGHT", -4, 2)
+    Mixin(spellsTab, BackdropTemplateMixin)
+    spellsTab:SetBackdrop(
         {
-            bgFile = "Interface/Tooltips/UI-Tooltip-Background-Corrupted",
-            edgeFile = "Interface/Tooltips/UI-Tooltip-Border-Corrupted",
-            edgeSize = 20,
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 10,
             insets = {left = 4, right = 4, top = 4, bottom = 4}
         }
     )
-    cFrame:SetBackdropColor(0.1, 0.1, .1, .5)
-    MakeFrameMoveable(cFrame)
-    cFrame.Title = cFrame:CreateFontString("$parent_Title", "OVERLAY", "GameFontHighlight")
-    cFrame.Title:SetParent(cFrame)
-    cFrame.Title:SetPoint("TOP", 0, -5)
-    cFrame.Title:SetText("srslylawlUI Configuration")
-    cFrame.Title:SetFont("Fonts\\FRIZQT__.TTF", 20)
+    spellsTab:SetBackdropColor(0, 0, 0, .4)
 
-    --Tabs
-    cFrame.TabButton = CreateFrame("Button", "$parent_Tab", cFrame, "CharacterFrameTabButtonTemplate")
-    cFrame.TabButton:SetWidth(100)
-    cFrame.TabButton:SetHeight(100)
-    cFrame.TabButton:Show()
+    --Debug Texture
+    spellsTab.bg = spellsTab:CreateTexture(nil, "BACKGROUND")
+    spellsTab.bg:SetAllPoints()
+    spellsTab.bg:SetColorTexture(.3, 1, .4, .2)
 
-    cFrame.barFrame = CreateConfigSubFrame("Health Bar", cFrame)
-    cFrame.spellFrame = CreateConfigSubFrame("Spell List", cFrame)
-    cFrame.spellFrame:Hide()
+    local knownSpells, absorbSpells, unapprovedSpells = SetTabs(spellsTab, "Known Spells", "Absorbs", "Unapproved Spells")
+
+    --knownSpells:ClearAllPoints()
+    -- knownSpells:SetPoint("TOPLEFT", spellsTab, "TOPLEFT")
+    -- knownSpells:SetPoint("TOPRIGHT", spellsTab, "TOPLEFT", 250, 0)
+    -- knownSpells:SetPoint("BOTTOMRIGHT", spellsTab, "BOTTOMRIGHT")
+    Mixin(knownSpells, BackdropTemplateMixin)
+    knownSpells:SetBackdrop(
+        {
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 10,
+            insets = {left = 4, right = 4, top = 4, bottom = 4}
+        }
+    )
+    knownSpells:SetBackdropColor(0, 0, 1, .4)
+    knownSpells.borderFrame = CreateFrame("Frame", "$parent_BorderFrame", knownSpells, "BackdropTemplate")
+    knownSpells.borderFrame:SetBackdrop(
+        {
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 10,
+            insets = {left = 4, right = 4, top = 4, bottom = 4}
+        }
+    )
+    --knownSpells.borderFrame:SetBackdropColor(0, 1, 1, .4)
+    knownSpells.borderFrame:SetPoint("TOPLEFT", knownSpells, "TOPLEFT", 5, -5)
+    knownSpells.borderFrame:SetPoint("TOPRIGHT", knownSpells, "TOPLEFT", 250, -5)
+    knownSpells.borderFrame:SetPoint("BOTTOMRIGHT", knownSpells, "BOTTOMRIGHT", 0, 5)
+    --knownSpells.borderFrame:SetSize(200, 200)
+
+    knownSpells.ScrollFrame = CreateScrollFrame(knownSpells.borderFrame)
+    knownSpells.ScrollFrame:SetPoint("TOPLEFT", knownSpells.borderFrame, "TOPLEFT", 5, -5)
+    knownSpells.ScrollFrame:SetPoint("TOPRIGHT", knownSpells.borderFrame, "TOPLEFT", 5, -5)
+    knownSpells.ScrollFrame:SetPoint("BOTTOMRIGHT", knownSpells.borderFrame, "BOTTOMRIGHT", 0, 5)
+    knownSpells.ScrollFrame.child = CreateFrame("Frame", nil, knownSpells.ScrollFrame)
+    --knownSpells.ScrollFrame.child:SetPoint("TOP", knownSpells.ScrollFrame, "TOP", 0, -50)
+    --knownSpells.ScrollFrame.child:SetPoint("CENTER", knownSpells.ScrollFrame)
+    --knownSpells.ScrollFrame.child:SetPoint("LEFT", knownSpells.ScrollFrame, "LEFT")
+    --knownSpells.ScrollFrame.child:SetPoint("RIGHT", knownSpells.ScrollFrame, "RIGHT")
+    knownSpells.ScrollFrame.child:SetSize(knownSpells.borderFrame:GetWidth() - 20, 1000)
+    knownSpells.ScrollFrame:SetScrollChild(knownSpells.ScrollFrame.child)
+    Mixin(knownSpells.ScrollFrame, BackdropTemplateMixin)
+    knownSpells.ScrollFrame:SetBackdrop(
+        {
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 10,
+            insets = {left = 4, right = 4, top = 4, bottom = 4}
+        }
+    )
+    --knownSpells.ScrollFrame:SetBackdropColor(1, 0, 1, 1)
+
+    knownSpells:SetScript(
+        "OnShow",
+        function()
+            local mainButton = GenerateSpellList(knownSpells.ScrollFrame.child, srslylawlUI.spells.known)
+        end
+    )
+
+    if true then
+        return
+    end
 
     --HP Bar Sliders
     cFrame.sliders = {}
