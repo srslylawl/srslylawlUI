@@ -17,12 +17,13 @@ srslylawl_saved = {
         buffAnchorYOffset = 0,
         maxBuffs = 40,
         minAbsorbAmount = 100,
-        autoApproveAbsorbKeyWord = true
+        autoApproveKeywords = true
     },
     spells = {
         known = {},
         absorbs = {},
-        defensive = {},
+        defensives = {},
+        whiteList = {},
         unapproved = {}
     }
 }
