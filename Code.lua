@@ -694,40 +694,42 @@ function srslylawlUI.RememberSpellID(id, buffIndex, unit)
     if SpellIsKnown(id) and SpellHasDifferentTooltip(id, buffIndex, unit) then
         ProcessID(id, buffIndex, unit)
     else
-        local buffText = GetBuffText(buffIndex, unit)
-        if not (buffText == nil or buffText == "") then
-            if srslylawlUI.HasAbsorbKeyword(buffText) or srslylawlUI.HasDefensiveKeyword(buffText) then
-                ProcessID(id, buffIndex, unit)
-            end
-        end
+        ProcessID(id, buffIndex, unit)
     end
 end
 function srslylawlUI_ManuallyAddSpell(id, list)
     --we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it
     --it should get added/updated though once we ever see it on any party members
 
-    local n = GetSpellInfo(id)
-    if n == nil then
-        srslylawlUI.Log("Spell with ID: " .. id .. " not found. Make sure you typed it correctly.")
-        return
-    end
-    local spell = {
-        name = n
-    }
-    if srslylawlUI.spells.known[id] == nil then
-        srslylawlUI.spells.known[id] = spell
-        srslylawlUI.Log("New spell approved: " .. n .. "!")
-    elseif srslylawlUI.spells[list][id] ~= nil then
-        srslylawlUI.Log(n .. " is already part of list " .. list .. " spells, I refuse to work under these conditions.")
-        return
-    else
+    local isKnown = srslylawlUI.spells.known[id] ~= nil
+
+    if isKnown then
+        spell = srslylawlUI.spells.known[id]
+
+        if srslylawlUI.spells[list][id] ~= nil then
+            srslylawlUI.Log(spell.name .. " is already part of list " .. list .. ", I refuse to work under these conditions.")
+            return
+        end
+
+        -- we already know the spell, just move it to list and remove from other lists
         srslylawlUI.spells[list][id] = spell
         srslylawl_saved.spells[list][id] = spell
-        srslylawlUI.Log(n .. " added to " .. list .. "!")
-    end
+        srslylawlUI.spells.unapproved[id] = nil
+        srslylawl_saved.spells.unapproved[id] = nil
+        srslylawlUI.Log(spell.name .. " added to " .. list .. "!")
+    else
+        local n = GetSpellInfo(id)
+        if n == nil then
+            srslylawlUI.Log("Spell with ID: " .. id .. " not found. Make sure you typed it correctly.")
+            return
+        end
+        local spell = {
+            name = n
+        }
 
-    if srslylawlUI.spells.unapproved[id] ~= nil then
-        table.remove(srslylawlUI.spells.unapproved, id)
+        srslylawlUI.spells.known[id] = spell
+        srslylawl_saved.spells.known[id] = spell
+        srslylawlUI.Log("New spell approved: " .. n .. "!")
     end
 end
 function srslylawlUI_ManuallyRemoveSpell(id, list)
@@ -1778,8 +1780,11 @@ local function CreateConfig()
             if listKey == nil then
                 error("no spellList found for this button")
             end
-            local spellId = self:GetParent():GetParent().activeButton:GetAttribute("spellId")
+            local tabcontent = self:GetParent():GetParent()
+            local spellId = tabcontent.activeButton:GetAttribute("spellId")
             srslylawlUI_ManuallyAddSpell(spellId, listKey)
+            tabcontent:Hide()
+            tabcontent:Show()
         end
         local function CreatePanel(parentTab)
             parentTab.AttributePanel = CreateFrame("Frame", "$parent_AttributePanel", parentTab, "BackdropTemplate")
@@ -1940,7 +1945,7 @@ local function CreateConfig()
     AddTooltip(knownSpells.tabButton, "List of all encountered buffs.")
     AddTooltip(absorbSpells.tabButton, "Buffs with absorb effects, will be shown as segments.")
     AddTooltip(defensives.tabButton, "Buffs with damage reduction effects, will increase your effective health.")
-    AddTooltip(whiteList.tabButton, "Whitelisted buffs will always be displayed on frames.")
+    AddTooltip(whiteList.tabButton, "Whitelisted buffs will always be displayed as buffs (not segments).")
     AddTooltip(unapprovedSpells.tabButton, "Buffs that will not be displayed on the interface")
 
     Mixin(knownSpells, BackdropTemplateMixin)
