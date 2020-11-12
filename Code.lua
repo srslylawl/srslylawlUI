@@ -72,11 +72,13 @@ local function SpellHasDifferentTooltip(spellID, index, unit)
     local s = GetBuffText(index, unit)
     return srslylawlUI.spells.known[spellID].text ~= s
 end
-srslylawlUI.AbsorbAuraBySpellIDDescending = function(absorbAuraTable)
+srslylawlUI.SortAbsorbAurasBySpellIDDescending = function(absorbAuraTable)
     local t = {}
 
     for k, v in pairs(absorbAuraTable) do
-        t[#t + 1] = absorbAuraTable[k]
+        if absorbAuraTable[k].auraType == "absorb" then
+            t[#t + 1] = absorbAuraTable[k]
+        end
     end
     table.sort(
         t,
@@ -765,8 +767,9 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         unitbutton.buffFrames = {}
         units[unit] = {
             absorbAuras = {},
-            absorbAurasByIndex = {},
+            trackedAurasByIndex = {},
             buffFrames = {},
+            defensiveAuras = {},
             activeAbsorbFrames = 0
         }
         for i = 1, 40 do
@@ -810,123 +813,179 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         unitbutton.buffFrames = units[unit].buffFrames
         unitbutton.buffFrames[1]:SetParent(unitbutton)
     end
-    local function trackSpell(castBy, id, name, index, absorb, icon, duration, expirationTime, verify)
-        --if verify ~= true then
-        --srslylawlUI.Log(name .. " added")
-        --else
-        --srslylawlUI.Log(name .. " verified ")
-        --end
-
-        if castBy == nil then
-            castBy = "unknown"
+    local function GetTypeOfAuraID(id)
+        local auraType = nil
+        if srslylawlUI.spells.absorbs[id] ~= nil then
+            auraType = "absorb"
+        elseif srslylawlUI.spells.absorbs[id] ~= nil then
+            auraType = "defensive"
         end
-        if units[unit].absorbAuras[castBy] == nil then
-            units[unit].absorbAuras[castBy] = {
-                [id] = {
-                    ["name"] = name,
-                    ["index"] = index
-                }
+
+        return auraType
+    end
+    local function GetTrackedAuraType(index)
+        if units[unit].trackedAurasByIndex[i] == nil then
+            return nil
+        else
+            return units[unit].trackedAurasByIndex[i].auraType
+        end
+    end
+    local function TrackAura(source, id, name, index, absorb, icon, duration, expirationTime, auraType, verify)
+        if auraType == nil then
+            error("auraType is nil")
+        end
+
+        local byAura = auraType .. "Auras"
+        local byIndex = "trackedAurasByIndex"
+
+        if source == nil then
+            source = "unknown"
+        end
+
+        local aura = {
+            ["name"] = name,
+            ["index"] = index
+        }
+        if units[unit][byAura][source] == nil then
+            units[unit][byAura][source] = {
+                [id] = aura
             }
         else
-            units[unit].absorbAuras[castBy][id] = {
-                ["name"] = name,
-                ["index"] = index
-            }
+            units[unit][byAura][source][id] = aura
         end
 
         local diff = 0
         if verify then
-            if units[unit].absorbAurasByIndex[index] ~= nil and units[unit].absorbAurasByIndex[index].expiration ~= nil then
-                diff = expirationTime - units[unit].absorbAurasByIndex[index].expiration
+            if units[unit][byIndex][index] ~= nil and units[unit][byIndex][index].expiration ~= nil then
+                diff = expirationTime - units[unit][byIndex][index].expiration
             end
         end
 
-        local flagRefreshed = (diff > 0.1)
+        local flagRefreshed = (diff > 0.01)
 
-        if units[unit].absorbAurasByIndex[index] == nil then
-            units[unit].absorbAurasByIndex[index] = {}
+        if units[unit][byIndex][index] == nil then
+            units[unit][byIndex][index] = {}
         end
+        local t = units[unit][byIndex][index]
         --doing it this way since we dont want our tracked fragment to reset
-        units[unit].absorbAurasByIndex[index]["castBy"] = castBy
-        units[unit].absorbAurasByIndex[index]["name"] = name
-        units[unit].absorbAurasByIndex[index]["spellID"] = id
-        units[unit].absorbAurasByIndex[index]["checkedThisEvent"] = true
-        units[unit].absorbAurasByIndex[index]["absorb"] = absorb
-        units[unit].absorbAurasByIndex[index]["icon"] = icon
-        units[unit].absorbAurasByIndex[index]["duration"] = duration
-        units[unit].absorbAurasByIndex[index]["expiration"] = expirationTime
-        units[unit].absorbAurasByIndex[index]["wasRefreshed"] = flagRefreshed
-        units[unit].absorbAurasByIndex[index]["index"] = index --double index here to make it easier to get it again for tooltip
+        t["source"] = source
+        t["name"] = name
+        t["spellID"] = id
+        t["checkedThisEvent"] = true
+        t["absorb"] = absorb
+        t["icon"] = icon
+        t["duration"] = duration
+        t["expiration"] = expirationTime
+        t["wasRefreshed"] = flagRefreshed
+        t["index"] = index --double index here to make it easier to get it again for tooltip
+        t["auraType"] = auraType
     end
-    local function unTrackSpell(index)
-        --print("untrack spell" .. units[unit].absorbAurasByIndex[index].name)
-        local c = units[unit].absorbAurasByIndex[index].castBy
-        local s = units[unit].absorbAurasByIndex[index].spellID
-        local t = tablelength(units[unit].absorbAuras[c])
+    local function UntrackAura(index)
+        --print("untrack spell" .. units[unit].trackedAurasByIndex[index].name)
+        local byIndex = "trackedAurasByIndex"
+        local auraType = units[unit][byIndex][index].auraType
+        if auraType == nil then
+            error("auraType is nil")
+        end
+        local byAura = auraType .. "Auras"
+
+        local c = units[unit][byIndex][index].source
+        local s = units[unit][byIndex][index].spellID
+        local t = tablelength(units[unit][byAura][c])
 
         --should be redundant check
         if t > 0 then
-            units[unit].absorbAuras[c][s] = nil
+            units[unit][byAura][c][s] = nil
         end
 
-        units[unit].absorbAuras[c][s] = nil
-        units[unit].absorbAurasByIndex[index] = nil
-        t = tablelength(units[unit].absorbAuras[c])
+        units[unit][byAura][c][s] = nil
+        units[unit][byIndex][index] = nil
+        t = tablelength(units[unit][byAura][c])
 
         if t == 0 then
-            units[unit].absorbAuras[c] = nil
+            units[unit][byAura][c] = nil
         end
     end
-    local function changeTrackingIndex(name, source, spellId, i, absorb, icon, duration, expirationTime)
+    local function ChangeTrackingIndex(name, source, id, currentIndex, absorb, icon, duration, expirationTime, auraType)
         --srslylawlUI.Log("index changed " .. name)
-        local oldIndex = units[unit].absorbAuras[source][spellId].index
-        units[unit].absorbAuras[source][spellId].index = i
+        local cbyAura = auraType .. "Auras"
+        local cbyIndex = "trackedAurasByIndex"
+
+        print(cbyAura, source, id)
+        print(units[unit][cByAura])
+        local oldIndex = units[unit][cByAura][source][id].index
+
+        --assign to current
+        units[unit][cByAura][source][id].index = currentIndex
 
         --flag for timer refresh
         local diff = 0
-        if units[unit].absorbAurasByIndex[oldIndex] ~= nil and units[unit].absorbAurasByIndex[oldIndex].expiration ~= nil then
-            diff = expirationTime - units[unit].absorbAurasByIndex[oldIndex].expiration
+        if units[unit][cbyIndex][oldIndex] ~= nil and units[unit][cbyIndex][oldIndex].expiration ~= nil then
+            diff = expirationTime - units[unit][cbyIndex][oldIndex].expiration
         end
 
         local flagRefreshed = (diff > 0.1)
 
-        if units[unit].absorbAurasByIndex[i] == nil then
-            units[unit].absorbAurasByIndex[i] = {}
+        if units[unit][cbyIndex][i] == nil then
+            units[unit][cbyIndex][i] = {}
         end
-        units[unit].absorbAurasByIndex[i]["castBy"] = source
-        units[unit].absorbAurasByIndex[i]["name"] = name
-        units[unit].absorbAurasByIndex[i]["spellID"] = spellId
-        units[unit].absorbAurasByIndex[i]["checkedThisEvent"] = true
-        units[unit].absorbAurasByIndex[i]["absorb"] = absorb
-        units[unit].absorbAurasByIndex[i]["icon"] = icon
-        units[unit].absorbAurasByIndex[i]["duration"] = duration
-        units[unit].absorbAurasByIndex[i]["expiration"] = expirationTime
-        units[unit].absorbAurasByIndex[i]["wasRefreshed"] = flagRefreshed
-        units[unit].absorbAurasByIndex[i]["index"] = i
+        local t = units[unit][cbyIndex][i]
+        t["source"] = source
+        t["name"] = name
+        t["spellID"] = id
+        t["checkedThisEvent"] = true
+        t["absorb"] = absorb
+        t["icon"] = icon
+        t["duration"] = duration
+        t["expiration"] = expirationTime
+        t["wasRefreshed"] = flagRefreshed
+        t["index"] = i
 
-        if units[unit].absorbAurasByIndex[oldIndex]["trackedSegments"] ~= nil then
-            if units[unit].absorbAurasByIndex[i]["trackedSegments"] == nil then
-                units[unit].absorbAurasByIndex[i]["trackedSegments"] = {}
+        if units[unit][cbyIndex][oldIndex]["trackedSegments"] ~= nil then
+            if units[unit][cbyIndex][i]["trackedSegments"] == nil then
+                units[unit][cbyIndex][i]["trackedSegments"] = {}
             end
 
-            for index, segment in pairs(units[unit].absorbAurasByIndex[oldIndex]["trackedSegments"]) do
-                units[unit].absorbAurasByIndex[i]["trackedSegments"][index] = segment
+            for index, segment in pairs(units[unit][cbyIndex][oldIndex]["trackedSegments"]) do
+                units[unit][cbyIndex][i]["trackedSegments"][index] = segment
             end
         end
 
-        local trackedApplyTime = units[unit].absorbAurasByIndex[oldIndex]["trackedApplyTime"]
+        local trackedApplyTime = units[unit][cbyIndex][oldIndex]["trackedApplyTime"]
         if trackedApplyTime ~= nil then
-            units[unit].absorbAurasByIndex[i]["trackedApplyTime"] = trackedApplyTime
+            units[unit][cbyIndex][i]["trackedApplyTime"] = trackedApplyTime
         end
 
-        units[unit].absorbAurasByIndex[oldIndex] = nil
+        units[unit][cbyIndex][oldIndex] = nil
+    end
+    local function AuraIsBeingTracked(source, spellId, auraType)
+        if units[unit][auraType .. "Auras"][source] == nil then
+            return false
+        elseif units[unit][auraType .. "Auras"][spellId] == nil then
+            return false
+        else
+            return true
+        end
+    end
+    local function AuraIsBeingTrackedAtIndex(index)
+        return units[unit].trackedAurasByIndex[i] ~= nil
+    end
+    local function ProcessAuraTracking(name, source, spellId, i, absorb, icon, duration, expirationTime, auraType)
+        if not AuraIsBeingTracked(source, spellId, auraType) then
+            --aura is not tracked at all, track it!
+            TrackAura(source, spellId, name, i, absorb, icon, duration, expirationTime, auraType)
+        else
+            --aura is being tracked but at another index, change that
+            ChangeTrackingIndex(name, source, spellId, i, absorb, icon, duration, expirationTime, auraType)
+        end
     end
 
     --frames exist and unit owns them
     --reset frame check verifier
-    for k, v in pairs(units[unit].absorbAurasByIndex) do
+    for k, v in pairs(units[unit].trackedAurasByIndex) do
         v["checkedThisEvent"] = false
     end
+    --process auras on unit
     for i = 1, 40 do
         --loop through all frames on standby and assign them based on their index
         local f = unitbutton.buffFrames[i]
@@ -938,45 +997,22 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             f:SetID(i)
             f:Show()
 
-            --track absorbs
-            if units[unit].absorbAurasByIndex[i] == nil then
-                --no aura is currently tracked for that index
-                if srslylawlUI.spells.absorbs[spellId] then --spell is approved absorb
-                    -- print(i)
-                    -- if units[unit].absorbAuras[source] == nil then
-                    --     print("no spells by this unit")
-                    -- elseif units[unit].absorbAuras[source][spellId] == nil then
-                    --     print("unit does not track " .. name .. " yet")
-                    -- end
-                    if units[unit].absorbAuras[source] == nil or units[unit].absorbAuras[source][spellId] == nil then
-                        --aura is not tracked at all, track it!
-                        -- print("added here 1")
-                        trackSpell(source, spellId, name, i, absorb, icon, duration, expirationTime)
-                    else
-                        --aura is being tracked but at another index, change that
-                        changeTrackingIndex(name, source, spellId, i, absorb, icon, duration, expirationTime)
-                    end
-                end
-            else
-                -- print(i .. "_else")
-                --an aura at this index is currently being tracked, see if its this one
-                if units[unit].absorbAurasByIndex[i]["spellID"] ~= spellId then
-                    --the aura we are currently tracking at this index is not the displayed one
-                    --stop tracking it
-                    unTrackSpell(i)
-                    --do we want to track our aura?
-                    if srslylawlUI.spells.absorbs[spellId] then --spell is approved absorb
-                        if units[unit].absorbAuras[source] == nil or units[unit].absorbAuras[source][spellId] == nil then
-                            --aura is not tracked at all, track it!
-                            trackSpell(source, spellId, name, i, absorb, icon, duration, expirationTime)
-                        else
-                            --aura is being tracked but at another index, change that
-                            changeTrackingIndex(name, source, spellId, i, absorb, icon, duration, expirationTime)
-                        end
-                    end
+            --track auras, check if it qualifies
+            local auraType = GetTypeOfAuraID(spellId)
+
+            if auraType ~= nil then --lua has no continue statement btw haha
+                if AuraIsBeingTrackedAtIndex(i) == false then
+                    --no aura is currently tracked for that index
+                    ProcessAuraTracking(name, source, spellId, i, absorb, icon, duration, expirationTime, auraType)
                 else
-                    --aura is tracked and at same index, update that we verified that this frame
-                    trackSpell(source, spellId, name, i, absorb, icon, duration, expirationTime, true)
+                    if units[unit].trackedAurasByIndex[i]["spellID"] ~= spellId then
+                        --different spell is being tracked
+                        UntrackAura(i)
+                        ProcessAuraTracking(name, source, spellId, i, absorb, icon, duration, expirationTime, auraType)
+                    else
+                        --aura is tracked and at same index, update that we verified that this frame
+                        TrackBuff(source, spellId, name, i, absorb, icon, duration, expirationTime, auraType, true)
+                    end
                 end
             end
         else -- no more buffs, hide this frame and stop iterating if its the last visible frame
@@ -985,12 +1021,12 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     end
     --we checked all frames, untrack any that are gone
     -- print("untrack all that are gone")
-    for k, v in pairs(units[unit].absorbAurasByIndex) do
+    for k, v in pairs(units[unit].trackedAurasByIndex) do
         if (v["checkedThisEvent"] == false) then
-            unTrackSpell(k)
+            UntrackAura(k)
         end
     end
-    local remainingTrackedAuraCount = tablelength(units[unit].absorbAurasByIndex)
+    local remainingTrackedAuraCount = tablelength(units[unit].trackedAurasByIndex)
     if not absorbChanged then
         return
     end
@@ -1084,8 +1120,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
     --some absorbs are too small to display, so we group them together and display them if they reach a certain amount
     local variousAbsorbAmount = 0
+    local sortedAbsorbAuras = srslylawlUI.SortAbsorbAurasBySpellIDDescending(units[unit].trackedAurasByIndex)
 
-    local absorbAurasBySpellId = {}
     local function CheckSegments(tAura, curBarIndex)
         local function SetupSegments(tAura, curBarIndex, useOldTimer)
             local segmentPool = units[unit]["absorbFrames"]
@@ -1136,7 +1172,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             trackedSegments[curBarIndex] = currentBar
             return curBarIndex + 1
         end
-        --tAura = units[unit].absorbAurasByIndex[key]
+        --tAura = units[unit].trackedAurasByIndex[key]
         local segmentPool = units[unit]["absorbFrames"]
         local absorbAmount = tAura.absorb
         local iconID = tAura.icon
@@ -1186,8 +1222,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                 elseif not segmentNumberIsfine then
                     --print("segment number changed")
                     local tempIndex = 1
-                    -- for key, value in pairs(units[unit].absorbAurasByIndex) do
-                    for key, value in ipairs(srslylawlUI.AbsorbAuraBySpellIDDescending(units[unit].absorbAurasByIndex)) do
+                    -- for key, value in pairs(units[unit].trackedAurasByIndex) do
+                    for key, value in ipairs(sortedAbsorbAuras) do
                         tempIndex = SetupSegments(value, tempIndex, true)
                     end
                 elseif not absorbIsSame then
@@ -1224,7 +1260,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     end
     -- absorb auras seem to get consumed in order by their spellid, ascending, (not confirmed)
     -- so we sort by descending to visualize which one gets removed first
-    for key, value in ipairs(srslylawlUI.AbsorbAuraBySpellIDDescending(units[unit].absorbAurasByIndex)) do
+    for key, value in ipairs(sortedAbsorbAuras) do
         curBarIndex = CheckSegments(value, curBarIndex)
     end
 
