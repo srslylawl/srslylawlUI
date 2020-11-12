@@ -52,14 +52,12 @@ srslylawlUI.sortTimerActive = false
 srslylawlUI.clearTimerActive = false
 
 --TODO: char tooltip
---      cleanup functions (sort by abc)
---      replace buffframes table stuff
---      buffs can glitch out
+--      defensive cooldowns(display effective health)
 --      debuffs
 --      magic absorb
 --      necrotic
---      defensive cooldowns
 --      config window
+--      test (performance)
 local function GetBuffText(buffIndex, unit)
     tooltipTextGrabber:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
     tooltipTextGrabber:SetUnitBuff(unit, buffIndex)
@@ -603,7 +601,7 @@ function srslylawlUI.HasAbsorbKeyword(tooltipText)
 
     return false
 end
-function srslylawlUI.RememberSpellID(id, buffIndex, unit)
+function srslylawlUI.RememberSpellID(id, buffIndex, unit, arg1)
     local function GetPercentValue(tooltipText)
         --%d+ = multiple numbers in a row
         --%% = the % sign
@@ -619,7 +617,7 @@ function srslylawlUI.RememberSpellID(id, buffIndex, unit)
 
         return tonumber(number) or 0
     end
-    local function ProcessID(spellId, buffIndex, unit)
+    local function ProcessID(spellId, buffIndex, unit, arg1)
         local spellName = GetSpellInfo(id)
         local buffText = GetBuffText(buffIndex, unit)
         local buffLower = buffText
@@ -629,7 +627,7 @@ function srslylawlUI.RememberSpellID(id, buffIndex, unit)
             buffLower = ""
         end
         local autoApprove = srslylawlUI.settings.autoApproveKeywords
-        local keyWordAbsorb = srslylawlUI.HasAbsorbKeyword(buffLower) and autoApprove
+        local keyWordAbsorb = srslylawlUI.HasAbsorbKeyword(buffLower) and autoApprove and ((arg1 ~= nil) and (arg1 > 1))
         local keyWordDefensive = srslylawlUI.HasDefensiveKeyword(buffLower) and autoApprove
         local isKnown = srslylawlUI.spells.known[id] ~= nil
 
@@ -692,9 +690,9 @@ function srslylawlUI.RememberSpellID(id, buffIndex, unit)
     end
 
     if SpellIsKnown(id) and SpellHasDifferentTooltip(id, buffIndex, unit) then
-        ProcessID(id, buffIndex, unit)
+        ProcessID(id, buffIndex, unit, arg1)
     else
-        ProcessID(id, buffIndex, unit)
+        ProcessID(id, buffIndex, unit, arg1)
     end
 end
 function srslylawlUI_ManuallyAddSpell(id, list)
@@ -935,7 +933,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
             UnitAura(unit, i, "HELPFUL")
         if name then --if aura on this index exists, assign it
-            srslylawlUI.RememberSpellID(spellId, i, unit)
+            srslylawlUI.RememberSpellID(spellId, i, unit, absorb)
             CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
             f:SetID(i)
             f:Show()
@@ -1147,6 +1145,13 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         local startTime = expirationTime - duration
         local wasRefreshed = tAura.wasRefreshed
         local doesTrackSegments = tAura["trackedSegments"] ~= nil
+
+        if absorbAmount == nil then
+            local errorMsg =
+                "Aura " .. tAura.name .. " with ID " .. tAura.index .. " does not have an absorb amount. Make sure that it is the spellID of the actual buff, not of the spell that casts the buff."
+            srslylawlUI.log(errorMsg)
+        end
+
         local barWidth = floor(pixelPerHp * absorbAmount)
 
         if (barWidth < 2) then
