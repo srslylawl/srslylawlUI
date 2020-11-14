@@ -55,6 +55,7 @@ srslylawlUI.clearTimerActive = false
 --      debuffs
 --      magic absorb
 --      necrotic
+--      recently lost health
 --      config window
 --      test (performance)
 local function GetBuffText(buffIndex, unit)
@@ -666,13 +667,6 @@ function srslylawlUI.RememberSpellID(spellId, buffIndex, unit, arg1)
             srslylawlUI.spells.defensives[spellId] = spell
             srslylawl_saved.spells.defensives[spellId] = spell
         else
-            if srslylawlUI.spells.unapproved[spellId] == nil then
-                --first time entry
-                srslylawlUI.Log("new spell encountered: " .. spellName .. "!")
-            else
-                --srslylawlUI.Log("spell updated " .. spellName .. "!")
-            end
-
             --couldnt identify spell, add to unapproved
             srslylawlUI.spells.unapproved[spellId] = spell
             srslylawl_saved.spells.unapproved[spellId] = spell
@@ -685,6 +679,7 @@ function srslylawlUI.RememberSpellID(spellId, buffIndex, unit, arg1)
                 srslylawl_saved.spells.known[spellId][key] = spell[key]
             end
         else
+            srslylawlUI.Log("new spell encountered: " .. spellName .. "!")
             -- Add spell to known spell list
             srslylawlUI.spells.known[spellId] = spell
             srslylawl_saved.spells.known[spellId] = spell
@@ -1222,7 +1217,6 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             currentBar.icon:SetTexture(iconID)
             currentBar:Show()
             --track the segment
-            print("setup ", tAura.name, "at index", curBarIndex)
             trackedSegments[curBarIndex] = currentBar
             return curBarIndex + 1
         end
@@ -1309,7 +1303,6 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         incomingHealBar:SetStatusBarColor(.2, .9, .1, 0.9)
         incomingHealBar.wasHealthPrediction = true
         incomingHealBar:Show()
-        print("incoming health at 1")
         curBarIndex = curBarIndex + 1
     end
     -- absorb auras seem to get consumed in order by their spellid, ascending, (not confirmed)
@@ -2261,11 +2254,74 @@ function ClearPointsAllPartyFrames()
     end
     --print("points cleared")
 end
+local function CreateTestTextureBar()
+    srslylawlTestFrame = CreateFrame("Frame", "srslylawlUI_TextureTest", UIParent)
+    local frame = srslylawlTestFrame
+    local w = srslylawlUI.settings.hp.width
+    local h = srslylawlUI.settings.hp.height
+    frame:EnableMouse(true)
+    frame:SetSize(w*2, h)
+    frame:SetPoint("CENTER")
+    frame.texture = frame:CreateTexture(nil, "OVERLAY")
+    frame.texture:SetAllPoints()
+    frame.texture:SetTexture("Interface/AddOns/srslylawlUI/media/eHealthBarAlt", true, "MIRROR")
+    --frame.texture:SetVertTile(true)
+    frame.texture:SetHorizTile(true)
+    frame.texture.bg = frame:CreateTexture("bg", "BACKGROUND")
+    frame.texture.bg:SetAllPoints()
+    frame.texture.bg:SetColorTexture(0.1, 0.1, 0.1, 0.3)
+    frame.texture:SetVertexColor(GetClassColor("PRIEST"))
+end
+function srslylawlUI.TranslateTexY(texture, amount, onlyIfChanged)
+   local coords = {texture:GetTexCoord()}
+   if onlyIfChanged then
+    local original = {0,0,0,1,1,0,1,1}
+    local cont = false
+    for i, v in ipairs(coords) do
+        if coords[i] ~= original[i] then
+            cont = true
+            break
+        end
+    end
+    if not cont then 
+    return end
+   end
+   coords[2] = coords[2]+amount
+   coords[4] = coords[4]+amount
+   coords[6] = coords[6]+amount
+   coords[8] = coords[8]+amount
+
+   texture:SetTexCoord(unpack(coords))
+end
+function srslylawlUI.TranslateTexX(texture, amount, onlyIfChanged)
+   local coords = {texture:GetTexCoord()}
+
+   if onlyIfChanged then
+    local original = {0,0,0,1,1,0,1,1}
+    local cont = false
+    for i, v in ipairs(coords) do
+        if coords[i] ~= original[i] then
+            cont = true
+            break
+        end
+    end
+    if not cont then 
+    return end
+   end
+   coords[1] = coords[1]+amount
+   coords[3] = coords[3]+amount
+   coords[5] = coords[5]+amount
+   coords[7] = coords[7]+amount
+
+   texture:SetTexCoord(unpack(coords))
+end
+
 local function srslylawlUI_Initialize()
     LoadSettings()
     HeaderSetup()
     CreateSlashCommands()
     CreateConfig()
+    CreateTestTextureBar()
 end
 srslylawlUI.AreFramesVisible = function()
     local base = "srslylawlUI_PartyHeaderUnitButton"
