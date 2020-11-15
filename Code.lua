@@ -47,6 +47,10 @@ srslylawlUI.clearTimerActive = false
 --      recently lost health
 --      config window
 --      test (performance)
+local function scuffedRound(num)
+    num = floor(num+0.5)
+    return num
+end
 local function GetBuffText(buffIndex, unit)
     tooltipTextGrabber:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
     tooltipTextGrabber:SetUnitBuff(unit, buffIndex)
@@ -312,7 +316,6 @@ function srslylawlUI_ResetHealthBar(button, unit)
                                            classColor.b)
         button.healthBar:SetMinMaxValues(0, healthMax)
         button.healthBar:SetValue(health)
-        srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
         button.dead = false
     end
 end
@@ -435,7 +438,6 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
             srslylawlUI_Frame_HandleAuras(self.unit, unit, true)
         elseif event == "UNIT_HEAL_PREDICTION" then
-            -- srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
             srslylawlUI_Frame_HandleAuras(self.unit, unit, true)
         end
     elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
@@ -991,9 +993,10 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     ---create frames if needed
     local function CreateAbsorbFrame(parent, i, height, parentTable)
         local n = unit .. "AbsorbFrame" .. i
-        local f = CreateFrame("StatusBar", n, parent)
-        f:SetStatusBarTexture(statusBarTex, "ARTWORK")
-        --f:SetStatusBarColor(1, 1, 1, .8)
+        local f = CreateFrame("Frame", n, parent)
+        f.texture = f:CreateTexture("n".."texture", "ARTWORK")
+        f.texture:SetAllPoints()
+        f.texture:SetTexture(statusBarTex)
         if parentTable == units[unit]["absorbFramesOverlap"] then
             f:SetPoint("TOPRIGHT", parent, "TOPLEFT", -1, 0)
         else
@@ -1103,10 +1106,9 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             f.texture.bg:SetHorizTile(true)
             f.texture.bg:SetAllPoints()
             
-            --f.texture.bg:SetColorTexture(0.1, 0.1, 0.1, 0.3)
             local class = UnitClassBase(unit)
             local color = {GetClassColor(class)}
-            color[4] = 0.5
+            color[4] = 0.7
             f.texture:SetVertexColor(unpack(color))
             f.texture.bg:SetVertexColor(1, 1, 1, 1)
             f.texture.bg:SetBlendMode("MOD")
@@ -1115,8 +1117,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             units[unit]["effectiveHealthFrames"][i] = f
             end
     end
-    -- make sure that our first absorb anchor moves with the bar fill amount
-    srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
+
 
     -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
     local variousAbsorbAmount = 0
@@ -1159,15 +1160,14 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     if effectiveHealthMod ~= 1 then
         local eHealth = playerCurrentHP / effectiveHealthMod
         local additionalHealth = eHealth - playerCurrentHP
-        local maxWidth = floor(playerMissingHP*pixelPerHp) - 1
-        local barWidth = math.floor(additionalHealth * pixelPerHp)
+        local maxWidth = playerMissingHP*pixelPerHp - 1
+        local barWidth = additionalHealth * pixelPerHp
         local barWidth = barWidth < maxWidth and barWidth or maxWidth
         srslylawlUI_ChangeAbsorbSegment(units[unit]["effectiveHealthFrames"][1], barWidth, eHealth, buttonFrame.unit:GetHeight())
         units[unit]["effectiveHealthFrames"][1]:Show()
     else
         units[unit]["effectiveHealthFrames"][1]:Hide()
     end
-
 
     local function NewAbsorbSegment(amount, width, sType, oIndex, tAura)
         return {
@@ -1185,40 +1185,33 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         local allowedWidth
         local overlapAmount
         local barWidth
-
         if absorbAmount == nil then
             local errorMsg = "Aura " .. tAura.name .. " with ID " .. tAura.index .. " does not have an absorb amount. Make sure that it is the spellID of the actual buff, not of the spell that casts the buff."
             srslylawlUI.Log(errorMsg)
             return
         end
-
         while absorbAmount > 0 do
             overlapAmount = 0
-            barWidth = floor(pixelPerHp * absorbAmount)
+            barWidth = pixelPerHp * absorbAmount
             allowedWidth = srslylawlUI.settings.hp.width * overlapBarIndex
             oIndex = overlapBarIndex
 
             local pixelOverlap = (currentBarLength + barWidth) - allowedWidth
-
-
             if pixelOverlap > 0 then
                 -- bar overlaps, display only the value that wouldnt overlap
-                overlapAmount = floor(pixelOverlap / pixelPerHp)
+                overlapAmount = pixelOverlap / pixelPerHp
                 --since pixels arent that accurate in converting from/to health, make sure we never overlap more than our full absorb amount
                 overlapAmount = overlapAmount > absorbAmount and absorbAmount or overlapAmount
                 absorbAmount = absorbAmount - overlapAmount
-                barWidth = floor(pixelPerHp * absorbAmount)
+                barWidth = pixelPerHp * absorbAmount
                 overlapBarIndex = overlapBarIndex + 1
             end
-
-            print(absorbAmount, barWidth, overlapAmount)
 
             if barWidth > 2 then
             absorbSegments[#absorbSegments + 1] = NewAbsorbSegment(absorbAmount, barWidth, sType, oIndex, tAura)
             else
                 variousAbsorbAmount = variousAbsorbAmount + absorbAmount
             end
-
             currentBarLength = currentBarLength + barWidth
             absorbAmount = overlapAmount
         end
@@ -1228,9 +1221,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         local duration = tAura.duration
         local expirationTime = tAura.expiration
         local currentBar = bar
-
         srslylawlUI_ChangeAbsorbSegment(currentBar, barWidth, absorbAmount, height)
-
         local t
         if tAura.wasRefreshed or tAura["trackedApplyTime"] == nil then
             -- we only want to refresh the expiration timer if the aura has actually just been reapplied
@@ -1243,17 +1234,14 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             duration = expirationTime - t
         end
         CooldownFrame_Set(currentBar.cooldown, t, duration, true)
-
         if currentBar.wasHealthPrediction then
-            currentBar:SetStatusBarTexture(statusBarTex, "ARTWORK")
-            currentBar:SetStatusBarColor(1, 1, 1, .8)
+            currentBar.texture:SetTexture(statusBarTex)
+            currentBar.texture:SetVertexColor(1, 1, 1, 0.9)
             currentBar.wasHealthPrediction = false
         end
-
         currentBar:SetAttribute("buffIndex", tAura.index)
         currentBar.icon:SetTexture(iconID)
         currentBar:Show()
-        -- track the segment
     end
 
     local incomingHeal = UnitGetIncomingHeals(unit)
@@ -1277,26 +1265,31 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         local bar
         local pool
         local i
+        local shouldMerge
         for k, _ in ipairs(absorbSegments) do
             segment = absorbSegments[k]
             i = segment.oIndex > 1 and curBarOverlapIndex or curBarIndex
             pool = segment.oIndex > 1 and units[unit]["absorbFramesOverlap"] or units[unit]["absorbFrames"]
             bar = pool[i]
+            shouldMerge = segment.oIndex > 1 and segment.tAura ~= nil and segment.tAura == absorbSegments[1].tAura and absorbSegments[1].oIndex == 1
+            shouldMerge = shouldMerge or (segment.sType == "incomingHeal" and absorbSegments[1].sType == "incomingHeal" and segment.oIndex > 1 and absorbSegments[1].oIndex == 1)
+            if shouldMerge then
+                --hiding the non overlap frame and instead making the overlap frame bigger
+                units[unit]["absorbFrames"][1].hide = true
+                bar.isMerged = true
+                bar.mergeAmount = absorbSegments[1].width
+                segment.width = segment.width + bar.mergeAmount
+            end
 
             if segment.sType == "incomingHeal" then
-                bar:SetStatusBarTexture("Interface/AddOns/srslylawlUI/media/healthBar", ARTWORK)
-                bar:SetStatusBarColor(.2, .9, .1, 0.9)
+                bar.texture:SetTexture("Interface/AddOns/srslylawlUI/media/healthBar", ARTWORK)
+                bar.texture:SetVertexColor(.2, .9, .1, 0.9)
                 bar.wasHealthPrediction = true
                 srslylawlUI_ChangeAbsorbSegment(bar, segment.width, segment.amount, height, true)
                 bar:Show()
             else
                 SetupSegment(segment.tAura, bar, segment.amount, segment.width, height)
             end
-
-            if segment.oIndex > 1 and segment.tAura ~= nil and segment.tAura == absorbSegments[1].tAura then
-                print("merge")
-            end
-
             bar.hide = false
 
             if segment.oIndex > 1 then
@@ -1311,9 +1304,11 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     for _, bar in pairs(units[unit]["absorbFramesOverlap"]) do
         bar.hide = true
     end
+    units[unit]["absorbFramesOverlap"][1].isMerged = false
     for _, bar in pairs(units[unit]["absorbFrames"]) do
         bar.hide = true
     end
+
     DisplayFrames(absorbSegments)
 
     --hide the ones we didnt use
@@ -1327,13 +1322,16 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             bar:Hide()
         end
     end
+
+        -- make sure that our first absorb anchor moves with the bar fill amount
+    srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
 end
 function srslylawlUI_ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, isHealPrediction)
     frame:SetAttribute("absorbAmount", absorbAmount)
     frame:SetHeight(height)
-    frame:SetWidth(barWidth)
+    frame:SetWidth(scuffedRound(barWidth))
     frame.background:SetHeight(height + 2)
-    frame.background:SetWidth(barWidth + 2)
+    frame.background:SetWidth(ceil(barWidth + 2))
     -- resize icon
     if isHealPrediction then
         frame.icon:Hide()
@@ -1363,9 +1361,14 @@ function srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
     local width = buttonFrame.unit.healthBar:GetWidth()
     local pixelPerHp = width / UnitHealthMax(unit)
     local playerCurrentHP = UnitHealth(unit)
-    local baseAnchorOffset = (playerCurrentHP * pixelPerHp)
-    units[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset, 0)
-    units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset,0)
+    local baseAnchorOffset = scuffedRound(playerCurrentHP * pixelPerHp)
+    local mergeOffset = 0
+    if units[unit]["absorbFramesOverlap"][1].isMerged then
+        --offset by mergeamount
+        mergeOffset = units[unit]["absorbFramesOverlap"][1].mergeAmount
+    end
+    units[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
+    units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
     units[unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
 end
 local function UpdateHeaderNameList()
