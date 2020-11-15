@@ -38,9 +38,12 @@ srslylawlUI.clearTimerActive = false
 
 -- TODO: char tooltip
 --      defensive cooldowns(display effective health)
+--      merge buffssegments that get split by overlap
+--      update overlapping frames position with health change
 --      debuffs
---      magic absorb
 --      necrotic
+--      CC
+--      UnitHasIncomingResurrection(unit)
 --      recently lost health
 --      config window
 --      test (performance)
@@ -171,8 +174,14 @@ function srslylawlUI_InitialConfig(header, buttonFrame)
     buttonFrame:RegisterEvent("UNIT_HEAL_PREDICTION")
     buttonFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
     buttonFrame.unit:SetScript("OnEnter", function(self)
+        local unit = self:GetParent():GetAttribute("unit")
         GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
-        GameTooltip:SetUnit("player")
+        GameTooltip:SetUnit(unit)
+    end)
+    buttonFrame.pet:SetScript("OnEnter", function(self)
+        local unit = self:GetParent():GetAttribute("unit")
+        GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
+        GameTooltip:SetUnit(unit.."pet")
     end)
 
     RegisterUnitWatch(buttonFrame.pet)
@@ -185,7 +194,7 @@ function srslylawlUI_InitialConfig(header, buttonFrame)
     buttonFrame.unit.healthBar.name:SetPoint("BOTTOMLEFT", buttonFrame.unit,
                                              "BOTTOMLEFT", 2, 2)
     buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 2, 2)
-    -- buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY")
+    buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY", 7)
     buttonFrame.unit.auras = {}
     srslylawlUI_Frame_ResetDimensions(buttonFrame)
 end
@@ -402,6 +411,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
             self.unit.healthBar:SetValue(UnitHealth(unit))
         elseif event == "UNIT_HEALTH" then
             srslylawlUI_ResetHealthBar(self.unit, unit)
+            srslylawlUI_Frame_HandleAuras(self.unit, unit)
         elseif event == "UNIT_DISPLAYPOWER" then
             srslylawlUI_ResetPowerBar(self.unit, unit)
         elseif event == powerUpdateType then
@@ -983,7 +993,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         local n = unit .. "AbsorbFrame" .. i
         local f = CreateFrame("StatusBar", n, parent)
         f:SetStatusBarTexture(statusBarTex, "ARTWORK")
-        f:SetStatusBarColor(1, 1, 1, .8)
+        --f:SetStatusBarColor(1, 1, 1, .8)
         if parentTable == units[unit]["absorbFramesOverlap"] then
             f:SetPoint("TOPRIGHT", parent, "TOPLEFT", -1, 0)
         else
@@ -1046,6 +1056,65 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             CreateAbsorbFrame(parentFrame, i, height, units[unit]["absorbFramesOverlap"])
         end
     end
+    if units[unit]["effectiveHealthFrames"] == nil then
+        units[unit]["effectiveHealthFrames"] = {}
+        for i = 1, 1 do
+            local parentFrame = units[unit]["effectiveHealthFrames"][i - 1]
+            if i == 1 then
+                parentFrame = buttonFrame.unit.healthBar
+            end
+            local n = "srslylawlUI" .. unit .. "EffectiveHealthFrame" .. i
+            local f = CreateFrame("Frame", n, parentFrame)
+            f:SetPoint("TOPLEFT", parentFrame, "TOPRIGHT", 1, 0)
+            f:SetHeight(buttonFrame.unit:GetHeight())
+            f:SetWidth(40)
+            local t = f:CreateTexture("background", "BACKGROUND")
+            t:SetPoint("CENTER", f, "CENTER")
+            t:SetHeight(height + 2)
+            t:SetWidth(42)
+            f.background = t
+            f["icon"] = f:CreateTexture("icon", "OVERLAY", nil, 2)
+            f["icon"]:SetPoint("CENTER")
+            f["icon"]:SetHeight(15)
+            f["icon"]:SetWidth(15)
+            f["icon"]:SetTexCoord(.08, .92, .08, .92)
+            f["icon"]:Hide()
+            f["cooldown"] = CreateFrame("Cooldown", n .. "CD", f, "CooldownFrameTemplate")
+            f["cooldown"]:SetReverse(true)
+            f["cooldown"]:Show()
+            f:SetAttribute("unit", unit)
+            f:SetScript("OnEnter", function(self)
+                local index = self:GetAttribute("buffIndex")
+                if index then
+                    GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                    GameTooltip:SetUnitBuff(self:GetAttribute("unit"), index)
+                end
+            end)
+            f:SetScript("OnLeave", function(self)
+                if GameTooltip:IsOwned(f) then GameTooltip:Hide() end
+            end)
+            f.texture = f:CreateTexture(nil, "BACKGROUND")
+            f.texture:SetAllPoints()
+            f.texture:SetTexture("Interface/AddOns/srslylawlUI/media/healthBar", true, "MIRROR")
+
+            f.texture.bg = f:CreateTexture(nil, "BACKGROUND")
+            f.texture.bg:SetTexture("Interface/AddOns/srslylawlUI/media/eHealthBar2", true, "MIRROR")
+            f.texture.bg:SetVertTile(true)
+            f.texture.bg:SetHorizTile(true)
+            f.texture.bg:SetAllPoints()
+            
+            --f.texture.bg:SetColorTexture(0.1, 0.1, 0.1, 0.3)
+            local class = UnitClassBase(unit)
+            local color = {GetClassColor(class)}
+            color[4] = 0.5
+            f.texture:SetVertexColor(unpack(color))
+            f.texture.bg:SetVertexColor(1, 1, 1, 1)
+            f.texture.bg:SetBlendMode("MOD")
+
+
+            units[unit]["effectiveHealthFrames"][i] = f
+            end
+    end
     -- make sure that our first absorb anchor moves with the bar fill amount
     srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
 
@@ -1087,13 +1156,19 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                                      (1 - (reducAmount * stackMultiplier))
         end
     end
-
-    if units[unit]["effectiveHealthFrames"] == nil then
-        units[unit]["effectiveHealthFrames"] = {}
-        CreateAbsorbFrame(parent, i, height, parentTable)
-
+    if effectiveHealthMod ~= 1 then
+        local eHealth = playerCurrentHP / effectiveHealthMod
+        local additionalHealth = eHealth - playerCurrentHP
+        local maxWidth = floor(playerMissingHP*pixelPerHp) - 1
+        local barWidth = math.floor(additionalHealth * pixelPerHp)
+        local barWidth = barWidth < maxWidth and barWidth or maxWidth
+        srslylawlUI_ChangeAbsorbSegment(units[unit]["effectiveHealthFrames"][1], barWidth, eHealth, buttonFrame.unit:GetHeight())
+        units[unit]["effectiveHealthFrames"][1]:Show()
+    else
+        units[unit]["effectiveHealthFrames"][1]:Hide()
     end
-    
+
+
     local function NewAbsorbSegment(amount, width, sType, oIndex, tAura)
         return {
             ["amount"] = amount,
@@ -1135,6 +1210,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                 barWidth = floor(pixelPerHp * absorbAmount)
                 overlapBarIndex = overlapBarIndex + 1
             end
+
+            print(absorbAmount, barWidth, overlapAmount)
 
             if barWidth > 2 then
             absorbSegments[#absorbSegments + 1] = NewAbsorbSegment(absorbAmount, barWidth, sType, oIndex, tAura)
@@ -1216,6 +1293,10 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                 SetupSegment(segment.tAura, bar, segment.amount, segment.width, height)
             end
 
+            if segment.oIndex > 1 and segment.tAura ~= nil and segment.tAura == absorbSegments[1].tAura then
+                print("merge")
+            end
+
             bar.hide = false
 
             if segment.oIndex > 1 then
@@ -1285,6 +1366,7 @@ function srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
     local baseAnchorOffset = (playerCurrentHP * pixelPerHp)
     units[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset, 0)
     units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset,0)
+    units[unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
 end
 local function UpdateHeaderNameList()
     srslylawlUI_PartyHeader:SetAttribute("nameList",

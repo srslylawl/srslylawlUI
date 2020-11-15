@@ -116,8 +116,6 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 			<Attribute name="sortMethod" type="string" value="NAMELIST"/>
 			<Attribute name="template" type="string" value="srslylawlUI_UnitTemplate"/>
 			<Attribute name="templateType" type="string" value="Frame"/>
-			<!-- <Attribute name="xOffset" type="number" value="-50"/> --> -->
-			<!-- <Attribute name="yOffset" type="number" value="2"/> -->
 			<Attribute name="columnSpacing" type="number" value="1"/>
 		</Attributes>
 	</Frame>
