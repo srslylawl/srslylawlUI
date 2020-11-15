@@ -12,10 +12,12 @@ srslylawl_saved = {
         pet = {
             width = 15
         },
+        absorbOverlapPercent = 0.1,
         buffAnchor = "TOPLEFT",
         buffAnchorXOffset = -29,
         buffAnchorYOffset = 0,
         maxBuffs = 40,
+        maxAbsorbFrames = 20,
         minAbsorbAmount = 100,
         autoApproveKeywords = true
     },
