@@ -37,14 +37,13 @@ srslylawlUI.sortTimerActive = false
 srslylawlUI.clearTimerActive = false
 
 -- TODO: char tooltip
---      defensive cooldowns(display effective health)
---      merge buffssegments that get split by overlap
---      update overlapping frames position with health change
+--      buffs are fucked
+--      grpleave doesnt hide absorb fragments
 --      debuffs
 --      necrotic
+--      range indicator
 --      CC
 --      UnitHasIncomingResurrection(unit)
---      recently lost health
 --      config window
 --      test (performance)
 local function scuffedRound(num)
@@ -234,6 +233,22 @@ function srslylawlUI_Frame_OnShow(button)
             srslylawlUI_ResetPetButton(button.pet, unit .. "pet")
             button.guid = guid
         end
+    end
+end
+function srslylawlUI_Frame_OnHide(button)
+    local unit = button:GetAttribute("unit")
+
+    if unit == nil then
+        error("unit nil on frame hide")
+    end
+    if units[unit]["absorbFrames"] ~= nil then
+        units[unit]["absorbFrames"][1]:Hide()
+    end
+    if units[unit]["absorbFramesOverlap"] ~= nil then
+        units[unit]["absorbFramesOverlap"][1]:Hide()
+    end
+    if units[unit]["effectiveHealthFrames"] ~= nil then
+        units[unit]["effectiveHealthFrames"][1]:Hide()
     end
 end
 function srslylawlUI_ResetUnitButton(button, unit)
@@ -711,13 +726,15 @@ function srslylawlUI_ManuallyRemoveSpell(spellId, list)
 end
 function tablelength(T)
     local count = 0
+    if t == nil then return 0
+    end
     for _ in pairs(T) do count = count + 1 end
     return count
 end
 function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     -- Buffs --
     ---create frames for this unittype
-        local function GetTypeOfAuraID(spellId)
+    local function GetTypeOfAuraID(spellId)
         local auraType = nil
         if srslylawlUI.spells.absorbs[spellId] ~= nil then
             auraType = "absorb"
@@ -779,17 +796,26 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         if auraType == nil then error("auraType is nil") end
         local byAura = auraType .. "Auras"
 
+        if units[unit][byIndex][index].source == nil then
+            error("error while untracking an aura", units[unit][byIndex][index].name)
+        end
+
         local src = units[unit][byIndex][index].source
+
         local s = units[unit][byIndex][index].spellId
-        local t = tablelength(units[unit][byAura][src])
 
-        -- should be redundant check
-        if t > 0 then units[unit][byAura][src][s] = nil end
+        if units[unit][byAura][src] == nil or units[unit][byAura][src][s] == nil then
+            error("error while untracking an aura", units[unit][byIndex][index].name)
+        end
 
+        if units[unit][byAura][src] == nil then
+            return;
+        end
         units[unit][byAura][src][s] = nil
         units[unit][byIndex][index] = nil
-        t = tablelength(units[unit][byAura][src])
+        local t = tablelength(units[unit][byAura][src])
 
+        --No more auras being tracked for that unit, untrack source
         if t == 0 then units[unit][byAura][src] = nil end
     end
     local function ChangeTrackingIndex(name, source, count, spellId,
@@ -878,7 +904,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
     end
 
-    if units[unit] == nil then
+    --does this taint perhaps?
+    if units[unit] == nil and not InCombatLockdown() then
         unitbutton.buffFrames = {}
         units[unit] = {
             absorbAuras = {},
@@ -899,8 +926,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                 yOffset = srslylawlUI.settings.buffAnchorYOffset
             end
 
-            local f = CreateFrame("Button", unit .. "_" .. i, parent,
-                                  "CompactBuffTemplate")
+            local f = CreateFrame("Button", unit .. "_" .. i, parent, "CompactBuffTemplate")
             f:SetPoint(anchor, xOffset, 0)
 
             f:SetAttribute("unit", unit)
@@ -1767,7 +1793,7 @@ local function CreateConfig()
             local button = parent.buttons[i]
             if button then button:Hide() end
         end
-        parent:SetHeight(count * (iconSize + 2))
+        parent:SetHeight(count * (iconSize))
 
         return firstButton
     end
