@@ -2,7 +2,7 @@ srslylawlUI = {}
 
 srslylawlUI.settings = {
     header = {anchor = "CENTER", xOffset = 10, yOffset = 10},
-    hp = {width = 100, height = 50},
+    hp = {width = 100, height = 50, minWidthPercent = 0.45},
     pet = {width = 15},
     absorbOverlapPercent = 0.1,
     buffAnchor = "TOPLEFT",
@@ -11,7 +11,11 @@ srslylawlUI.settings = {
     maxBuffs = 40,
     maxAbsorbFrames = 20,
     minAbsorbAmount = 100,
-    autoApproveKeywords = true
+    autoApproveKeywords = true,
+    showParty = true,
+    showSolo = true,
+    showRaid = false,
+    showPlayer = true,
 }
 srslylawlUI.spells = {
     known = {},
@@ -42,6 +46,8 @@ srslylawlUI.clearTimerActive = false
 --      debuffs
 --      necrotic
 --      range indicator
+--      861 null
+--      hide ehp on death
 --      CC
 --      UnitHasIncomingResurrection(unit)
 --      config window
@@ -97,7 +103,13 @@ function tableEquals(table1, table2)
     return true
 end
 
-function srslylawlUI.Log(text) print("|cff4D00FFsrslylawlUI:|r " .. text) end
+function srslylawlUI.Log(text, ...)
+    str = ""
+    for i = 1, select('#', ...) do
+        str = str .. (select(i, ...) .. " ")
+    end
+    print("|cff4D00FFsrslylawlUI:|r " .. text, str)
+    end
 function deepcopy(orig)
     local orig_type = type(orig)
     local copy
@@ -141,10 +153,10 @@ end
 function srslylawlUI_ToggleConfigVisible(visible)
     if visible then
         srslylawlUI_ConfigFrame:Show()
-        srslylawlUI_PartyHeader:SetMovable(true)
+        --srslylawlUI_PartyHeader:SetMovable(true)
     else
         srslylawlUI_ConfigFrame:Hide()
-        srslylawlUI_PartyHeader:SetMovable(false)
+        --srslylawlUI_PartyHeader:SetMovable(false)
     end
 end
 local function SaveSettings()
@@ -239,7 +251,8 @@ function srslylawlUI_Frame_OnHide(button)
     local unit = button:GetAttribute("unit")
 
     if unit == nil then
-        error("unit nil on frame hide")
+        srslylawlUI.Log("error unit nil on frame hide")
+        return
     end
     if units[unit]["absorbFrames"] ~= nil then
         units[unit]["absorbFrames"][1]:Hide()
@@ -469,7 +482,7 @@ function srslylawlUI_ResizeHealthBarScale()
     local list, highestHP, averageHP = srslylawlUI_GetPartyHealth()
 
     local scaleByHighest = true
-    local lowerCap = 0.45 -- bars can not get smaller than this percent of highest
+    local lowerCap = srslylawlUI.settings.hp.minWidthPercent -- bars can not get smaller than this percent of highest
     local pixelPerHp = srslylawlUI.settings.hp.width / highestHP
     local minWidth = floor(highestHP * pixelPerHp * lowerCap)
 
@@ -805,7 +818,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         local s = units[unit][byIndex][index].spellId
 
         if units[unit][byAura][src] == nil or units[unit][byAura][src][s] == nil then
-            error("error while untracking an aura", units[unit][byIndex][index].name)
+            --error("error while untracking an aura", units[unit][byIndex][index].name)
         end
 
         if units[unit][byAura][src] == nil then
@@ -857,6 +870,10 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         t["auraType"] = auraType
 
         -- carry over tracked segments
+
+        if units[unit][byIndex][oldIndex] == nil then
+            srslylawlUI.Log("861 NULL: ", t["name"], t["source"])
+        end
         if units[unit][byIndex][oldIndex]["trackedSegments"] ~= nil then
             if units[unit][byIndex][currentIndex]["trackedSegments"] == nil then
                 units[unit][byIndex][currentIndex]["trackedSegments"] = {}
@@ -1271,10 +1288,14 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     end
 
     local incomingHeal = UnitGetIncomingHeals(unit)
-    local incomingHealWidth = floor(incomingHeal * pixelPerHp)
-    if incomingHealWidth > 2 then
+    local incomingHealWidth
+    if incomingHeal ~= nil then
+        incomingHealWidth = floor(incomingHeal * pixelPerHp)
+         if incomingHealWidth > 2 then
         CalcSegment(incomingHeal, "incomingHeal", nil)
     end
+    end
+   
     -- absorb auras seem to get consumed in order by their spellid, ascending, (not confirmed)
     -- so we sort by descending to visualize which one gets removed first
     for _, value in ipairs(sortedAbsorbAuras) do
@@ -1306,14 +1327,26 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                 bar.mergeAmount = absorbSegments[1].width
                 segment.width = segment.width + bar.mergeAmount
             end
-
+            
             if segment.sType == "incomingHeal" then
                 bar.texture:SetTexture("Interface/AddOns/srslylawlUI/media/healthBar", ARTWORK)
                 bar.texture:SetVertexColor(.2, .9, .1, 0.9)
                 bar.wasHealthPrediction = true
                 srslylawlUI_ChangeAbsorbSegment(bar, segment.width, segment.amount, height, true)
                 bar:Show()
+            elseif segment.sType == "various" then
+                if bar.wasHealthPrediction then
+                    bar.texture:SetTexture(statusBarTex)
+                    bar.texture:SetVertexColor(1, 1, 1, 0.9)
+                    bar.wasHealthPrediction = false
+                end
+                srslylawlUI_ChangeAbsorbSegment(bar, segment.width, segment.amount, height)
+                bar:Show()
             else
+                if segment.tAura == nil then
+                    srslylawlUI.Log("ERROR: segment nil", segment.oIndex, segment.amount, segment.sType);
+                return
+            end
                 SetupSegment(segment.tAura, bar, segment.amount, segment.width, height)
             end
             bar.hide = false
@@ -1335,7 +1368,9 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         bar.hide = true
     end
 
-    DisplayFrames(absorbSegments)
+    if #absorbSegments > 0 then
+        DisplayFrames(absorbSegments)
+    end
 
     --hide the ones we didnt use
     for _, bar in pairs(units[unit]["absorbFramesOverlap"]) do
@@ -1405,6 +1440,10 @@ local function HeaderSetup()
     local header = srslylawlUI_PartyHeader
     UpdateHeaderNameList()
     header:SetAttribute("initialConfigFunction", configString)
+    header:SetAttribute("showParty", srslylawlUI.settings.showParty)
+    header:SetAttribute("showPlayer", srslylawlUI.settings.showPlayer)
+    header:SetAttribute("showSolo", srslylawlUI.settings.showSolo)
+    header:SetAttribute("showRaid", srslylawlUI.settings.showRaid)
     header.initialConfigFunction = srslylawlUI_InitialConfig
     header:Show()
     header:SetPoint(srslylawlUI.settings.header.anchor,
@@ -1416,7 +1455,8 @@ local function CreateCustomSlider(name, min, max, defaultValue, parent, offset)
     _G[name .. "Low"]:SetText(min)
     _G[name .. "High"]:SetText(max)
     _G[name .. "Text"]:SetText(name)
-    _G[name .. "Text"]:SetPoint("TOPLEFT", 0, 15)
+    _G[name .. "Text"]:SetTextColor(1, 0.82, 0, 1)
+    _G[name .. "Text"]:SetPoint("TOP", 0, 15)
     slider:SetPoint("TOP", 0, offset)
     slider:SetWidth(150)
     slider:SetHeight(16)
@@ -1432,7 +1472,7 @@ local function CreateCustomSlider(name, min, max, defaultValue, parent, offset)
         edgeSize = 12,
         insets = {left = 4, right = 4, top = 4, bottom = 4}
     })
-    editBox:SetBackdropColor(0.05, 0.05, .05, .5)
+    editBox:SetBackdropColor(0.2, 0.2, .2, 1)
     editBox:SetTextInsets(5, 5, 0, 0)
     editBox:SetHeight(25)
     editBox:SetWidth(50)
@@ -1639,6 +1679,146 @@ local function CreateConfig()
 
         return f
     end
+    local function AddTooltip(frame, text)
+        local function OnEnter(self)
+            customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
+            customTooltip:SetText(text)
+        end
+        local function OnLeave(self) customTooltip:Hide() end
+
+        frame:EnableMouse(true)
+        frame:SetScript("OnEnter", OnEnter)
+        frame:SetScript("OnLeave", OnLeave)
+    end
+    local function CreateFrameWBG(name, parent)
+        local f = CreateFrame("Frame", "$parent_" ..name, parent, "BackdropTemplate")
+        f:SetSize(500, 500)
+        f:SetBackdrop({
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 10,
+            insets = {left = 4, right = 4, top = 4, bottom = 4}
+        })
+        f:SetBackdropColor(0, 0, 0, .4)
+        f.title = f:CreateFontString(
+                    "$parent_Title", "OVERLAY", "GameFontNormal")
+        f.title:SetText(name)
+        f.title:SetPoint("BOTTOMLEFT", f, "TOPLEFT")
+        return f
+    end
+    local function CreateCheckButton(name, parent)
+        local checkButton = CreateFrame("CheckButton",name,parent,"UICheckButtonTemplate")
+        checkButton.text:SetText(name)
+        return checkButton
+    end
+    local function CreateSaveLoadButtons(frame)
+        -- Save Button
+        frame.SaveButton = CreateFrame("Button", "srslylawlUI_Config_SaveButton",
+                                    srslylawlUI_ConfigFrame,
+                                    "UIPanelButtonTemplate")
+        local s = frame.SaveButton
+        s:SetPoint("TOPRIGHT", -5, -30)
+        s:SetText("Save")
+        s:SetScript("OnClick", function(self) SaveSettings() end)
+        s:SetWidth(60)
+        table.insert(unsaved.buttons, s)
+
+        -- Load Button
+        frame.LoadButton = CreateFrame("Button", "srslylawlUI_Config_LoadButton",
+                                    srslylawlUI_ConfigFrame,
+                                    "UIPanelButtonTemplate")
+        local l = frame.LoadButton
+        l:SetPoint("TOPRIGHT", s, "TOPLEFT")
+        l:SetText("Load")
+        l:SetScript("OnClick", function(self) LoadSettings(true, true) end)
+        l:SetWidth(60)
+        table.insert(unsaved.buttons, l)
+        l:Disable()
+        s:Disable()
+        frame.CloseButton = CreateFrame("Button", "srslylawlUI_Config_CloseButton",
+                                     srslylawlUI_ConfigFrame,
+                                     "UIPanelCloseButton")
+        local c = frame.CloseButton
+        c:SetPoint("TOPRIGHT", 0, 0)
+    end
+    local function FillGeneralTab(tab)
+        local lockFrames = CreateCheckButton("Make frames moveable", tab)
+        lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
+        lockFrames:SetScript("OnClick", function(self)
+            srslylawlUI_PartyHeader:SetMovable(self:GetChecked()) end
+        )
+
+        local visibility = CreateFrameWBG("Visibility", lockFrames)
+        visibility:SetPoint("TOPLEFT", lockFrames, "BOTTOMLEFT", 0, -15)
+        visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -85)
+
+        local showParty = CreateCheckButton("Show In Party", visibility)
+        showParty:SetScript("OnClick", function(self)
+            srslylawlUI.settings.showParty = self:GetChecked()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        AddTooltip(showParty, "Show Frames while in a Party")
+        showParty:SetPoint("TOPLEFT", visibility, "TOPLEFT")
+        showParty:SetChecked(srslylawlUI.settings.showParty)
+
+        local showRaid = CreateCheckButton("Show in Raid", visibility)
+        showRaid:SetScript("OnClick", function(self)
+            srslylawlUI.settings.showRaid = self:GetChecked()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        showRaid:SetPoint("LEFT", showParty.text, "RIGHT")
+        AddTooltip(showRaid, "Show Frames while in a Raid (not recommended)")
+        showRaid:SetChecked(srslylawlUI.settings.showRaid)
+
+        local showPlayer = CreateCheckButton("Show Player", visibility)
+        showPlayer:SetScript("OnClick", function(self)
+            srslylawlUI.settings.showPlayer = self:GetChecked()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        showPlayer:SetPoint("LEFT", showRaid.text, "RIGHT")
+        AddTooltip(showPlayer, "Show Player in PartyFrames (recommended)")
+        showPlayer:SetChecked(srslylawlUI.settings.showPlayer)
+
+        local showSolo = CreateCheckButton("Show Solo", visibility)
+        showSolo:SetScript("OnClick", function(self)
+            srslylawlUI.settings.showSolo = self:GetChecked()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        showSolo:SetPoint("LEFT", showPlayer.text, "RIGHT")
+        AddTooltip(showSolo, "Show Frames while not in a group (overrides Show Player)")
+        showSolo:SetChecked(srslylawlUI.settings.showSolo)
+    end
+    local function FillBarsTab(tab)
+        -- HP Bar Sliders
+        local cFrame = srslylawlUI_ConfigFrame
+
+        local healthBarFrame = CreateFrameWBG("Health Bar", tab)
+        healthBarFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -25)
+        healthBarFrame:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -5, -85)
+        cFrame.sliders = {}
+        local width = floor(srslylawlUI.settings.hp.width)
+        local height = floor(srslylawlUI.settings.hp.height)
+        cFrame.sliders.height = CreateCustomSlider("Height", 5, 500,
+            height, healthBarFrame, -50)
+        cFrame.sliders.height:SetPoint("TOPLEFT", 10, -20)
+        cFrame.sliders.height:HookScript("OnValueChanged", function(self, value)
+            local v = value
+            srslylawlUI.settings.hp.height = v
+            srslylawlUI.UpdateEverything()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        cFrame.sliders.hpwidth = CreateCustomSlider("Max Width", 25,
+            2000, width, cFrame.sliders.height, -40)
+        cFrame.sliders.hpwidth:ClearAllPoints()
+        cFrame.sliders.hpwidth:SetPoint("LEFT", cFrame.sliders.height.editbox,
+            "RIGHT", 10, 0)
+        cFrame.sliders.hpwidth:HookScript("OnValueChanged", function(self, value)
+            local v = value
+            srslylawlUI.settings.hp.width = v
+            srslylawlUI.UpdateEverything()
+            srslylawlUI_SetDirtyFlag()
+        end)
+    end
     local function ScrollFrame_OnMouseWheel(self, delta)
         local newValue = self:GetVerticalScroll() - (delta * 20)
 
@@ -1648,18 +1828,6 @@ local function CreateConfig()
             newValue = self:GetVerticalScrollRange()
         end
         self:SetVerticalScroll(newValue)
-    end
-    local function CreateFrameWBG(name, parent)
-        local f = CreateFrame("Frame", name, parent, "BackdropTemplate")
-        f:SetSize(500, 500)
-        f:SetBackdrop({
-            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-            edgeSize = 10,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
-        })
-        f:SetBackdropColor(0, 0, 0, .4)
-        return f
     end
     local function Tab_OnClick(self)
         local parent = self:GetParent()
@@ -1732,7 +1900,7 @@ local function CreateConfig()
         local offset = 3
         local count = 0
         if spellList == nil then
-            error("no spell list, saved variables corrupt?")
+            error("No spell list, saved variables corrupt?")
             return
         end
         -- sort list
@@ -1780,6 +1948,13 @@ local function CreateConfig()
             button:SetPoint("RIGHT", parent, "RIGHT")
 
             button:SetAttribute("spellId", spellId)
+
+            if(srslylawlUI.spells.known[spellId] ~= nil) then
+                local tooltipText = srslylawlUI.spells.known[spellId].text
+                if tooltipText and tooltipText ~= "" then
+                    AddTooltip(button.icon, tooltipText)
+                end
+            end
 
             button.icon.texture:SetTexture(icon)
             button:Show()
@@ -2033,22 +2208,20 @@ local function CreateConfig()
         whiteList:SetScript("OnShow", Menu_OnShow(whiteList, "whiteList"))
         whiteList:SetAttribute("spellList", "whiteList")
 
+        Mixin(unapprovedSpells, BackdropTemplateMixin)
+        unapprovedSpells:SetBackdrop({
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 10,
+            insets = {left = 4, right = 4, top = 4, bottom = 4}
+        })
+        unapprovedSpells:SetBackdropColor(1, 0, 0, .4)
         CreateScrollFrameWithBGAndChild(unapprovedSpells)
         unapprovedSpells:SetScript("OnShow",
                                    Menu_OnShow(unapprovedSpells, "unapproved"))
         unapprovedSpells:SetAttribute("spellList", "unapproved")
     end
-    local function AddTooltip(frame, text)
-        local function OnEnter(self)
-            customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
-            customTooltip:SetText(text)
-        end
-        local function OnLeave(self) customTooltip:Hide() end
-
-        frame:EnableMouse(true)
-        frame:SetScript("OnEnter", OnEnter)
-        frame:SetScript("OnLeave", OnLeave)
-    end
+    
 
     srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config",
                                           UIParent, "UIPanelDialogTemplate")
@@ -2066,7 +2239,31 @@ local function CreateConfig()
 
     cFrame.body = CreateConfigBody("$parent_Body", cFrame)
 
-    local barsTab, spellsTab = SetTabs(cFrame.body, "Bars", "Spells")
+    CreateSaveLoadButtons(cFrame)
+
+    local generalTab, barsTab, spellsTab = SetTabs(cFrame.body, "General", "Bars", "Spells")
+
+    -- Create General Tab
+    Mixin(generalTab, BackdropTemplateMixin)
+    generalTab:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 10,
+        insets = {left = 4, right = 4, top = 4, bottom = 4}
+    })
+    generalTab:SetBackdropColor(0, 0, 0, .4)
+    FillGeneralTab(generalTab)
+
+    -- Create Bars Tab
+    Mixin(barsTab, BackdropTemplateMixin)
+    barsTab:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 10,
+        insets = {left = 4, right = 4, top = 4, bottom = 4}
+    })
+    barsTab:SetBackdropColor(0, 0, 0, .4)
+    FillBarsTab(barsTab)
 
     -- Create Spells Tab
     spellsTab:ClearAllPoints()
@@ -2083,9 +2280,9 @@ local function CreateConfig()
     spellsTab:SetBackdropColor(0, 0, 0, .4)
 
     -- Debug Texture
-    spellsTab.bg = spellsTab:CreateTexture(nil, "BACKGROUND")
-    spellsTab.bg:SetAllPoints()
-    spellsTab.bg:SetColorTexture(.3, 1, .4, .2)
+    -- spellsTab.bg = spellsTab:CreateTexture(nil, "BACKGROUND")
+    -- spellsTab.bg:SetAllPoints()
+    -- spellsTab.bg:SetColorTexture(.3, 1, .4, .2)
 
     -- Spell Tab buttons
     local knownSpells, absorbSpells, defensives, whiteList, unapprovedSpells =
@@ -2106,63 +2303,12 @@ local function CreateConfig()
     CreateSpellMenus(knownSpells, absorbSpells, defensives, whiteList,
                      unapprovedSpells)
 
-    srslylawlUI_ToggleConfigVisible(false)
+    --srslylawlUI_ToggleConfigVisible(false)
     if true then return end
 
-    -- HP Bar Sliders
-    cFrame.sliders = {}
-    local width = floor(srslylawlUI.settings.hp.width)
-    local height = floor(srslylawlUI.settings.hp.height)
-    cFrame.sliders.height = CreateCustomSlider("Health Bar Height", 5, 500,
-                                               height, cFrame.barFrame, -50)
-    cFrame.sliders.height:SetPoint("TOPLEFT", 20, -40)
-    cFrame.sliders.height:HookScript("OnValueChanged", function(self, value)
-        local v = value
-        srslylawlUI.settings.hp.height = v
-        srslylawlUI.UpdateEverything()
-        srslylawlUI_SetDirtyFlag()
-    end)
-    cFrame.sliders.hpwidth = CreateCustomSlider("Health Bar Max Width", 25,
-                                                2000, width,
-                                                cFrame.sliders.height, -40)
-    cFrame.sliders.hpwidth:ClearAllPoints()
-    cFrame.sliders.hpwidth:SetPoint("LEFT", cFrame.sliders.height.editbox,
-                                    "RIGHT", 10, 0)
-    cFrame.sliders.hpwidth:HookScript("OnValueChanged", function(self, value)
-        local v = value
-        srslylawlUI.settings.hp.width = v
-        srslylawlUI.UpdateEverything()
-        srslylawlUI_SetDirtyFlag()
-    end)
+    
 
-    -- Save Button
-    cFrame.SaveButton = CreateFrame("Button", "srslylawlUI_Config_SaveButton",
-                                    srslylawlUI_ConfigFrame,
-                                    "UIPanelButtonTemplate")
-    local s = cFrame.SaveButton
-    s:SetPoint("BOTTOM", 30, 15)
-    s:SetText("Save")
-    s:SetScript("OnClick", function(self) SaveSettings() end)
-    s:SetWidth(60)
-    table.insert(unsaved.buttons, s)
-
-    -- Load Button
-    cFrame.LoadButton = CreateFrame("Button", "srslylawlUI_Config_LoadButton",
-                                    srslylawlUI_ConfigFrame,
-                                    "UIPanelButtonTemplate")
-    local l = cFrame.LoadButton
-    l:SetPoint("BOTTOM", -30, 15)
-    l:SetText("Load")
-    l:SetScript("OnClick", function(self) LoadSettings(true, true) end)
-    l:SetWidth(60)
-    table.insert(unsaved.buttons, l)
-    l:Disable()
-    s:Disable()
-    cFrame.CloseButton = CreateFrame("Button", "srslylawlUI_Config_CloseButton",
-                                     srslylawlUI_ConfigFrame,
-                                     "UIPanelCloseButton")
-    local c = cFrame.CloseButton
-    c:SetPoint("TOPRIGHT", 0, 0)
+   
 
     cFrame.editBoxes = {}
 
@@ -2205,7 +2351,7 @@ local function CreateConfig()
         srslylawlUI_SetDirtyFlag()
     end)
     cFrame.editBoxes.buffAnchorXOffset = buffAnchorXOffset
-    -- srslylawlUI_ToggleConfigVisible(false)
+    --srslylawlUI_ToggleConfigVisible(true)
     InterfaceOptions_AddCategory(srslylawlUI_ConfigFrame)
 end
 local function CreateSlashCommands()
@@ -2272,7 +2418,7 @@ function SortPartyFrames()
         end
     end
     ClearAfterSort()
-    -- print("done sorting")
+    print("done sorting")
 end
 function ClearAfterSort()
     if not srslylawlUI.clearTimerActive then
@@ -2299,27 +2445,6 @@ function ClearPointsAllPartyFrames()
         end
     end
     -- print("points cleared")
-end
-local function CreateTestTextureBar()
-    srslylawlTestFrame = CreateFrame("Frame", "srslylawlUI_TextureTest",
-                                     UIParent)
-    local frame = srslylawlTestFrame
-    local w = srslylawlUI.settings.hp.width
-    local h = srslylawlUI.settings.hp.height
-    frame:EnableMouse(true)
-    frame:SetSize(w * 2, h)
-    frame:SetPoint("CENTER")
-    frame.texture = frame:CreateTexture(nil, "OVERLAY")
-    frame.texture:SetAllPoints()
-    frame.texture:SetTexture(
-        "Interface/AddOns/srslylawlUI/media/eHealthBarTransparent1", true,
-        "MIRROR")
-    frame.texture:SetVertTile(true)
-    frame.texture:SetHorizTile(true)
-    frame.texture.bg = frame:CreateTexture("bg", "BACKGROUND")
-    frame.texture.bg:SetAllPoints()
-    frame.texture.bg:SetColorTexture(0.1, 0.1, 0.1, 0.3)
-    frame.texture:SetVertexColor(GetClassColor("PRIEST"))
 end
 function srslylawlUI.TranslateTexY(texture, amount, onlyIfChanged)
     local coords = {texture:GetTexCoord()}
@@ -2362,6 +2487,7 @@ function srslylawlUI.TranslateTexX(texture, amount, onlyIfChanged)
 
     texture:SetTexCoord(unpack(coords))
 end
+
 
 local function srslylawlUI_Initialize()
     LoadSettings()
@@ -2419,8 +2545,7 @@ srslylawlUI.SortAfterLogin = function()
     end
 end
 srslylawlUI.UpdateEverything = function()
-    -- print("update everything")
-    if not InCombatLockdown() then
+    if InCombatLockdown() == false then
         UpdateHeaderNameList()
         SortPartyFrames()
         srslylawlUI_ResizeHealthBarScale()
@@ -2439,8 +2564,12 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     elseif event == "UNIT_MAXHEALTH" or event == "GROUP_ROSTER_UPDATE" then
         -- delay since it bugs if it happens at the same frame for some reason
         -- print("roster update")
+        if event == "UNIT_MAXHEALTH" and not (arg1 == "player" or arg1 == "party1" or arg1 == "party2" or arg1 == "party3" or arg1 == "party4") then
+            --this event fires for all nameplates etc, but we only care about our party members
+            return
+        end
         C_Timer.After(.1, function()
-            -- print("sort after maxhealth/grp change")
+            --print(event, " sort after maxhealth/grp change", arg1)
             SortPartyFrames()
         end)
     elseif event == "PLAYER_ENTERING_WORLD" then

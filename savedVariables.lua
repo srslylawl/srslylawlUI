@@ -7,7 +7,8 @@ srslylawl_saved = {
         },
         hp = {
             width = 100,
-            height = 50
+            height = 50,
+            minWidthPercent = 0.45
         },
         pet = {
             width = 15
@@ -19,7 +20,11 @@ srslylawl_saved = {
         maxBuffs = 40,
         maxAbsorbFrames = 20,
         minAbsorbAmount = 100,
-        autoApproveKeywords = true
+        autoApproveKeywords = true,
+        showParty = true,
+        showSolo = true,
+        showRaid = false,
+        showPlayer = true,
     },
     spells = {
         known = {},
