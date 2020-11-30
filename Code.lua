@@ -4,7 +4,10 @@ srslylawlUI.settings = {
     header = {anchor = "CENTER", xOffset = 10, yOffset = 10},
     hp = {width = 100, height = 50, minWidthPercent = 0.45},
     pet = {width = 15},
-    buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true, maxBuffs = 40, maxDuration = 60, showDefensives = true},
+    buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT",
+            showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true},
+    debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true,
+            maxDebuffs = 15, maxDuration = 180},
     absorbOverlapPercent = 0.1,
     maxAbsorbFrames = 20,
     minAbsorbAmount = 100,
@@ -66,14 +69,17 @@ local function CreateBuffFrames()
         local unitName = v
         local frameName = "srslylawlUI_"..unitName.."Aura"
 
-        units[unitName] = {
-            absorbAuras = {},
-            trackedAurasByIndex = {},
-            buffFrames = {},
-            defensiveAuras = {},
-            effectiveHealthSegments = {},
-            parentName = "srslylawlUI_AuraHolderFrame"
+        if units[unitName].buffFrames == nil then
+            units[unitName] = {
+                absorbAuras = {},
+                trackedAurasByIndex = {},
+                buffFrames = {},
+                defensiveAuras = {},
+                debuffFrames = {},
+                effectiveHealthSegments = {},
+                parentName = "srslylawlUI_AuraHolderFrame"
         }
+        end
         for i = 1, srslylawlUI.settings.buffs.maxBuffs do
             local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
             local parent = _G[frameName .. (i - 1)]
@@ -98,6 +104,38 @@ local function CreateBuffFrames()
                 end
             end)
             units[unitName].buffFrames[i] = f
+        end
+    end
+end
+local function CreateDebuffFrames()
+    for _, v in pairs(unitTable) do
+        local unitName = v
+        local frameName = "srslylawlUI_"..unitName.."Debuff"
+
+        for i = 1, srslylawlUI.settings.debuffs.maxDebuffs do
+            local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
+            local parent = _G[frameName .. (i - 1)]
+            local anchor = srslylawlUI.settings.debuffs.growthDir
+            if (i == 1) then
+                parent = srslylawlUI.AuraHolderFrame
+                anchor = srslylawlUI.settings.debuffs.anchor
+                xOffset = srslylawlUI.settings.debuffs.xOffset
+                yOffset = srslylawlUI.settings.debuffs.yOffset
+            end
+            local f = CreateFrame("Button", frameName .. i, parent, "CompactDebuffTemplate")
+            f:SetPoint(anchor, xOffset, yOffset)
+            f:SetAttribute("unit", unitName)
+            f:SetScript("OnLoad", nil)
+            f:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                GameTooltip:SetUnitDebuff(self:GetAttribute("unit"), self:GetID())
+            end)
+            f:SetScript("OnUpdate", function(self)
+                if GameTooltip:IsOwned(f) then
+                    GameTooltip:SetUnitDebuff(self:GetAttribute("unit"),self:GetID())
+                end
+            end)
+            units[unitName].debuffFrames[i] = f
         end
     end
 end
@@ -187,7 +225,7 @@ end
 function srslylawlUI.SetBuffFrames()
     for k, v in pairs(units) do
         if units[k] ~= nil and units[k].buffFrames ~= nil then
-            for i = 1, 40 do
+            for i = 1, srslylawlUI.settings.buffs.maxBuffs do
                 local size = srslylawlUI.settings.buffs.size
                 local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
                 local parent = _G[units[k].parentName .. (i - 1)]
@@ -199,9 +237,38 @@ function srslylawlUI.SetBuffFrames()
                     yOffset = srslylawlUI.settings.buffs.yOffset
                 end
 
+                if units[k].buffFrames[i] == nil then
+                    error('Max visible buffs setting has been changed, please reload UI by typing "/reload" ')
+                end
                 units[k].buffFrames[i]:ClearAllPoints()
                 units[k].buffFrames[i]:SetPoint(anchor, xOffset, yOffset)
                 units[k].buffFrames[i]:SetSize(size, size)
+            end
+        end
+    end
+end
+function srslylawlUI.SetDebuffFrames()
+    for k, v in pairs(units) do
+        if units[k] ~= nil and units[k].debuffFrames ~= nil then
+            for i = 1, srslylawlUI.settings.debuffs.maxDebuffs do
+                local size = srslylawlUI.settings.debuffs.size
+                local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
+                local parent = _G[units[k].parentName .. (i - 1)]
+                local anchor = "CENTER"
+                if (i == 1) then
+                    parent = unitbutton
+                    anchor = srslylawlUI.settings.debuffs.anchor
+                    xOffset = srslylawlUI.settings.debuffs.xOffset
+                    yOffset = srslylawlUI.settings.debuffs.yOffset
+                end
+
+                if units[k].debuffFrames[i] == nil then
+                    error('Max visible debuffs setting has been changed, please reload UI by typing "/reload" ')
+                end
+
+                units[k].debuffFrames[i]:ClearAllPoints()
+                units[k].debuffFrames[i]:SetPoint(anchor, xOffset, yOffset)
+                units[k].debuffFrames[i]:SetSize(size, size)
             end
         end
     end
@@ -210,6 +277,19 @@ function srslylawlUI.GetBuffOffsets()
     local xOffset, yOffset
     local size = srslylawlUI.settings.buffs.size
     local growthDir = srslylawlUI.settings.buffs.growthDir
+    if growthDir == "LEFT" then
+        xOffset = -size
+        yOffset = 0
+    elseif growthDir == "RIGHT" then
+        xOffset = size
+        yOffset = 0
+    end
+    return xOffset, yOffset
+end
+function srslylawlUI.GetDebuffOffsets()
+    local xOffset, yOffset
+    local size = srslylawlUI.settings.debuffs.size
+    local growthDir = srslylawlUI.settings.debuffs.growthDir
     if growthDir == "LEFT" then
         xOffset = -size
         yOffset = 0
@@ -1054,20 +1134,32 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
     end
 
-    if unitbutton["buffFrames"] == nil then -- this unit doesnt own the frames yet
+    if unitbutton["buffFrames"] == nil and srslylawlUI.settings.buffs.maxBuffs > 0 then -- this unit doesnt own the frames yet
         unitbutton.buffFrames = {}
         unitbutton.buffFrames = units[unit].buffFrames
+        if unitbutton.buffFrames[1] == nil then
+            error('Max visible buffs setting has been changed, please reload UI by typing "/reload" ')
+        end
         unitbutton.buffFrames[1]:SetParent(unitbutton)
         srslylawlUI.SetBuffFrames()
+    end
+    if unitbutton["debuffFrames"] == nil and srslylawlUI.settings.debuffs.maxDebuffs > 0 then -- this unit doesnt own the frames yet
+        unitbutton.debuffFrames = {}
+        unitbutton.debuffFrames = units[unit].debuffFrames
+        if unitbutton.debuffFrames[1] == nil then
+            error('Max visible debuffs setting has been changed, please reload UI by typing "/reload" ')
+        end
+        unitbutton.debuffFrames[1]:SetParent(unitbutton)
+        srslylawlUI.SetDebuffFrames()
     end
     -- frames exist and unit owns them
     -- reset frame check verifier
     for k, v in pairs(units[unit].trackedAurasByIndex) do
         v["checkedThisEvent"] = false
     end
-    -- process auras on unit
+    -- process buffs on unit
     local currentBuffFrame = 1
-    for i = 1, srslylawlUI.settings.buffs.maxBuffs do
+    for i = 1, 40 do
         -- loop through all frames on standby and assign them based on their index
         local f = unitbutton.buffFrames[currentBuffFrame]
         local name, icon, count, debuffType, duration, expirationTime, source,
@@ -1076,7 +1168,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.RememberSpellID(spellId, i, unit, absorb)
-            if ShouldDisplayAura(UnitAura(unit, i)) then
+            if ShouldDisplayAura(UnitAura(unit, i)) and i <= srslylawlUI.settings.buffs.maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
                 f:Show()
@@ -1114,6 +1206,53 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             f:Hide()
         end
     end
+    -- process debuffs on unit
+    currentDebuffFrame = 1
+    for i = 1, 40 do
+        local f = unitbutton.debuffFrames[currentDebuffFrame]
+        local name, icon, count, debuffType, duration, expirationTime, source,
+              isStealable, nameplateShowPersonal, spellId, canApplyAura,
+              isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
+            UnitAura(unit, i, "HARMFUL")
+        if name then -- if aura on this index exists, assign it
+            --srslylawlUI.RememberSpellID(spellId, i, unit, absorb)
+
+            --TODO: remember debuff auras
+            if true and i <= srslylawlUI.settings.debuffs.maxDebuffs then
+                f.icon:SetTexture(icon)
+                if ( count > 1 ) then
+		            local countText = count;
+		            if ( count >= 100 ) then
+			            countText = BUFF_STACKS_OVERFLOW;
+		            end
+		            f.count:Show();
+		            f.count:SetText(countText);
+	            else
+		            f.count:Hide();
+	            end
+                f:SetID(i)
+                local enabled = expirationTime and expirationTime ~= 0;
+	            if enabled then
+		            local startTime = expirationTime - duration;
+		            CooldownFrame_Set(f.cooldown, startTime, duration, true);
+	            else
+		            CooldownFrame_Clear(f.cooldown);
+                end
+                local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
+	            f.border:SetVertexColor(color.r, color.g, color.b);
+
+                f:Show()
+                currentDebuffFrame = currentDebuffFrame + 1
+            else
+                f:Hide()
+            end
+        else -- no more debuffs, hide frames
+            f:Hide()
+        end
+        
+    end
+    
+
     -- we checked all frames, untrack any that are gone
     -- print("untrack all that are gone")
     for k, v in pairs(units[unit].trackedAurasByIndex) do
@@ -1549,10 +1688,13 @@ local function HeaderSetup()
                     srslylawlUI.settings.header.yOffset)
 end
 local function CreateCustomSlider(name, min, max, defaultValue, parent, offset, valueStep, isNumeric, decimals)
+    local title = name
+    name = "$parent_Slider"..name
     local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
+    name = slider:GetName()
     _G[name .. "Low"]:SetText(min)
     _G[name .. "High"]:SetText(max)
-    _G[name .. "Text"]:SetText(name)
+    _G[name .. "Text"]:SetText(title)
     _G[name .. "Text"]:SetTextColor(1, 0.82, 0, 1)
     _G[name .. "Text"]:SetPoint("TOP", 0, 15)
     slider:SetPoint("TOP", 0, offset)
@@ -1935,14 +2077,14 @@ local function CreateConfig()
         -- Buff Frames
         local buffFrame = CreateFrameWBG("Buffs", healthBarFrame)
         buffFrame:SetPoint("TOPLEFT", healthBarFrame, "BOTTOMLEFT", 0, -15)
-        buffFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", 0, -85)
+        buffFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", 0, -120)
         local buffAnchor = CreateCustomDropDown("Anchor", 75, buffFrame, "TOPLEFT",
-            "TOPLEFT", 0, -20, srslylawlUI.settings.buffs.anchor, anchorTable, function(newValue)
+            "TOPLEFT", -10, -20, srslylawlUI.settings.buffs.anchor, anchorTable, function(newValue)
                 srslylawlUI.settings.buffs.anchor = newValue
                 srslylawlUI.SetBuffFrames()
         end, function(self) return self.value == srslylawlUI.settings.buffs.anchor end)
         local buffGrowthDir = CreateCustomDropDown("Growth Direction", 125, buffAnchor, "TOPLEFT",
-            "TOPRIGHT", -20, 0, srslylawlUI.settings.buffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
+            "TOPRIGHT", -25, 0, srslylawlUI.settings.buffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
                 srslylawlUI.settings.buffs.growthDir = newValue
                 srslylawlUI.SetBuffFrames()
         end, function(self) return self.value == srslylawlUI.settings.buffs.growthDir end)
@@ -1958,7 +2100,7 @@ local function CreateConfig()
         buffAnchorXOffset.title:SetPoint("TOP", 0, 12)
         buffAnchorXOffset.title:SetText("X Offset")
         buffAnchorXOffset:ClearAllPoints()
-        buffAnchorXOffset:SetPoint("TOPLEFT", buffGrowthDir, "TOPRIGHT")
+        buffAnchorXOffset:SetPoint("TOPLEFT", buffGrowthDir, "TOPRIGHT", -10, 0)
         local buffAnchorYOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffAnchorXOffset, srslylawlUI.settings.buffs.xOffset,
         function(self)
             local n = self:GetNumber()
@@ -1985,6 +2127,74 @@ local function CreateConfig()
         buffIconSize.title = buffIconSize:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
         buffIconSize.title:SetPoint("TOP", 0, 12)
         buffIconSize.title:SetText("Size")
+
+        cFrame.sliders.maxBuffs = CreateCustomSlider("Max Visible Buffs", 0, 40, srslylawlUI.settings.buffs.maxBuffs, buffAnchor, -50, 1, true, 0)
+        cFrame.sliders.maxBuffs:SetPoint("TOPLEFT", buffAnchor, "BOTTOMLEFT", 20, -15)
+        cFrame.sliders.maxBuffs:HookScript("OnValueChanged", function(self, value)
+            srslylawlUI.settings.buffs.maxBuffs = value
+            srslylawlUI_SetDirtyFlag() end)
+        AddTooltip(cFrame.sliders.maxBuffs, "Requires UI Reload")
+
+        --Debuff Frames
+        local debuffFrame = CreateFrameWBG("Debuffs", buffFrame)
+        debuffFrame:SetPoint("TOPLEFT", buffFrame, "BOTTOMLEFT", 0, -15)
+        debuffFrame:SetPoint("BOTTOMRIGHT", buffFrame, "BOTTOMRIGHT", 0, -120)
+        local debuffAnchor = CreateCustomDropDown("Anchor", 75, debuffFrame, "TOPLEFT",
+            "TOPLEFT", -10, -20, srslylawlUI.settings.debuffs.anchor, anchorTable, function(newValue)
+                srslylawlUI.settings.debuffs.anchor = newValue
+                srslylawlUI.SetDebuffFrames()
+        end, function(self) return self.value == srslylawlUI.settings.debuffs.anchor end)
+        local debuffGrowthDir = CreateCustomDropDown("Growth Direction", 125, debuffAnchor, "TOPLEFT",
+            "TOPRIGHT", -25, 0, srslylawlUI.settings.debuffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
+                srslylawlUI.settings.debuffs.growthDir = newValue
+                srslylawlUI.SetDebuffFrames()
+        end, function(self) return self.value == srslylawlUI.settings.debuffs.growthDir end)
+        local debuffAnchorXOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffGrowthDir, srslylawlUI.settings.debuffs.xOffset,
+        function(self)
+            local n = self:GetNumber()
+            if srslylawlUI.settings.debuffs.xOffset == n then return end
+            srslylawlUI.settings.debuffs.xOffset = n
+            srslylawlUI.SetDebuffFrames()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        debuffAnchorXOffset.title = debuffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        debuffAnchorXOffset.title:SetPoint("TOP", 0, 12)
+        debuffAnchorXOffset.title:SetText("X Offset")
+        debuffAnchorXOffset:ClearAllPoints()
+        debuffAnchorXOffset:SetPoint("TOPLEFT", debuffGrowthDir, "TOPRIGHT", -10, 0)
+        local debuffAnchorYOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffAnchorXOffset, srslylawlUI.settings.debuffs.xOffset,
+        function(self)
+            local n = self:GetNumber()
+            if srslylawlUI.settings.debuffs.yOffset == n then return end
+            srslylawlUI.settings.debuffs.yOffset = n
+            srslylawlUI.SetDebuffFrames()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        debuffAnchorYOffset.title = debuffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        debuffAnchorYOffset.title:SetPoint("TOP", 0, 12)
+        debuffAnchorYOffset.title:SetText("Y Offset")
+
+        cFrame.editBoxes.debuffAnchorXOffset = debuffAnchorXOffset
+        cFrame.editBoxes.debuffAnchorYOffset = debuffAnchorYOffset
+        local debuffIconSize = CreateEditBox("$parent_Icon Size", debuffAnchorYOffset, srslylawlUI.settings.debuffs.size,
+        function(self)
+            local n = self:GetNumber()
+            if srslylawlUI.settings.debuffs.size == n then return end
+            srslylawlUI.settings.debuffs.size = n
+            srslylawlUI.SetDebuffFrames()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        cFrame.editBoxes.debuffIconSize = debuffIconSize
+        debuffIconSize.title = buffIconSize:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        debuffIconSize.title:SetPoint("TOP", 0, 12)
+        debuffIconSize.title:SetText("Size")
+
+        cFrame.sliders.maxDebuffs = CreateCustomSlider("Max Visible Debuffs", 0, 40, srslylawlUI.settings.debuffs.maxDebuffs, debuffAnchor, -50, 1, true, 0)
+        cFrame.sliders.maxDebuffs:SetPoint("TOPLEFT", debuffAnchor, "BOTTOMLEFT", 20, -15)
+        cFrame.sliders.maxDebuffs:HookScript("OnValueChanged", function(self, value)
+            srslylawlUI.settings.debuffs.maxDebuffs = value
+            srslylawlUI_SetDirtyFlag() end)
+        AddTooltip(cFrame.sliders.maxDebuffs, "Requires UI Reload")
     end
     local function ScrollFrame_OnMouseWheel(self, delta)
         local newValue = self:GetVerticalScroll() - (delta * 20)
@@ -2608,6 +2818,7 @@ local function srslylawlUI_Initialize()
     CreateSlashCommands()
     CreateConfig()
     CreateBuffFrames()
+    CreateDebuffFrames()
 end
 srslylawlUI.AreFramesVisible = function()
     local base = "srslylawlUI_PartyHeaderUnitButton"

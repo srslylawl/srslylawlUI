@@ -14,8 +14,10 @@ srslylawl_saved = {
             width = 15
         },
         buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true, maxBuffs = 40, maxDuration = 60, showDefensives = true},
+        debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true,
+            maxDebuffs = 15, maxDuration = 180},
         absorbOverlapPercent = 0.1,
-        maxBuffs = 40,
+        maxBuffs = 15,
         maxAbsorbFrames = 20,
         minAbsorbAmount = 100,
         autoApproveKeywords = true,
