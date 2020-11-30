@@ -4,11 +4,8 @@ srslylawlUI.settings = {
     header = {anchor = "CENTER", xOffset = 10, yOffset = 10},
     hp = {width = 100, height = 50, minWidthPercent = 0.45},
     pet = {width = 15},
+    buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true, maxBuffs = 40, maxDuration = 60, showDefensives = true},
     absorbOverlapPercent = 0.1,
-    buffAnchor = "TOPLEFT",
-    buffAnchorXOffset = -29,
-    buffAnchorYOffset = 0,
-    maxBuffs = 40,
     maxAbsorbFrames = 20,
     minAbsorbAmount = 100,
     autoApproveKeywords = true,
@@ -22,21 +19,25 @@ srslylawlUI.spells = {
     absorbs = {},
     defensives = {},
     whiteList = {},
-    unapproved = {}
+    blackList = {}
 }
 local unsaved = {flag = false, buttons = {}}
-local units = {} -- tracks auras and frames
-local tooltipTextGrabber = CreateFrame("GameTooltip",
-                                       "srslylawl_TooltipTextGrabber", UIParent,
-                                       "GameTooltipTemplate")
-local customTooltip = CreateFrame("GameTooltip", "srslylawl_CustomTooltip",
-                                  UIParent, "GameTooltipTemplate")
+local unitTable = { "player", "party1", "party2", "party3", "party4"}
+local units = {
+    player = {},
+    party1 = {},
+    party2 = {},
+    party3 = {},
+    party4 = {},
+} -- tracks auras and frames
+local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrabber", UIParent, "GameTooltipTemplate")
+local customTooltip = CreateFrame("GameTooltip", "srslylawl_CustomTooltip", UIParent, "GameTooltipTemplate")
+srslylawlUI.AuraHolderFrame = CreateFrame("Frame", "srslylawlUI_AuraHolderFrame", nil, nil)
 
 local anchorTable = {
     "TOP", "RIGHT", "BOTTOM", "LEFT", "CENTER", "TOPRIGHT", "TOPLEFT",
     "BOTTOMLEFT", "BOTTOMRIGHT"
 }
-
 srslylawlUI.sortTimerActive = false
 srslylawlUI.clearTimerActive = false
 
@@ -56,6 +57,50 @@ local function scuffedRound(num)
     num = floor(num+0.5)
     return num
 end
+local function decimalRound(num, numDecimalPlaces)
+    local mult = 10^(numDecimalPlaces or 0)
+    return math.floor(num * mult + 0.5) / mult
+end
+local function CreateBuffFrames()
+    for _, v in pairs(unitTable) do
+        local unitName = v
+        local frameName = "srslylawlUI_"..unitName.."Aura"
+
+        units[unitName] = {
+            absorbAuras = {},
+            trackedAurasByIndex = {},
+            buffFrames = {},
+            defensiveAuras = {},
+            effectiveHealthSegments = {},
+            parentName = "srslylawlUI_AuraHolderFrame"
+        }
+        for i = 1, srslylawlUI.settings.buffs.maxBuffs do
+            local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
+            local parent = _G[frameName .. (i - 1)]
+            local anchor = srslylawlUI.settings.buffs.growthDir
+            if (i == 1) then
+                parent = srslylawlUI.AuraHolderFrame
+                anchor = srslylawlUI.settings.buffs.anchor
+                xOffset = srslylawlUI.settings.buffs.xOffset
+                yOffset = srslylawlUI.settings.buffs.yOffset
+            end
+            local f = CreateFrame("Button", frameName .. i, parent, "CompactBuffTemplate")
+            f:SetPoint(anchor, xOffset, yOffset)
+            f:SetAttribute("unit", unitName)
+            f:SetScript("OnLoad", nil)
+            f:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                GameTooltip:SetUnitBuff(self:GetAttribute("unit"), self:GetID())
+            end)
+            f:SetScript("OnUpdate", function(self)
+                if GameTooltip:IsOwned(f) then
+                    GameTooltip:SetUnitBuff(self:GetAttribute("unit"),self:GetID())
+                end
+            end)
+            units[unitName].buffFrames[i] = f
+        end
+    end
+end
 local function GetBuffText(buffIndex, unit)
     tooltipTextGrabber:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
     tooltipTextGrabber:SetUnitBuff(unit, buffIndex)
@@ -69,6 +114,43 @@ end
 local function SpellHasDifferentTooltip(spellId, index, unit)
     local s = GetBuffText(index, unit)
     return srslylawlUI.spells.known[spellId].text ~= s
+end
+local function ShouldDisplayAura(...)
+    local name, icon, count, debuffType, duration, expirationTime, source,
+              isStealable, nameplateShowPersonal, spellId, canApplyAura,
+              isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
+
+    if srslylawlUI.spells.whiteList[spellId] ~= nil then
+        --always show whitelisted spells
+        return true
+    end
+
+    if srslylawlUI.spells.blackList[spellId] ~= nil then
+        --never show blacklisted spells
+        return false
+    end
+
+    if srslylawlUI.settings.buffs.showDefensives and srslylawlUI.spells.defensives[spellId] ~= nil then
+        --if we want to show defensives, do so
+        return true
+    end
+
+    if duration == 0 or duration > srslylawlUI.settings.buffs.maxDuration then
+        --dont show infinite duration spells or long duration spells
+        return false
+    end
+
+    if srslylawlUI.spells.absorbs[spellId] ~= nil then
+        --dont show absorb spells unless whitelisted
+        return false
+    end
+
+    if source == "player" and srslylawlUI.settings.buffs.showCastByPlayer then
+        --show cast by player if wanted
+        return true
+    end
+
+    return false
 end
 srslylawlUI.SortAbsorbAurasBySpellIDDescending =
     function(absorbAuraTable)
@@ -102,7 +184,41 @@ function tableEquals(table1, table2)
     for key2, _ in pairs(table2) do if not keySet[key2] then return false end end
     return true
 end
+function srslylawlUI.SetBuffFrames()
+    for k, v in pairs(units) do
+        if units[k] ~= nil and units[k].buffFrames ~= nil then
+            for i = 1, 40 do
+                local size = srslylawlUI.settings.buffs.size
+                local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
+                local parent = _G[units[k].parentName .. (i - 1)]
+                local anchor = "CENTER"
+                if (i == 1) then
+                    parent = unitbutton
+                    anchor = srslylawlUI.settings.buffs.anchor
+                    xOffset = srslylawlUI.settings.buffs.xOffset
+                    yOffset = srslylawlUI.settings.buffs.yOffset
+                end
 
+                units[k].buffFrames[i]:ClearAllPoints()
+                units[k].buffFrames[i]:SetPoint(anchor, xOffset, yOffset)
+                units[k].buffFrames[i]:SetSize(size, size)
+            end
+        end
+    end
+end
+function srslylawlUI.GetBuffOffsets()
+    local xOffset, yOffset
+    local size = srslylawlUI.settings.buffs.size
+    local growthDir = srslylawlUI.settings.buffs.growthDir
+    if growthDir == "LEFT" then
+        xOffset = -size
+        yOffset = 0
+    elseif growthDir == "RIGHT" then
+        xOffset = size
+        yOffset = 0
+    end
+    return xOffset, yOffset
+end
 function srslylawlUI.Log(text, ...)
     str = ""
     for i = 1, select('#', ...) do
@@ -139,14 +255,24 @@ local function LoadSettings(reset, announce)
     local c = srslylawlUI_ConfigFrame
     if c then
         local s = srslylawlUI.settings
-        c.sliders.height:SetValue(s.hp.height)
-        c.sliders.hpwidth:SetValue(s.hp.width)
-        -- c.editBoxes.buffAnchorXOffset:SetText(s.buffAnchorXOffset)
+        for k, v in pairs(c.sliders) do
+            local default = v:GetAttribute("defaultValue")
+            if default then
+                v:SetValue(default)
+            end
+        end
+        for k, v in pairs(c.editBoxes) do
+            local default = v:GetAttribute("defaultValue")
+            if default then
+                v:SetText(default)
+            end
+        end
     end
     srslylawlUI_PartyHeader:ClearAllPoints()
     srslylawlUI_PartyHeader:SetPoint(srslylawlUI.settings.header.anchor,
                                      srslylawlUI.settings.header.xOffset,
                                      srslylawlUI.settings.header.yOffset)
+    srslylawlUI.SetBuffFrames()
     srslylawlUI_RemoveDirtyFlag()
     if (reset) then srslylawlUI.UpdateEverything() end
 end
@@ -163,6 +289,14 @@ local function SaveSettings()
     srslylawlUI.Log("Settings Saved")
     srslylawl_saved.settings = deepcopy(srslylawlUI.settings)
     srslylawl_saved.spells = deepcopy(srslylawlUI.spells)
+
+    for k, v in pairs(srslylawlUI_ConfigFrame.editBoxes) do
+        v:SetAttribute("defaultValue", v:GetText())
+    end
+    for k, v in pairs(srslylawlUI_ConfigFrame.sliders) do
+        v:SetAttribute("defaultValue", v:GetValue())
+    end
+    
     srslylawlUI_RemoveDirtyFlag()
 end
 function srslylawlUI_InitialConfig(header, buttonFrame)
@@ -349,7 +483,7 @@ function srslylawlUI_ResetHealthBar(button, unit)
 end
 function srslylawlUI_ResetPowerBar(button, unit)
     local powerType, powerToken = UnitPowerType(unit)
-    local powerColor = srlylawlUI_GetCustomPowerColor(powerToken)
+    local powerColor = srslylawlUI_GetCustomPowerColor(powerToken)
     local alive = not UnitIsDeadOrGhost(unit)
     local online = UnitIsConnected(unit)
     if alive and online then
@@ -361,7 +495,7 @@ function srslylawlUI_ResetPowerBar(button, unit)
     button.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
     button.powerBar:SetValue(UnitPower(unit))
 end
-function srlylawlUI_GetCustomPowerColor(powerToken)
+function srslylawlUI_GetCustomPowerColor(powerToken)
     local color = PowerBarColor[powerToken]
     if powerToken == "MANA" then
         color.r, color.g, color.b = 0.349, 0.522, 0.953
@@ -654,8 +788,8 @@ function srslylawlUI.RememberSpellID(spellId, buffIndex, unit, arg1)
             srslylawl_saved.spells.defensives[spellId] = spell
         else
             -- couldnt identify spell, add to unapproved
-            srslylawlUI.spells.unapproved[spellId] = spell
-            srslylawl_saved.spells.unapproved[spellId] = spell
+            -- srslylawlUI.spells.blackList[spellId] = spell
+            -- srslylawl_saved.spells.blackList[spellId] = spell
         end
 
         if isKnown then
@@ -697,8 +831,8 @@ function srslylawlUI_ManuallyAddSpell(spellId, list)
         -- we already know the spell, just move it to list and remove from other lists
         srslylawlUI.spells[list][spellId] = spell
         srslylawl_saved.spells[list][spellId] = spell
-        srslylawlUI.spells.unapproved[spellId] = nil
-        srslylawl_saved.spells.unapproved[spellId] = nil
+        srslylawlUI.spells.blackList[spellId] = nil
+        srslylawl_saved.spells.blackList[spellId] = nil
         srslylawlUI.Log(spell.name .. " added to " .. list .. "!")
     else
         local n = GetSpellInfo(spellId)
@@ -725,17 +859,18 @@ function srslylawlUI_ManuallyRemoveSpell(spellId, list)
     srslylawl_saved.spells[list][spellId] = nil
     srslylawlUI.Log(spell.name .. " removed from " .. list .. "!")
 
-    -- see if the spell is somewhere else, if no then put it to unapproved spells
-    local isInAbsorbs = srslylawlUI.spells.absorbs[spellId] ~= nil
-    local isInDefensives = srslylawlUI.spells.defensives[spellId] ~= nil
-    local isInWhiteList = srslylawlUI.spells.whiteList[spellId] ~= nil
-    local isInUnapproved = srslylawlUI.spells.unapproved[spellId] ~= nil
-    local isSomeWhere = isInAbsorbs or isInDefensives or isInWhiteList or
-                            isInUnapproved or false
+    -- see if the spell is somewhere else, if not then put it to unapproved spells
+    -- no longer needed since unapproved is now just a blacklist
+    -- local isInAbsorbs = srslylawlUI.spells.absorbs[spellId] ~= nil
+    -- local isInDefensives = srslylawlUI.spells.defensives[spellId] ~= nil
+    -- local isInWhiteList = srslylawlUI.spells.whiteList[spellId] ~= nil
+    -- local isInUnapproved = srslylawlUI.spells.blackList[spellId] ~= nil
+    -- local isSomeWhere = isInAbsorbs or isInDefensives or isInWhiteList or
+    --                         isInUnapproved or false
 
-    if srslylawlUI.spells.unapproved[spellId] == nil and not isSomeWhere then
-        srslylawlUI.spells.unapproved[spellId] = spell
-    end
+    -- if srslylawlUI.spells.blackList[spellId] == nil and not isSomeWhere then
+    --     srslylawlUI.spells.blackList[spellId] = spell
+    -- end
 end
 function tablelength(T)
     local count = 0
@@ -745,8 +880,6 @@ function tablelength(T)
     return count
 end
 function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
-    -- Buffs --
-    ---create frames for this unittype
     local function GetTypeOfAuraID(spellId)
         local auraType = nil
         if srslylawlUI.spells.absorbs[spellId] ~= nil then
@@ -921,51 +1054,11 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
     end
 
-    --does this taint perhaps?
-    if units[unit] == nil and not InCombatLockdown() then
-        unitbutton.buffFrames = {}
-        units[unit] = {
-            absorbAuras = {},
-            trackedAurasByIndex = {},
-            buffFrames = {},
-            defensiveAuras = {},
-            effectiveHealthSegments = {}
-        }
-        for i = 1, 40 do
-            local xOffset = -17
-            local yOffset = 0
-            local parent = _G[unit .. "_" .. (i - 1)]
-            local anchor = "TOPLEFT"
-            if (i == 1) then
-                parent = unitbutton
-                anchor = srslylawlUI.settings.buffAnchor
-                xOffset = srslylawlUI.settings.buffAnchorXOffset
-                yOffset = srslylawlUI.settings.buffAnchorYOffset
-            end
-
-            local f = CreateFrame("Button", unit .. "_" .. i, parent, "CompactBuffTemplate")
-            f:SetPoint(anchor, xOffset, 0)
-
-            f:SetAttribute("unit", unit)
-            f:SetScript("OnLoad", nil)
-            f:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
-                GameTooltip:SetUnitBuff(self:GetAttribute("unit"), self:GetID())
-            end)
-            f:SetScript("OnUpdate", function(self)
-                if GameTooltip:IsOwned(f) then
-                    GameTooltip:SetUnitBuff(self:GetAttribute("unit"),
-                                            self:GetID())
-                end
-            end)
-            units[unit].buffFrames[i] = f
-            unitbutton.buffFrames[i] = f
-        end
-    elseif unitbutton["buffFrames"] == nil then -- frames exist but this unit doesnt own them yet
-        -- print("exist, reassigning")
+    if unitbutton["buffFrames"] == nil then -- this unit doesnt own the frames yet
         unitbutton.buffFrames = {}
         unitbutton.buffFrames = units[unit].buffFrames
         unitbutton.buffFrames[1]:SetParent(unitbutton)
+        srslylawlUI.SetBuffFrames()
     end
     -- frames exist and unit owns them
     -- reset frame check verifier
@@ -973,19 +1066,24 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         v["checkedThisEvent"] = false
     end
     -- process auras on unit
-    for i = 1, 40 do
+    local currentBuffFrame = 1
+    for i = 1, srslylawlUI.settings.buffs.maxBuffs do
         -- loop through all frames on standby and assign them based on their index
-        local f = unitbutton.buffFrames[i]
+        local f = unitbutton.buffFrames[currentBuffFrame]
         local name, icon, count, debuffType, duration, expirationTime, source,
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.RememberSpellID(spellId, i, unit, absorb)
-            CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
-            f:SetID(i)
-            f:Show()
-
+            if ShouldDisplayAura(UnitAura(unit, i)) then
+                CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
+                f:SetID(i)
+                f:Show()
+                currentBuffFrame = currentBuffFrame + 1
+            else
+                f:Hide()
+            end
             -- track auras, check if we care to track it
             local auraType = GetTypeOfAuraID(spellId)
 
@@ -1450,7 +1548,7 @@ local function HeaderSetup()
                     srslylawlUI.settings.header.xOffset,
                     srslylawlUI.settings.header.yOffset)
 end
-local function CreateCustomSlider(name, min, max, defaultValue, parent, offset)
+local function CreateCustomSlider(name, min, max, defaultValue, parent, offset, valueStep, isNumeric, decimals)
     local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
     _G[name .. "Low"]:SetText(min)
     _G[name .. "High"]:SetText(max)
@@ -1462,7 +1560,7 @@ local function CreateCustomSlider(name, min, max, defaultValue, parent, offset)
     slider:SetHeight(16)
     slider:SetMinMaxValues(min, max)
     slider:SetValue(defaultValue)
-    slider:SetValueStep(1)
+    slider:SetValueStep(valueStep)
     slider:SetObeyStepOnDrag(true)
     local editBox = CreateFrame("EditBox", name .. "_EditBox", slider,
                                 "BackdropTemplate")
@@ -1479,23 +1577,36 @@ local function CreateCustomSlider(name, min, max, defaultValue, parent, offset)
     editBox:SetPoint("RIGHT", 55, 0)
     editBox:SetAutoFocus(false)
     editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
-    editBox:SetNumeric(true)
-    editBox:SetNumber(defaultValue)
-    editBox:SetMaxLetters(4)
-    editBox:SetScript("OnTextChanged",
+    editBox:SetNumeric(isNumeric or false)
+    if isNumeric then
+        editBox:SetNumber(defaultValue)
+        editBox:SetScript("OnTextChanged",
                       function(self) slider:SetValue(self:GetNumber()) end)
-    slider:SetScript("OnValueChanged", function(self, value)
-        if editBox:GetNumber() == tonumber(value) then
-            return
-        else
-            local index = string.find(tostring(value), "%p")
-            if type(index) ~= "nil" then
-                value = string.sub(tostring(value), 0, index - 1)
+        slider:SetScript("OnValueChanged", function(self, value)
+            if editBox:GetNumber() == tonumber(value) then
+                return
+            else
+                local index = string.find(tostring(value), "%p")
+                if type(index) ~= "nil" then
+                    value = string.sub(tostring(value), 0, index - 1)
+                end
+                value = tonumber(value)
+                editBox:SetNumber(value)
             end
-            value = tonumber(value)
-            editBox:SetNumber(value)
-        end
-    end)
+        end)
+    else
+        editBox:SetText(defaultValue)
+        editBox:SetScript("OnTextChanged", function(self) slider:SetValue(decimalRound(self:GetText(), decimals)) end)
+        slider:SetScript("OnValueChanged", function(self, value)
+            if editBox:GetText() == decimalRound(value, decimals) then
+                return
+            else
+                editBox:SetText(decimalRound(value, decimals))
+            end
+        end)
+    end
+    editBox:SetMaxLetters(4)
+    slider:SetAttribute("defaultValue", defaultValue)
     slider.editbox = editBox
     return slider
 end
@@ -1503,7 +1614,7 @@ local function CreateCustomDropDown(title, width, parent, anchor, relativePoint,
                                     xOffset, yOffset, valueRef, values,
                                     onChangeFunc, checkFunc)
     -- Create the dropdown, and configure its appearance
-    local dropDown = CreateFrame("FRAME", title, parent,
+    local dropDown = CreateFrame("FRAME", "$parent_"..title, parent,
                                  "UIDropDownMenuTemplate")
     dropDown:SetPoint(anchor, parent, relativePoint, xOffset, yOffset)
     UIDropDownMenu_SetWidth(dropDown, width)
@@ -1560,7 +1671,8 @@ local function CreateEditBox(name, parent, defaultValue, funcOnTextChanged,
         editBox:SetText(defaultValue)
     end
     editBox:SetMaxLetters(4)
-    editBox:SetScript("OnEnterPressed", funcOnTextChanged)
+    editBox:SetScript("OnTextChanged", funcOnTextChanged)
+    editBox:SetAttribute("defaultValue", defaultValue)
     return editBox
 end
 local function MakeFrameMoveable(frame)
@@ -1660,11 +1772,6 @@ local function CreateConfig()
     local function CreateConfigBody(name, parent)
         local f = CreateFrame("Frame", name, parent, "BackdropTemplate")
         f:SetSize(500, 500)
-        -- f.Title = f:CreateFontString("$parent_Title", "OVERLAY", "DialogButtonHighlightText")
-        -- f.Title:SetParent(f)
-        -- f.Title:SetPoint("TOP", 0, -5)
-        -- f.Title:SetText(name)
-        -- f.Title:SetFont("Fonts\\FRIZQT__.TTF", 18)
         f:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
@@ -1788,36 +1895,96 @@ local function CreateConfig()
         AddTooltip(showSolo, "Show Frames while not in a group (overrides Show Player)")
         showSolo:SetChecked(srslylawlUI.settings.showSolo)
     end
-    local function FillBarsTab(tab)
+    local function FillFramesTab(tab)
         -- HP Bar Sliders
         local cFrame = srslylawlUI_ConfigFrame
+        cFrame.editBoxes = {}
+        cFrame.sliders = {}
 
         local healthBarFrame = CreateFrameWBG("Health Bar", tab)
         healthBarFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -25)
-        healthBarFrame:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -5, -85)
-        cFrame.sliders = {}
+        healthBarFrame:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -5, -135)
+        
         local width = floor(srslylawlUI.settings.hp.width)
         local height = floor(srslylawlUI.settings.hp.height)
         cFrame.sliders.height = CreateCustomSlider("Height", 5, 500,
-            height, healthBarFrame, -50)
+            height, healthBarFrame, -50, 1, true)
         cFrame.sliders.height:SetPoint("TOPLEFT", 10, -20)
         cFrame.sliders.height:HookScript("OnValueChanged", function(self, value)
-            local v = value
-            srslylawlUI.settings.hp.height = v
+            srslylawlUI.settings.hp.height = value
             srslylawlUI.UpdateEverything()
-            srslylawlUI_SetDirtyFlag()
-        end)
+            srslylawlUI_SetDirtyFlag() end)
         cFrame.sliders.hpwidth = CreateCustomSlider("Max Width", 25,
-            2000, width, cFrame.sliders.height, -40)
+            2000, width, cFrame.sliders.height, -40, 1, true)
         cFrame.sliders.hpwidth:ClearAllPoints()
         cFrame.sliders.hpwidth:SetPoint("LEFT", cFrame.sliders.height.editbox,
             "RIGHT", 10, 0)
         cFrame.sliders.hpwidth:HookScript("OnValueChanged", function(self, value)
-            local v = value
-            srslylawlUI.settings.hp.width = v
+            srslylawlUI.settings.hp.width = value
             srslylawlUI.UpdateEverything()
             srslylawlUI_SetDirtyFlag()
         end)
+        cFrame.sliders.minWidth = CreateCustomSlider("Min Width Percent", 0.1, 1, decimalRound(srslylawlUI.settings.hp.minWidthPercent, 2), cFrame.sliders.height, -50, 0.01, false, 2)
+        cFrame.sliders.minWidth:HookScript("OnValueChanged", function(self, value)
+            srslylawlUI.settings.hp.minWidthPercent = value
+            srslylawlUI.UpdateEverything()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        AddTooltip(cFrame.sliders.minWidth, "Minimum percent of Max Width a bar can be scaled to. Default: 0.45")
+
+        -- Buff Frames
+        local buffFrame = CreateFrameWBG("Buffs", healthBarFrame)
+        buffFrame:SetPoint("TOPLEFT", healthBarFrame, "BOTTOMLEFT", 0, -15)
+        buffFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", 0, -85)
+        local buffAnchor = CreateCustomDropDown("Anchor", 75, buffFrame, "TOPLEFT",
+            "TOPLEFT", 0, -20, srslylawlUI.settings.buffs.anchor, anchorTable, function(newValue)
+                srslylawlUI.settings.buffs.anchor = newValue
+                srslylawlUI.SetBuffFrames()
+        end, function(self) return self.value == srslylawlUI.settings.buffs.anchor end)
+        local buffGrowthDir = CreateCustomDropDown("Growth Direction", 125, buffAnchor, "TOPLEFT",
+            "TOPRIGHT", -20, 0, srslylawlUI.settings.buffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
+                srslylawlUI.settings.buffs.growthDir = newValue
+                srslylawlUI.SetBuffFrames()
+        end, function(self) return self.value == srslylawlUI.settings.buffs.growthDir end)
+        local buffAnchorXOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffGrowthDir, srslylawlUI.settings.buffs.xOffset,
+        function(self)
+            local n = self:GetNumber()
+            if srslylawlUI.settings.buffs.xOffset == n then return end
+            srslylawlUI.settings.buffs.xOffset = n
+            srslylawlUI.SetBuffFrames()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        buffAnchorXOffset.title = buffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        buffAnchorXOffset.title:SetPoint("TOP", 0, 12)
+        buffAnchorXOffset.title:SetText("X Offset")
+        buffAnchorXOffset:ClearAllPoints()
+        buffAnchorXOffset:SetPoint("TOPLEFT", buffGrowthDir, "TOPRIGHT")
+        local buffAnchorYOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffAnchorXOffset, srslylawlUI.settings.buffs.xOffset,
+        function(self)
+            local n = self:GetNumber()
+            if srslylawlUI.settings.buffs.yOffset == n then return end
+            srslylawlUI.settings.buffs.yOffset = n
+            srslylawlUI.SetBuffFrames()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        buffAnchorYOffset.title = buffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        buffAnchorYOffset.title:SetPoint("TOP", 0, 12)
+        buffAnchorYOffset.title:SetText("Y Offset")
+
+        cFrame.editBoxes.buffAnchorXOffset = buffAnchorXOffset
+        cFrame.editBoxes.buffAnchorYOffset = buffAnchorYOffset
+        local buffIconSize = CreateEditBox("$parent_Icon Size", buffAnchorYOffset, srslylawlUI.settings.buffs.size,
+        function(self)
+            local n = self:GetNumber()
+            if srslylawlUI.settings.buffs.size == n then return end
+            srslylawlUI.settings.buffs.size = n
+            srslylawlUI.SetBuffFrames()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        cFrame.editBoxes.buffIconSize = buffIconSize
+        buffIconSize.title = buffIconSize:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        buffIconSize.title:SetPoint("TOP", 0, 12)
+        buffIconSize.title:SetText("Size")
     end
     local function ScrollFrame_OnMouseWheel(self, delta)
         local newValue = self:GetVerticalScroll() - (delta * 20)
@@ -2172,7 +2339,7 @@ local function CreateConfig()
                                           "BOTTOMRIGHT", -5, 5)
     end
     local function CreateSpellMenus(knownSpells, absorbSpells, defensives,
-                                    whiteList, unapprovedSpells)
+                                    whiteList, blackList)
         local function Menu_OnShow(parentTab, list)
             local f = function()
                 OpenSpellAttributePanel(parentTab)
@@ -2208,21 +2375,19 @@ local function CreateConfig()
         whiteList:SetScript("OnShow", Menu_OnShow(whiteList, "whiteList"))
         whiteList:SetAttribute("spellList", "whiteList")
 
-        Mixin(unapprovedSpells, BackdropTemplateMixin)
-        unapprovedSpells:SetBackdrop({
+        Mixin(blackList, BackdropTemplateMixin)
+        blackList:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
             edgeSize = 10,
             insets = {left = 4, right = 4, top = 4, bottom = 4}
         })
-        unapprovedSpells:SetBackdropColor(1, 0, 0, .4)
-        CreateScrollFrameWithBGAndChild(unapprovedSpells)
-        unapprovedSpells:SetScript("OnShow",
-                                   Menu_OnShow(unapprovedSpells, "unapproved"))
-        unapprovedSpells:SetAttribute("spellList", "unapproved")
+        blackList:SetBackdropColor(1, 0, 0, .4)
+        CreateScrollFrameWithBGAndChild(blackList)
+        blackList:SetScript("OnShow",
+                                   Menu_OnShow(blackList, "blackList"))
+        blackList:SetAttribute("spellList", "blackList")
     end
-    
-
     srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config",
                                           UIParent, "UIPanelDialogTemplate")
     local cFrame = srslylawlUI_ConfigFrame
@@ -2241,7 +2406,7 @@ local function CreateConfig()
 
     CreateSaveLoadButtons(cFrame)
 
-    local generalTab, barsTab, spellsTab = SetTabs(cFrame.body, "General", "Bars", "Spells")
+    local generalTab, framesTab, spellsTab = SetTabs(cFrame.body, "General", "Frames", "Spells")
 
     -- Create General Tab
     Mixin(generalTab, BackdropTemplateMixin)
@@ -2249,21 +2414,19 @@ local function CreateConfig()
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 10,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
-    })
+        insets = {left = 4, right = 4, top = 4, bottom = 4}})
     generalTab:SetBackdropColor(0, 0, 0, .4)
     FillGeneralTab(generalTab)
 
     -- Create Bars Tab
-    Mixin(barsTab, BackdropTemplateMixin)
-    barsTab:SetBackdrop({
+    Mixin(framesTab, BackdropTemplateMixin)
+    framesTab:SetBackdrop({
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 10,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
-    })
-    barsTab:SetBackdropColor(0, 0, 0, .4)
-    FillBarsTab(barsTab)
+        insets = {left = 4, right = 4, top = 4, bottom = 4}})
+    framesTab:SetBackdropColor(0, 0, 0, .4)
+    FillFramesTab(framesTab)
 
     -- Create Spells Tab
     spellsTab:ClearAllPoints()
@@ -2275,8 +2438,7 @@ local function CreateConfig()
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 10,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
-    })
+        insets = {left = 4, right = 4, top = 4, bottom = 4}})
     spellsTab:SetBackdropColor(0, 0, 0, .4)
 
     -- Debug Texture
@@ -2285,9 +2447,9 @@ local function CreateConfig()
     -- spellsTab.bg:SetColorTexture(.3, 1, .4, .2)
 
     -- Spell Tab buttons
-    local knownSpells, absorbSpells, defensives, whiteList, unapprovedSpells =
+    local knownSpells, absorbSpells, defensives, whiteList, blackList =
         SetTabs(spellsTab, "Known Spells", "Absorbs", "Defensives", "Whitelist",
-                "Unapproved Spells")
+                "Blacklist")
 
     AddTooltip(knownSpells.tabButton, "List of all encountered buffs.")
     AddTooltip(absorbSpells.tabButton,
@@ -2295,63 +2457,15 @@ local function CreateConfig()
     AddTooltip(defensives.tabButton,
                "Buffs with damage reduction effects, will increase your effective health.")
     AddTooltip(whiteList.tabButton,
-               "Whitelisted buffs will always be displayed as buffs (not segments).")
-    AddTooltip(unapprovedSpells.tabButton,
+               "Whitelisted buffs will always appear as buff frames.")
+    AddTooltip(blackList.tabButton,
                "Buffs that will not be displayed on the interface")
 
     Mixin(knownSpells, BackdropTemplateMixin)
     CreateSpellMenus(knownSpells, absorbSpells, defensives, whiteList,
-                     unapprovedSpells)
+                     blackList)
 
     --srslylawlUI_ToggleConfigVisible(false)
-    if true then return end
-
-    
-
-   
-
-    cFrame.editBoxes = {}
-
-    -- Buff Frame Anchor
-    local buffAnchor = CreateCustomDropDown("Buff Anchor", 100,
-                                            cFrame.sliders.height, "TOPLEFT",
-                                            "BOTTOMLEFT", 0, -10,
-                                            srslylawlUI.settings.buffAnchor,
-                                            anchorTable, function(newValue)
-        for k, v in pairs(units) do
-            if units[k] ~= nil and units[k].buffFrames ~= nil then
-                units[k].buffFrames[1]:ClearAllPoints()
-                srslylawlUI.settings.buffAnchor = newValue
-                units[k].buffFrames[1]:SetPoint(srslylawlUI.settings.buffAnchor,
-                                                srslylawlUI.settings
-                                                    .buffAnchorXOffset,
-                                                srslylawlUI.settings
-                                                    .buffAnchorYOffset)
-            end
-        end
-    end, function(self) return self.value == srslylawlUI.settings.buffAnchor end)
-    local buffAnchorXOffset = CreateEditBox("BuffAnchorXOffset", buffAnchor,
-                                            srslylawlUI.settings
-                                                .buffAnchorXOffset,
-                                            function(self)
-        local n = self:GetNumber()
-        srslylawlUI.settings.buffAnchorXOffset = n
-        for k, v in pairs(units) do
-            if units[k] ~= nil and units[k].buffFrames ~= nil then
-                units[k].buffFrames[1]:ClearAllPoints()
-                srslylawlUI.settings.buffAnchorXOffset = n
-                units[k].buffFrames[1]:SetPoint(srslylawlUI.settings.buffAnchor,
-                                                srslylawlUI.settings
-                                                    .buffAnchorXOffset,
-                                                srslylawlUI.settings
-                                                    .buffAnchorYOffset)
-            end
-        end
-        print("editboxchanged")
-        srslylawlUI_SetDirtyFlag()
-    end)
-    cFrame.editBoxes.buffAnchorXOffset = buffAnchorXOffset
-    --srslylawlUI_ToggleConfigVisible(true)
     InterfaceOptions_AddCategory(srslylawlUI_ConfigFrame)
 end
 local function CreateSlashCommands()
@@ -2488,12 +2602,12 @@ function srslylawlUI.TranslateTexX(texture, amount, onlyIfChanged)
     texture:SetTexCoord(unpack(coords))
 end
 
-
 local function srslylawlUI_Initialize()
     LoadSettings()
     HeaderSetup()
     CreateSlashCommands()
     CreateConfig()
+    CreateBuffFrames()
 end
 srslylawlUI.AreFramesVisible = function()
     local base = "srslylawlUI_PartyHeaderUnitButton"
