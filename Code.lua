@@ -49,6 +49,7 @@ srslylawlUI.clearTimerActive = false
 --      grpleave doesnt hide absorb fragments
 --      debuffs
 --      necrotic
+--      defensives with stacks need to be reworked (testing: ignoring stack count altogether)
 --      range indicator
 --      861 null
 --      hide ehp on death
@@ -544,8 +545,9 @@ function srslylawlUI_ResetHealthBar(button, unit)
     local healthMax = UnitHealthMax(unit)
     local healthPercent = ceil(health / healthMax * 100)
     local online = UnitIsConnected(unit)
-    button.healthBar.text:SetText(health .. "/" .. healthMax .. " " ..
-                                      healthPercent .. "%")
+    -- button.healthBar.text:SetText(health .. "/" .. healthMax .. " " ..
+    --                                   healthPercent .. "%")
+    button.healthBar.text:SetText(health .. " " .. healthPercent .. "%")
     if not alive or not online then
         -- If dead, set bar color to grey and fill bar
         button.healthBar:SetStatusBarColor(0.3, 0.3, 0.3)
@@ -1053,6 +1055,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
         local oldIndex = units[unit][byAura][source][spellId].index
 
+        assert(oldIndex ~= nil)
+
         -- assign to current
         units[unit][byAura][source][spellId].index = currentIndex
 
@@ -1085,7 +1089,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         -- carry over tracked segments
 
         if units[unit][byIndex][oldIndex] == nil then
-            srslylawlUI.Log("861 NULL: ", t["name"], t["source"])
+            srslylawlUI.Log("861 NULL: ", t["name"], t["source"], oldIndex)
         end
         if units[unit][byIndex][oldIndex]["trackedSegments"] ~= nil then
             if units[unit][byIndex][currentIndex]["trackedSegments"] == nil then
@@ -1244,10 +1248,14 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
                 f:Show()
                 currentDebuffFrame = currentDebuffFrame + 1
             else
-                f:Hide()
+                if f then
+                    f:Hide()
+                end
             end
         else -- no more debuffs, hide frames
-            f:Hide()
+            if f then
+                f:Hide()
+            end
         end
         
     end
@@ -1423,13 +1431,15 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         return sortedTable
     end
 
+    --Display effective health
     units[unit].effectiveHealthSegments = SortDefensives(units[unit].trackedAurasByIndex)
     local effectiveHealthMod = 1
     local stackMultiplier = 1
     local reducAmount
     if #units[unit].effectiveHealthSegments > 0 then
         for k, v in ipairs(units[unit].effectiveHealthSegments) do
-            stackMultiplier = v.stacks > 1 and v.stacks or 1
+            --tooltip gets updated with stacks anyway so we might want to ignore it until we config a per stack amount
+            stackMultiplier = 1 --v.stacks > 1 and v.stacks or 1 TODO:check if this works out fine
             reducAmount = srslylawlUI.spells.known[v.spellId].reductionAmount /
                               100
 
@@ -1438,6 +1448,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
     end
     if effectiveHealthMod ~= 1 then
+        assert(#units[unit].effectiveHealthSegments > 0)
         local eHealth = playerCurrentHP / effectiveHealthMod
         local additionalHealth = eHealth - playerCurrentHP
         local maxWidth = playerMissingHP*pixelPerHp - 1
@@ -2162,7 +2173,7 @@ local function CreateConfig()
         debuffAnchorXOffset.title:SetText("X Offset")
         debuffAnchorXOffset:ClearAllPoints()
         debuffAnchorXOffset:SetPoint("TOPLEFT", debuffGrowthDir, "TOPRIGHT", -10, 0)
-        local debuffAnchorYOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffAnchorXOffset, srslylawlUI.settings.debuffs.xOffset,
+        local debuffAnchorYOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffAnchorXOffset, srslylawlUI.settings.debuffs.yOffset,
         function(self)
             local n = self:GetNumber()
             if srslylawlUI.settings.debuffs.yOffset == n then return end
@@ -2616,7 +2627,7 @@ local function CreateConfig()
 
     CreateSaveLoadButtons(cFrame)
 
-    local generalTab, framesTab, spellsTab = SetTabs(cFrame.body, "General", "Frames", "Spells")
+    local generalTab, framesTab, buffsTab = SetTabs(cFrame.body, "General", "Frames", "Buffs")
 
     -- Create General Tab
     Mixin(generalTab, BackdropTemplateMixin)
@@ -2639,26 +2650,26 @@ local function CreateConfig()
     FillFramesTab(framesTab)
 
     -- Create Spells Tab
-    spellsTab:ClearAllPoints()
-    spellsTab:SetPoint("TOP", cFrame.body, "TOP", 0, -35)
-    spellsTab:SetPoint("BOTTOMLEFT", cFrame.body, "BOTTOMLEFT", 4, 4)
-    spellsTab:SetPoint("BOTTOMRIGHT", cFrame.body, "BOTTOMRIGHT", -4, 2)
-    Mixin(spellsTab, BackdropTemplateMixin)
-    spellsTab:SetBackdrop({
+    buffsTab:ClearAllPoints()
+    buffsTab:SetPoint("TOP", cFrame.body, "TOP", 0, -35)
+    buffsTab:SetPoint("BOTTOMLEFT", cFrame.body, "BOTTOMLEFT", 4, 4)
+    buffsTab:SetPoint("BOTTOMRIGHT", cFrame.body, "BOTTOMRIGHT", -4, 2)
+    Mixin(buffsTab, BackdropTemplateMixin)
+    buffsTab:SetBackdrop({
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 10,
         insets = {left = 4, right = 4, top = 4, bottom = 4}})
-    spellsTab:SetBackdropColor(0, 0, 0, .4)
+    buffsTab:SetBackdropColor(0, 0, 0, .4)
 
     -- Debug Texture
-    -- spellsTab.bg = spellsTab:CreateTexture(nil, "BACKGROUND")
-    -- spellsTab.bg:SetAllPoints()
-    -- spellsTab.bg:SetColorTexture(.3, 1, .4, .2)
+    -- buffsTab.bg = buffsTab:CreateTexture(nil, "BACKGROUND")
+    -- buffsTab.bg:SetAllPoints()
+    -- buffsTab.bg:SetColorTexture(.3, 1, .4, .2)
 
-    -- Spell Tab buttons
+    -- Buffs Tab buttons
     local knownSpells, absorbSpells, defensives, whiteList, blackList =
-        SetTabs(spellsTab, "Known Spells", "Absorbs", "Defensives", "Whitelist",
+        SetTabs(buffsTab, "Encountered", "Absorbs", "Defensives", "Whitelist",
                 "Blacklist")
 
     AddTooltip(knownSpells.tabButton, "List of all encountered buffs.")
@@ -2675,7 +2686,7 @@ local function CreateConfig()
     CreateSpellMenus(knownSpells, absorbSpells, defensives, whiteList,
                      blackList)
 
-    --srslylawlUI_ToggleConfigVisible(false)
+    srslylawlUI_ToggleConfigVisible(false)
     InterfaceOptions_AddCategory(srslylawlUI_ConfigFrame)
 end
 local function CreateSlashCommands()
@@ -2742,7 +2753,7 @@ function SortPartyFrames()
         end
     end
     ClearAfterSort()
-    print("done sorting")
+    --print("done sorting")
 end
 function ClearAfterSort()
     if not srslylawlUI.clearTimerActive then
