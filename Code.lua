@@ -1485,10 +1485,13 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             overlapAmount = 0
             barWidth = pixelPerHp * absorbAmount
             allowedWidth = srslylawlUI.settings.hp.width * overlapBarIndex
-            oIndex = overlapBarIndex
+            --caching the index so we display the segment correctly
+            local oIndex = overlapBarIndex
 
             local pixelOverlap = (currentBarLength + barWidth) - allowedWidth
-            if pixelOverlap > 0 then
+            --if we are already at overlapindex 2 and we have overlap, we are now at the left end of the bar
+            --for now, ignore it and just let it stick out
+            if pixelOverlap > 0 and overlapBarIndex < 2 then
                 -- bar overlaps, display only the value that wouldnt overlap
                 overlapAmount = pixelOverlap / pixelPerHp
                 --since pixels arent that accurate in converting from/to health, make sure we never overlap more than our full absorb amount
