@@ -353,6 +353,12 @@ local function LoadSettings(reset, announce)
                 v:SetText(default)
             end
         end
+        for k, v in pairs(c.checkButtons) do
+            local default = v:GetAttribute("defaultValue")
+            if default ~= nil then
+                v:SetChecked(default)
+            end
+        end
     end
     if not srslylawlUI_PartyHeader then return end
     srslylawlUI_PartyHeader:ClearAllPoints()
@@ -360,6 +366,7 @@ local function LoadSettings(reset, announce)
                                      srslylawlUI.settings.header.xOffset,
                                      srslylawlUI.settings.header.yOffset)
     srslylawlUI.SetBuffFrames()
+    srslylawlUI.UpdateFrameVisibility()
     srslylawlUI_RemoveDirtyFlag()
     if (reset) then srslylawlUI.UpdateEverything() end
 end
@@ -380,6 +387,9 @@ local function SaveSettings()
     end
     for k, v in pairs(srslylawlUI_ConfigFrame.sliders) do
         v:SetAttribute("defaultValue", v:GetValue())
+    end
+    for k, v in pairs(srslylawlUI_ConfigFrame.checkButtons) do
+        v:SetAttribute("defaultValue", v:GetChecked())
     end
     
     srslylawlUI_RemoveDirtyFlag()
@@ -1700,9 +1710,11 @@ local function HeaderSetup()
         local unitFrame = CreateFrame("Frame", "$parent_"..unit, header, "srslylawlUI_UnitTemplate")
         header[unit] = unitFrame
         unitFrame:SetAttribute("unit", unit)
+
         srslylawlUI_InitialConfig(unitFrame)
         RegisterUnitWatch(unitFrame)
     end
+    srslylawlUI.UpdateFrameVisibility()
 end
 local function CreateCustomSlider(name, min, max, defaultValue, parent, offset, valueStep, isNumeric, decimals)
     local title = name
@@ -1982,6 +1994,8 @@ local function CreateConfig()
     end
     local function CreateCheckButton(name, parent)
         local checkButton = CreateFrame("CheckButton",name,parent,"UICheckButtonTemplate")
+        if srslylawlUI_ConfigFrame.checkButtons == nil then srslylawlUI_ConfigFrame.checkButtons = {} end
+        srslylawlUI_ConfigFrame.checkButtons[name] = checkButton
         checkButton.text:SetText(name)
         return checkButton
     end
@@ -2027,40 +2041,49 @@ local function CreateConfig()
         visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -85)
 
         local showParty = CreateCheckButton("Show In Party", visibility)
+        
         showParty:SetScript("OnClick", function(self)
             srslylawlUI.settings.showParty = self:GetChecked()
+            srslylawlUI.UpdateFrameVisibility()
             srslylawlUI_SetDirtyFlag()
         end)
         AddTooltip(showParty, "Show Frames while in a Party")
         showParty:SetPoint("TOPLEFT", visibility, "TOPLEFT")
         showParty:SetChecked(srslylawlUI.settings.showParty)
+        showParty:SetAttribute("defaultValue", srslylawlUI.settings.showParty)
 
         local showRaid = CreateCheckButton("Show in Raid", visibility)
         showRaid:SetScript("OnClick", function(self)
             srslylawlUI.settings.showRaid = self:GetChecked()
+            srslylawlUI.UpdateFrameVisibility()
             srslylawlUI_SetDirtyFlag()
         end)
         showRaid:SetPoint("LEFT", showParty.text, "RIGHT")
         AddTooltip(showRaid, "Show Frames while in a Raid (not recommended)")
         showRaid:SetChecked(srslylawlUI.settings.showRaid)
+        showRaid:SetAttribute("defaultValue", srslylawlUI.settings.showRaid)
 
         local showPlayer = CreateCheckButton("Show Player", visibility)
         showPlayer:SetScript("OnClick", function(self)
             srslylawlUI.settings.showPlayer = self:GetChecked()
+            srslylawlUI.UpdateFrameVisibility()
             srslylawlUI_SetDirtyFlag()
         end)
         showPlayer:SetPoint("LEFT", showRaid.text, "RIGHT")
         AddTooltip(showPlayer, "Show Player in PartyFrames (recommended)")
         showPlayer:SetChecked(srslylawlUI.settings.showPlayer)
+        showPlayer:SetAttribute("defaultValue", srslylawlUI.settings.showPlayer)
 
         local showSolo = CreateCheckButton("Show Solo", visibility)
         showSolo:SetScript("OnClick", function(self)
             srslylawlUI.settings.showSolo = self:GetChecked()
+            srslylawlUI.UpdateFrameVisibility()
             srslylawlUI_SetDirtyFlag()
         end)
         showSolo:SetPoint("LEFT", showPlayer.text, "RIGHT")
         AddTooltip(showSolo, "Show Frames while not in a group (overrides Show Player)")
         showSolo:SetChecked(srslylawlUI.settings.showSolo)
+        showSolo:SetAttribute("defaultValue", srslylawlUI.settings.showSolo)
     end
     local function FillFramesTab(tab)
         -- HP Bar Sliders
@@ -2752,7 +2775,7 @@ local function SortPartyFrames()
 
     for i = 1, #list do
         local buttonFrame = srslylawlUI_GetFrameByUnitType(list[i].unit)
-        print(i, ".", list[i].unit, list[i].name, list[i].maxHealth)
+        --print(i, ".", list[i].unit, list[i].name, list[i].maxHealth)
 
         if (buttonFrame) then
             buttonFrame:ClearAllPoints()
@@ -2770,6 +2793,7 @@ end
 
 function srslylawlUI.UpdateFrameVisibility()
     local function UpdateHeaderVisible(show)
+        local frame = srslylawlUI_PartyHeader
         if show then
             if not frame:IsShown() then
                 frame:Show()
@@ -2791,6 +2815,16 @@ function srslylawlUI.UpdateFrameVisibility()
     elseif isInRaid then
         UpdateHeaderVisible(srslylawlUI.settings.showRaid)
     else
+        local frame = srslylawlUI_PartyHeader.player
+        if srslylawlUI.settings.showSolo then
+            if not frame:IsShown() then
+                RegisterUnitWatch(frame)
+            end
+        else
+            if frame:IsShown() then
+                UnregisterUnitWatch(frame)
+            end
+        end
         UpdateHeaderVisible(srslylawlUI.settings.showSolo)
     end
 end
