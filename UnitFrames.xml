@@ -102,7 +102,7 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 			<OnEvent function="srslylawlUI_Frame_OnEvent"/>
 		</Scripts>
 	</Frame>
-	<Frame name="srslylawlUI_PartyHeader" parent="UIParent" inherits="SecurePartyHeaderTemplate" movable="false">
+	<!-- <Frame name="srslylawlUI_PartyHeader" parent="UIParent" inherits="SecurePartyHeaderTemplate" movable="false">
 		<Anchors>
 			<Anchor point="TOPLEFT"/>
 		</Anchors>
@@ -119,5 +119,5 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 			<Attribute name="templateType" type="string" value="Frame"/>
 			<Attribute name="columnSpacing" type="number" value="1"/>
 		</Attributes>
-	</Frame>
+	</Frame> -->
 </Ui>

@@ -16,6 +16,7 @@ srslylawlUI.settings = {
     showSolo = true,
     showRaid = false,
     showPlayer = true,
+    frameOnUpdateInterval = 0.1
 }
 srslylawlUI.spells = {
     known = {},
@@ -44,7 +45,10 @@ local anchorTable = {
 srslylawlUI.sortTimerActive = false
 srslylawlUI.clearTimerActive = false
 
--- TODO: char tooltip
+-- TODO:
+
+--      char tooltip
+--      readycheck
 --      buffs are fucked
 --      grpleave doesnt hide absorb fragments
 --      debuffs
@@ -54,6 +58,7 @@ srslylawlUI.clearTimerActive = false
 --      861 null
 --      hide ehp on death
 --      CC
+--      phase/shard
 --      UnitHasIncomingResurrection(unit)
 --      config window
 --      test (performance)
@@ -349,6 +354,7 @@ local function LoadSettings(reset, announce)
             end
         end
     end
+    if not srslylawlUI_PartyHeader then return end
     srslylawlUI_PartyHeader:ClearAllPoints()
     srslylawlUI_PartyHeader:SetPoint(srslylawlUI.settings.header.anchor,
                                      srslylawlUI.settings.header.xOffset,
@@ -360,10 +366,8 @@ end
 function srslylawlUI_ToggleConfigVisible(visible)
     if visible then
         srslylawlUI_ConfigFrame:Show()
-        --srslylawlUI_PartyHeader:SetMovable(true)
     else
         srslylawlUI_ConfigFrame:Hide()
-        --srslylawlUI_PartyHeader:SetMovable(false)
     end
 end
 local function SaveSettings()
@@ -380,9 +384,8 @@ local function SaveSettings()
     
     srslylawlUI_RemoveDirtyFlag()
 end
-function srslylawlUI_InitialConfig(header, buttonFrame)
-    -- header = PartyHeader
-    buttonFrame = _G[buttonFrame]
+function srslylawlUI_InitialConfig(buttonFrame)
+    --buttonFrame = _G[buttonFrame]
     -- local frameLevel = buttonFrame.unit:GetFrameLevel()
     -- buttonFrame.unit:SetFrameLevel(2)
     buttonFrame.unit.healthBar:SetFrameLevel(2)
@@ -413,6 +416,23 @@ function srslylawlUI_InitialConfig(header, buttonFrame)
         GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
         GameTooltip:SetUnit(unit.."pet")
     end)
+    buttonFrame.TimeSinceLastUpdate = 0
+    buttonFrame.wasInRange = true
+    if buttonFrame:GetAttribute("unit") ~= "player" then
+        buttonFrame:SetScript("OnUpdate", function(self, deltaTime)
+            self.TimeSinceLastUpdate = self.TimeSinceLastUpdate + deltaTime;
+            if (self.TimeSinceLastUpdate > srslylawlUI.settings.frameOnUpdateInterval) then
+                --check for unit range
+                local unit = self:GetAttribute("unit")
+                local inRange = UnitInRange(unit)
+                if self.wasInRange ~= inRange then
+                    srslylawlUI_ResetHealthBar(self.unit, unit)
+                end
+                self.wasInRange = inRange
+                self.TimeSinceLastUpdate = 0;
+            end
+        end)
+    end
 
     RegisterUnitWatch(buttonFrame.pet)
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
@@ -442,12 +462,6 @@ function srslylawlUI_CreateBackground(frame)
     background:SetFrameLevel(1)
     frame.bg = background
 end
-local configString = [[
-        -- me is UnitButtonFrameX
-        local me = self:GetName()
-        local partyHeader = self:GetParent()
-        partyHeader:CallMethod("initialConfigFunction", me)
-]]
 function srslylawlUI_Frame_OnShow(button)
     -- button = UnitButtonX
 
@@ -480,7 +494,7 @@ function srslylawlUI_Frame_OnHide(button)
     end
 end
 function srslylawlUI_ResetUnitButton(button, unit)
-    if unit == nil then return end
+    if unit == nil then error("trying to reset nonexisting button"..unit) return end
     srslylawlUI_ResetHealthBar(button, unit)
     srslylawlUI_ResetPowerBar(button, unit)
     srslylawlUI_ResetName(button, unit)
@@ -545,23 +559,28 @@ function srslylawlUI_ResetHealthBar(button, unit)
     local healthMax = UnitHealthMax(unit)
     local healthPercent = ceil(health / healthMax * 100)
     local online = UnitIsConnected(unit)
+    local SBColor = { r = classColor.r, g = classColor.g, b =classColor.b, a = classColor.a}
     -- button.healthBar.text:SetText(health .. "/" .. healthMax .. " " ..
     --                                   healthPercent .. "%")
     button.healthBar.text:SetText(health .. " " .. healthPercent .. "%")
     if not alive or not online then
         -- If dead, set bar color to grey and fill bar
-        button.healthBar:SetStatusBarColor(0.3, 0.3, 0.3)
+        SBColor.r, SBColor.g, SBColor.b = 0.3, 0.3, 0.3
         button.healthBar:SetMinMaxValues(0, 1)
         button.healthBar:SetValue(1)
         button.dead = true
         if not online then button.healthBar.text:SetText("offline") end
     else
-        button.healthBar:SetStatusBarColor(classColor.r, classColor.g,
-                                           classColor.b)
         button.healthBar:SetMinMaxValues(0, healthMax)
         button.healthBar:SetValue(health)
         button.dead = false
     end
+
+    if unit == "player" or UnitInRange(unit) then SBColor.a = 1
+    else SBColor.a = 0.6
+    end
+
+    button.healthBar:SetStatusBarColor(SBColor.r, SBColor.g, SBColor.b, SBColor.a)
 end
 function srslylawlUI_ResetPowerBar(button, unit)
     local powerType, powerToken = UnitPowerType(unit)
@@ -587,38 +606,22 @@ end
 function srslylawlUI_Button_OnDragStart(self, button)
     if not srslylawlUI_PartyHeader:IsMovable() then return end
 
-    local grpMembers = GetNumGroupMembers()
-    if grpMembers == 0 then
-        srslylawlUI_PartyHeaderUnitButton1:SetPoint("TOPLEFT",
-                                                    srslylawlUI_PartyHeader,
-                                                    "TOPLEFT")
-    else
-        for i = 1, grpMembers do
-            local buttonFrame
-            local u = "party" .. i - 1
-            if i == 1 then
-                buttonFrame = srslylawlUI_PartyHeaderUnitButton1
-                print(buttonFrame:GetName())
-            else
-                buttonFrame = srslylawlUI_GetFrameByUnitType(u)
-            end
-            if (buttonFrame) then
-                buttonFrame:ClearAllPoints()
-                if i == 1 then
-                    buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader,
-                                         "TOPLEFT")
-                else
-                    local parent = srslylawlUI_GetFrameByUnitType(
-                                       "party" .. i - 1)
-                    if i == 2 then
-                        parent = srslylawlUI_PartyHeaderUnitButton1
-                    end
-                    buttonFrame:SetPoint("TOPLEFT", parent, "BOTTOMLEFT")
-                end
-                srslylawlUI_ResetUnitButton(buttonFrame.unit, "party" .. i)
-            end
-        end
-    end
+    -- local grpMembers = GetNumGroupMembers()
+    -- if grpMembers == 0 then
+    --     --just the player is in the grp, move him
+    --     srslylawlUI_PartyHeader_player:SetPoint("TOPLEFT", srslylawlUI_PartyHeader,"TOPLEFT")
+    --     print()
+    -- else
+    --     local buttonFrame
+    --     --find the frame that is anchored to the partyheader
+    --     for k, v in pairs(srslylawlUI_PartyHeader) do
+    --         if k ~= "0" then
+    --             if select(2, srslylawlUI_PartyHeader_player:GetPoint()) == srslylawlUI_PartyHeader then
+
+    --             print(v:GetPoint())
+    --         end
+    --     end
+    -- end
     srslylawlUI_PartyHeader:StartMoving()
     srslylawlUI_PartyHeader.isMoving = true
 end
@@ -636,7 +639,7 @@ function srslylawlUI_Button_OnDragStop(self, button)
 end
 function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
     local unit = self:GetAttribute("unit")
-    if not unit then return end
+    if not unit then error(self:GetName() .. "has no assigned unit") end
     -- Handle any events that don’t accept a unit argument
     if event == "PLAYER_ENTERING_WORLD" then
         srslylawlUI_Frame_HandleAuras(self.unit, unit, true)
@@ -749,7 +752,7 @@ function srslylawlUI_GetPartyHealth()
     local currentUnit = "player"
     local partyIndex = 0
     if not UnitExists("player") then
-        print("XXXXXX player doesnt exist? XXXXX")
+        error("player doesnt exist?")
     else
         -- loop through all units
         repeat
@@ -1268,7 +1271,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     end
     -- we tracked all absorbs, now we have to visualize them. if absorbchange fired, we need to rearrange them
     -- check if segments already exist for unit
-    local buttonFrame = srslylawlUI_GetFrameByUnitType(unit)
+
+    local buttonFrame = unitbutton:GetParent()
     local height = buttonFrame.unit:GetHeight()*0.7
     local width = buttonFrame.unit.healthBar:GetWidth()
     local playerHealthMax = UnitHealthMax(unit)
@@ -1277,6 +1281,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     local playerMissingHP = playerHealthMax - playerCurrentHP
     local statusBarTex = "Interface/RAIDFRAME/Shield-Fill"
     local currentBarLength = (playerCurrentHP * pixelPerHp) + 1
+    --index 1 means we havent filled the bar up with absorbs, 2 means we are now overlaying absorbs over the healthbar
     local overlapBarIndex = 1
     ---create frames if needed
     local function CreateAbsorbFrame(parent, i, height, parentTable)
@@ -1683,23 +1688,21 @@ function srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
     units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
     units[unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
 end
-local function UpdateHeaderNameList()
-    srslylawlUI_PartyHeader:SetAttribute("nameList",
-                                         srslylawlUI_CreateNameListString())
-end
 local function HeaderSetup()
-    local header = srslylawlUI_PartyHeader
-    UpdateHeaderNameList()
-    header:SetAttribute("initialConfigFunction", configString)
-    header:SetAttribute("showParty", srslylawlUI.settings.showParty)
-    header:SetAttribute("showPlayer", srslylawlUI.settings.showPlayer)
-    header:SetAttribute("showSolo", srslylawlUI.settings.showSolo)
-    header:SetAttribute("showRaid", srslylawlUI.settings.showRaid)
-    header.initialConfigFunction = srslylawlUI_InitialConfig
-    header:Show()
+    local header = CreateFrame("Frame", "srslylawlUI_PartyHeader", UIParent)
+    header:SetSize(srslylawlUI.settings.hp.width, srslylawlUI.settings.hp.height)
     header:SetPoint(srslylawlUI.settings.header.anchor,
-                    srslylawlUI.settings.header.xOffset,
-                    srslylawlUI.settings.header.yOffset)
+    srslylawlUI.settings.header.xOffset,
+    srslylawlUI.settings.header.yOffset)
+    header:Show()
+    --Create Unit Frames
+    for _, unit in pairs(unitTable) do
+        local unitFrame = CreateFrame("Frame", "$parent_"..unit, header, "srslylawlUI_UnitTemplate")
+        header[unit] = unitFrame
+        unitFrame:SetAttribute("unit", unit)
+        srslylawlUI_InitialConfig(unitFrame)
+        RegisterUnitWatch(unitFrame)
+    end
 end
 local function CreateCustomSlider(name, min, max, defaultValue, parent, offset, valueStep, isNumeric, decimals)
     local title = name
@@ -1856,13 +1859,21 @@ local function MakeFrameMoveable(frame)
 end
 function srslylawlUI_GetFrameByUnitType(unit)
     -- returns buttonframe that matches unit attribute
-    for k, v in pairs(srslylawlUI_PartyHeader) do
-        local b = type(v) == "table" and v or nil
-        local c = type(b) == "table" and b:GetAttribute("unit") == unit or false
-        if c then return b end
-    end
+
+    local frame = _G["srslylawlUI_PartyHeader_"..unit]
+
+    if frame and type(frame) == "table" then return frame end
 
     return nil
+
+    ---old
+    --for k, v in pairs(srslylawlUI_PartyHeader) do
+        --local b = type(v) == "table" and v or nil
+        --local c = type(b) == "table" and b:GetAttribute("unit") == unit or false
+        --if c then return b end
+    --end
+
+    --return nil
 end
 function srslylawlUI_Frame_Reset_All()
     for k, v in ipairs(srslylawlUI_PartyHeader) do
@@ -2714,7 +2725,7 @@ local function CreateSlashCommands()
         end
     end
 end
-function SortPartyFrames()
+local function SortPartyFrames()
     -- print("sort called")
     local list, _, _, hasUnknownMember = srslylawlUI_GetPartyHealth()
 
@@ -2741,7 +2752,7 @@ function SortPartyFrames()
 
     for i = 1, #list do
         local buttonFrame = srslylawlUI_GetFrameByUnitType(list[i].unit)
-        -- print(i, ".", list[i].unit, list[i].name, list[i].maxHealth)
+        print(i, ".", list[i].unit, list[i].name, list[i].maxHealth)
 
         if (buttonFrame) then
             buttonFrame:ClearAllPoints()
@@ -2755,35 +2766,35 @@ function SortPartyFrames()
             srslylawlUI_ResetUnitButton(buttonFrame.unit, list[i].unit)
         end
     end
-    ClearAfterSort()
-    --print("done sorting")
 end
-function ClearAfterSort()
-    if not srslylawlUI.clearTimerActive then
-        srslylawlUI.clearTimerActive = true
-        C_Timer.After(0.5, function()
-            if not InCombatLockdown() then
-                srslylawlUI.clearTimerActive = false
-                ClearPointsAllPartyFrames()
-                if not srslylawlUI.AreFramesVisible() then
-                    srslylawlUI.UpdateEverything()
-                end
-            else
-                ClearAfterSort()
+
+function srslylawlUI.UpdateFrameVisibility()
+    local function UpdateHeaderVisible(show)
+        if show then
+            if not frame:IsShown() then
+                frame:Show()
             end
-        end)
-    end
-end
-function ClearPointsAllPartyFrames()
-    for _, v in ipairs(srslylawlUI_PartyHeader) do
-        local button = v:GetName()
-        if type(button) == "string" then
-            button = _G[button]
-            button:ClearAllPoints()
+        else
+            if frame:IsShown() then
+                frame:Hide()
+            end
         end
     end
-    -- print("points cleared")
+
+    local isInArena = C_PvP.IsArena()
+    local isInBG = C_PvP.IsBattleground()
+    local isInGroup = IsInGroup() and not IsInRaid()
+    local isInRaid = IsInRaid() and not C_PvP.IsArena()
+
+    if isInGroup then
+        UpdateHeaderVisible(srslylawlUI.settings.showParty)
+    elseif isInRaid then
+        UpdateHeaderVisible(srslylawlUI.settings.showRaid)
+    else
+        UpdateHeaderVisible(srslylawlUI.settings.showSolo)
+    end
 end
+
 function srslylawlUI.TranslateTexY(texture, amount, onlyIfChanged)
     local coords = {texture:GetTexCoord()}
     if onlyIfChanged then
@@ -2835,39 +2846,42 @@ local function srslylawlUI_Initialize()
     CreateDebuffFrames()
 end
 srslylawlUI.AreFramesVisible = function()
-    local base = "srslylawlUI_PartyHeaderUnitButton"
-    local index = 1
-    local b = _G[base .. index]
 
-    if not b then
-        -- print("not ", base .. index)
-        return false
-    end
-    repeat
-        -- print(base .. index, b)
-        if b:IsVisible() == false then
-            -- print(b:GetName(), "not visible")
-            -- means we dont have as many group members as buttons (someone left)
-            if GetNumGroupMembers() < index then return true end
-        end
-        local dist = b:GetLeft()
+    return srslylawlUI_PartyHeader:IsVisible()
 
-        if dist == nil or dist < 1 then
-            -- print("left", dist)
-            return false
-        end
-        dist = b:GetRight()
-        if dist == nil or dist < 1 then
-            -- print("right", dist)
-            return false
-        end
-        -- print(dist)
+    -- local base = "srslylawlUI_PartyHeaderUnitButton"
+    -- local index = 1
+    -- local b = _G[base .. index]
 
-        index = index + 1
-        b = _G[base .. index]
-    until not b
-    -- print("frames are visible")
-    return true
+    -- if not b then
+    --     -- print("not ", base .. index)
+    --     return false
+    -- end
+    -- repeat
+    --     -- print(base .. index, b)
+    --     if b:IsVisible() == false then
+    --         -- print(b:GetName(), "not visible")
+    --         -- means we dont have as many group members as buttons (someone left)
+    --         if GetNumGroupMembers() < index then return true end
+    --     end
+    --     local dist = b:GetLeft()
+
+    --     if dist == nil or dist < 1 then
+    --         -- print("left", dist)
+    --         return false
+    --     end
+    --     dist = b:GetRight()
+    --     if dist == nil or dist < 1 then
+    --         -- print("right", dist)
+    --         return false
+    --     end
+    --     -- print(dist)
+
+    --     index = index + 1
+    --     b = _G[base .. index]
+    -- until not b
+    -- -- print("frames are visible")
+    -- return true
 end
 srslylawlUI.SortAfterCombat = function()
     srslylawlUI_EventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -2885,7 +2899,6 @@ srslylawlUI.SortAfterLogin = function()
 end
 srslylawlUI.UpdateEverything = function()
     if InCombatLockdown() == false then
-        UpdateHeaderNameList()
         SortPartyFrames()
         srslylawlUI_ResizeHealthBarScale()
     else
@@ -2911,6 +2924,10 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
             --print(event, " sort after maxhealth/grp change", arg1)
             SortPartyFrames()
         end)
+
+        if event == "GROUP_ROSTER_UPDATE" then
+            srslylawlUI.UpdateFrameVisibility()
+        end
     elseif event == "PLAYER_ENTERING_WORLD" then
         if not (arg1 or arg2) then
             -- print("just zoning between maps")

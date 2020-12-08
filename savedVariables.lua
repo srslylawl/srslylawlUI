@@ -25,6 +25,7 @@ srslylawl_saved = {
         showSolo = true,
         showRaid = false,
         showPlayer = true,
+        frameOnUpdateInterval = 0.1
     },
     spells = {
         known = {},
