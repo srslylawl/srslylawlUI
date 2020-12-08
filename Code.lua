@@ -579,6 +579,7 @@ function srslylawlUI_ResetHealthBar(button, unit)
         button.healthBar:SetMinMaxValues(0, 1)
         button.healthBar:SetValue(1)
         button.dead = true
+        if not alive then button.healthBar.text:SetText("DEAD") end
         if not online then button.healthBar.text:SetText("offline") end
     else
         button.healthBar:SetMinMaxValues(0, healthMax)
@@ -587,7 +588,7 @@ function srslylawlUI_ResetHealthBar(button, unit)
     end
 
     if unit == "player" or UnitInRange(unit) then SBColor.a = 1
-    else SBColor.a = 0.6
+    else SBColor.a = 0.4
     end
 
     button.healthBar:SetStatusBarColor(SBColor.r, SBColor.g, SBColor.b, SBColor.a)
@@ -663,7 +664,6 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         end
     elseif arg1 and UnitIsUnit(unit, arg1) and arg1 ~= "nameplate1" then
         if event == "UNIT_MAXHEALTH" then
-            srslylawlUI_ResizeHealthBarScale()
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
                 srslylawlUI_ResetUnitButton(self.unit, unit)
             end
@@ -707,9 +707,9 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
     end
 end
 function srslylawlUI_ResizeHealthBarScale()
-    -- print("resize scale")
     local list, highestHP, averageHP = srslylawlUI_GetPartyHealth()
 
+    --only one sortmethod for now
     local scaleByHighest = true
     local lowerCap = srslylawlUI.settings.hp.minWidthPercent -- bars can not get smaller than this percent of highest
     local pixelPerHp = srslylawlUI.settings.hp.width / highestHP
@@ -1888,10 +1888,9 @@ function srslylawlUI_GetFrameByUnitType(unit)
     --return nil
 end
 function srslylawlUI_Frame_Reset_All()
-    for k, v in ipairs(srslylawlUI_PartyHeader) do
-        local button = v:GetName()
-        if type(button) == "string" then
-            button = _G[button]
+    for k, v in pairs(srslylawlUI_PartyHeader) do
+        local button = v
+        if k ~= 0 then
             srslylawlUI_Frame_ResetDimensions(button)
         end
     end
@@ -2749,7 +2748,7 @@ local function CreateSlashCommands()
     end
 end
 local function SortPartyFrames()
-    -- print("sort called")
+    --print("sort called")
     local list, _, _, hasUnknownMember = srslylawlUI_GetPartyHealth()
 
     if not list then return end
@@ -2789,6 +2788,8 @@ local function SortPartyFrames()
             srslylawlUI_ResetUnitButton(buttonFrame.unit, list[i].unit)
         end
     end
+
+    --print("sort done")
 end
 
 function srslylawlUI.UpdateFrameVisibility()
@@ -2804,6 +2805,8 @@ function srslylawlUI.UpdateFrameVisibility()
             end
         end
     end
+
+    --if true then return end
 
     local isInArena = C_PvP.IsArena()
     local isInBG = C_PvP.IsBattleground()
@@ -2922,7 +2925,6 @@ srslylawlUI.SortAfterCombat = function()
 end
 srslylawlUI.SortAfterLogin = function()
     local _, _, _, hasUnknownMember = srslylawlUI_GetPartyHealth()
-    -- print(#list, GetNumGroupMembers(), IsInGroup(), hasUnknownMember)
     if srslylawlUI.AreFramesVisible and not hasUnknownMember then
         srslylawlUI_EventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
         srslylawlUI_EventFrame:RegisterEvent("UNIT_MAXHEALTH")
@@ -2957,6 +2959,7 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         C_Timer.After(.1, function()
             --print(event, " sort after maxhealth/grp change", arg1)
             SortPartyFrames()
+            srslylawlUI_ResizeHealthBarScale()
         end)
 
         if event == "GROUP_ROSTER_UPDATE" then
