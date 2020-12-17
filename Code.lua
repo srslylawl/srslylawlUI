@@ -221,13 +221,12 @@ function srslylawlUI.SetBuffFrames()
             for i = 1, srslylawlUI.settings.buffs.maxBuffs do
                 local size = srslylawlUI.settings.buffs.size
                 local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
-                local parent = _G[units[k].parentName .. (i - 1)]
                 local anchor = "CENTER"
                 if (i == 1) then
-                    parent = unitbutton
                     anchor = srslylawlUI.settings.buffs.anchor
                     xOffset = srslylawlUI.settings.buffs.xOffset
                     yOffset = srslylawlUI.settings.buffs.yOffset
+                    units[k].buffFrames[i]:SetParent(srslylawlUI_GetFrameByUnitType(k).unit.auraAnchor)
                 end
 
                 if units[k].buffFrames[i] == nil then
@@ -246,13 +245,12 @@ function srslylawlUI.SetDebuffFrames()
             for i = 1, srslylawlUI.settings.debuffs.maxDebuffs do
                 local size = srslylawlUI.settings.debuffs.size
                 local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
-                local parent = _G[units[k].parentName .. (i - 1)]
                 local anchor = "CENTER"
                 if (i == 1) then
-                    parent = unitbutton
                     anchor = srslylawlUI.settings.debuffs.anchor
                     xOffset = srslylawlUI.settings.debuffs.xOffset
                     yOffset = srslylawlUI.settings.debuffs.yOffset
+                    units[k].debuffFrames[i]:SetParent(srslylawlUI_GetFrameByUnitType(k).unit.auraAnchor)
                 end
 
                 if units[k].debuffFrames[i] == nil then
@@ -712,7 +710,7 @@ function srslylawlUI_ResizeHealthBarScale()
         end
     else -- sort by average
     end
-    srslylawlUI_Frame_Reset_All()
+    srslylawlUI.ResetAllFrames()
 end
 function srslylawlUI_CreateNameListString()
     local list = srslylawlUI_GetPartyHealth()
@@ -1121,7 +1119,6 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         if unitbutton.buffFrames[1] == nil then
             error('Max visible buffs setting has been changed, please reload UI by typing "/reload" ')
         end
-        unitbutton.buffFrames[1]:SetParent(unitbutton)
         srslylawlUI.SetBuffFrames()
     end
     if unitbutton["debuffFrames"] == nil and srslylawlUI.settings.debuffs.maxDebuffs > 0 then -- this unit doesnt own the frames yet
@@ -1130,7 +1127,6 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         if unitbutton.debuffFrames[1] == nil then
             error('Max visible debuffs setting has been changed, please reload UI by typing "/reload" ')
         end
-        unitbutton.debuffFrames[1]:SetParent(unitbutton)
         srslylawlUI.SetDebuffFrames()
     end
     -- frames exist and unit owns them
@@ -1761,23 +1757,13 @@ local function MakeFrameMoveable(frame)
 end
 function srslylawlUI_GetFrameByUnitType(unit)
     -- returns buttonframe that matches unit attribute
-
     local frame = _G["srslylawlUI_PartyHeader_"..unit]
 
     if frame and type(frame) == "table" then return frame end
 
     return nil
-
-    ---old
-    --for k, v in pairs(srslylawlUI_PartyHeader) do
-        --local b = type(v) == "table" and v or nil
-        --local c = type(b) == "table" and b:GetAttribute("unit") == unit or false
-        --if c then return b end
-    --end
-
-    --return nil
 end
-function srslylawlUI_Frame_Reset_All()
+function srslylawlUI.ResetAllFrames()
     for k, v in pairs(srslylawlUI_PartyHeader) do
         local button = v
         if k ~= 0 then
@@ -1801,17 +1787,15 @@ function srslylawlUI_Frame_ResetDimensions(button)
                             abs(button.unit.healthBar:GetHeight() - h) > 1
     if needsResize then
         -- print("sizing req, cur:", button.unit.healthBar:GetWidth(), "tar", w)
-        button.unit.healthBar:SetWidth(w)
-        button.unit.healthBar:SetHeight(h)
+        button.unit.auraAnchor:SetSize(srslylawlUI.settings.hp.width, srslylawlUI.settings.hp.height)
+        button.unit.healthBar:SetSize(w, h)
         if button.unit.healthBar["bg"] == nil then
             srslylawlUI_CreateBackground(button.unit.healthBar)
         end
-        button.unit.healthBar.bg:SetWidth(w + 2) -- TODO: showed nil once, why?
-        button.unit.healthBar.bg:SetHeight(h + 2)
+        button.unit.healthBar.bg:SetSize(w + 2, h + 2)
         button.unit.powerBar:SetHeight(h)
-        button.unit.powerBar.background:SetHeight(h + 2)
-        button.unit.powerBar.background:SetWidth(
-            button.unit.powerBar:GetWidth() + 2)
+        button.unit.powerBar.background:SetSize(button.unit.powerBar:GetWidth() + 2, h + 2)
+
         if not InCombatLockdown() then
             -- stuff that taints in combat
             button.unit:SetWidth(w)
