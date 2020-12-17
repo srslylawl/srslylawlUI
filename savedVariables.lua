@@ -21,6 +21,7 @@ srslylawl_saved = {
         maxAbsorbFrames = 20,
         minAbsorbAmount = 100,
         autoApproveKeywords = true,
+        showArena = false,
         showParty = true,
         showSolo = true,
         showRaid = false,

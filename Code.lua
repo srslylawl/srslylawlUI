@@ -12,6 +12,7 @@ srslylawlUI.settings = {
     maxAbsorbFrames = 20,
     minAbsorbAmount = 100,
     autoApproveKeywords = true,
+    showArena = false,
     showParty = true,
     showSolo = true,
     showRaid = false,
@@ -46,17 +47,14 @@ srslylawlUI.sortTimerActive = false
 srslylawlUI.clearTimerActive = false
 
 -- TODO:
-
---      char tooltip
+--      absorb frame sometimes does not show up (observed with warlock and power word shield)
+--      some debuff frames dont anchor correctly
+--      pet anchor to end
 --      readycheck
---      buffs are fucked
---      grpleave doesnt hide absorb fragments
---      debuffs
---      necrotic
+--      necrotic/healabsorb
 --      defensives with stacks need to be reworked (testing: ignoring stack count altogether)
---      range indicator
---      861 null
 --      hide ehp on death
+--      debuff white/blacklist/spellremember etc
 --      CC
 --      phase/shard
 --      UnitHasIncomingResurrection(unit)
@@ -196,18 +194,7 @@ local function ShouldDisplayAura(...)
 
     return false
 end
-srslylawlUI.SortAbsorbAurasBySpellIDDescending =
-    function(absorbAuraTable)
-        local t = {}
 
-        for k, _ in pairs(absorbAuraTable) do
-            if absorbAuraTable[k].auraType == "absorb" then
-                t[#t + 1] = absorbAuraTable[k]
-            end
-        end
-        table.sort(t, function(a, b) return b.spellId < a.spellId end)
-        return t
-    end
 function tableEquals(table1, table2)
     if table1 == table2 then return true end
     local table1Type = type(table1)
@@ -645,7 +632,6 @@ function srslylawlUI_Button_OnDragStop(self, button)
         srslylawlUI.settings.header.xOffset = xOfs
         srslylawlUI.settings.header.yOffset = yOfs
         srslylawlUI_SetDirtyFlag()
-        SortPartyFrames()
     end
 end
 function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
@@ -666,6 +652,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         if event == "UNIT_MAXHEALTH" then
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
                 srslylawlUI_ResetUnitButton(self.unit, unit)
+                srslylawlUI_Frame_HandleAuras(self.unit, unit, true)
             end
             self.unit.healthBar:SetMinMaxValues(0, UnitHealthMax(unit))
             self.unit.healthBar:SetValue(UnitHealth(unit))
@@ -689,7 +676,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         elseif event == "UNIT_CONNECTION" then
             srslylawlUI_ResetHealthBar(self.unit, unit)
             srslylawlUI_ResetPowerBar(self.unit, unit)
-            srslylawlUI.Log(UnitName(unit) .. " went on/offline")
+            srslylawlUI.Log(UnitName(unit) .. UnitIsConnected(unit) and " came online." or " disconnected.")
         elseif event == "UNIT_AURA" then
             srslylawlUI_Frame_HandleAuras(self.unit, unit)
         elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
@@ -762,7 +749,8 @@ function srslylawlUI_GetPartyHealth()
     local currentUnit = "player"
     local partyIndex = 0
     if not UnitExists("player") then
-        error("player doesnt exist?")
+        --error("player doesnt exist?")
+        return nil
     else
         -- loop through all units
         repeat
@@ -823,7 +811,7 @@ function srslylawlUI.RememberSpellID(spellId, buffIndex, unit, arg1)
         -- %d+ = multiple numbers in a row
         -- %% = the % sign
         -- so we are looking for something like 15%
-        local valueWithSign = tooltipText:match("%d+%%")
+        local valueWithSign = tooltipText:match("%d*%.?%d+")
 
         if not valueWithSign then return 0 end
         -- remove the percent sign now
@@ -869,7 +857,10 @@ function srslylawlUI.RememberSpellID(spellId, buffIndex, unit, arg1)
         elseif keyWordDefensive then
             local amount = GetPercentValue(buffLower)
 
-            if abs(amount) ~= 0 then spell.reductionAmount = amount end
+            if abs(amount) ~= 0 then spell.reductionAmount = amount
+            else
+                error("reduction amount is 0")
+            end
 
             if (srslylawlUI.spells.defensives[spellId] == nil) then
                 -- first time entry
@@ -1065,11 +1056,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         -- srslylawlUI.Log("index changed " .. name)
         local byAura = auraType .. "Auras"
         local byIndex = "trackedAurasByIndex"
-
         local oldIndex = units[unit][byAura][source][spellId].index
-
         assert(oldIndex ~= nil)
-
         -- assign to current
         units[unit][byAura][source][spellId].index = currentIndex
 
@@ -1098,30 +1086,6 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         t["index"] = currentIndex
         t["stacks"] = count
         t["auraType"] = auraType
-
-        -- carry over tracked segments
-
-        if units[unit][byIndex][oldIndex] == nil then
-            srslylawlUI.Log("861 NULL: ", t["name"], t["source"], oldIndex)
-        end
-        if units[unit][byIndex][oldIndex]["trackedSegments"] ~= nil then
-            if units[unit][byIndex][currentIndex]["trackedSegments"] == nil then
-                units[unit][byIndex][currentIndex]["trackedSegments"] = {}
-            end
-
-            for index, segment in pairs(
-                                      units[unit][byIndex][oldIndex]["trackedSegments"]) do
-                units[unit][byIndex][currentIndex]["trackedSegments"][index] =
-                    segment
-            end
-        end
-
-        local trackedApplyTime =
-            units[unit][byIndex][oldIndex]["trackedApplyTime"]
-        if trackedApplyTime ~= nil then
-            units[unit][byIndex][currentIndex]["trackedApplyTime"] =
-                trackedApplyTime
-        end
 
         units[unit][byIndex][oldIndex] = nil
     end
@@ -1296,7 +1260,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     ---create frames if needed
     local function CreateAbsorbFrame(parent, i, height, parentTable)
         local n = unit .. "AbsorbFrame" .. i
-        local f = CreateFrame("Frame", n, parent)
+        local f = CreateFrame("Frame", "srslylawlUI_"..n, parent)
         f.texture = f:CreateTexture("n".."texture", "ARTWORK")
         f.texture:SetAllPoints()
         f.texture:SetTexture(statusBarTex)
@@ -1307,7 +1271,7 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
         f:SetHeight(height)
         f:SetWidth(40)
-        local t = f:CreateTexture("background", "BACKGROUND")
+        local t = f:CreateTexture("$parent_background", "BACKGROUND")
         t:SetColorTexture(0, 0, 0, .5)
         t:SetPoint("CENTER", f, "CENTER")
         t:SetHeight(height + 2)
@@ -1485,7 +1449,17 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
         }
     end
     local absorbSegments = {}
-    local sortedAbsorbAuras = srslylawlUI.SortAbsorbAurasBySpellIDDescending(units[unit].trackedAurasByIndex)
+    local SortAbsorbBySpellIDDesc = function(absorbAuraTable)
+        local t = {}
+        for k, _ in pairs(absorbAuraTable) do
+            if absorbAuraTable[k].auraType == "absorb" then
+                t[#t + 1] = absorbAuraTable[k]
+            end
+        end
+        table.sort(t, function(a, b) return b.spellId < a.spellId end)
+        return t
+    end
+    local sortedAbsorbAuras = SortAbsorbBySpellIDDesc(units[unit].trackedAurasByIndex)
     local function CalcSegment(amount, sType, tAura)
         local absorbAmount = amount
         local allowedWidth
@@ -1652,6 +1626,24 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
         -- make sure that our first absorb anchor moves with the bar fill amount
     srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
+
+    local areShown = units[unit]["absorbFrames"][1]:IsVisible() or units[unit]["absorbFramesOverlap"][1]:IsVisible() and srslylawlUI_GetFrameByUnitType(unit):IsVisible()
+    local hasSegments = #absorbSegments > 0
+    if hasSegments and not areShown then
+        --something went wrong
+        local str = ""
+
+        for k, v in pairs(units[unit].trackedAurasByIndex) do
+            for k1, k2 in pairs(v) do
+                str = str .. tostring(k1) .. " " .. tostring(k2).." /n"
+            end
+        end
+
+        print(areShown, hasSegments, str)
+
+        error("frames not shown" .. str)
+    end
+
 end
 function srslylawlUI_ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, isHealPrediction)
     frame:SetAttribute("absorbAmount", absorbAmount)
@@ -1715,108 +1707,6 @@ local function HeaderSetup()
         RegisterUnitWatch(unitFrame)
     end
     srslylawlUI.UpdateFrameVisibility()
-end
-local function CreateCustomSlider(name, min, max, defaultValue, parent, offset, valueStep, isNumeric, decimals)
-    local title = name
-    name = "$parent_Slider"..name
-    local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
-    name = slider:GetName()
-    _G[name .. "Low"]:SetText(min)
-    _G[name .. "High"]:SetText(max)
-    _G[name .. "Text"]:SetText(title)
-    _G[name .. "Text"]:SetTextColor(1, 0.82, 0, 1)
-    _G[name .. "Text"]:SetPoint("TOP", 0, 15)
-    slider:SetPoint("TOP", 0, offset)
-    slider:SetWidth(150)
-    slider:SetHeight(16)
-    slider:SetMinMaxValues(min, max)
-    slider:SetValue(defaultValue)
-    slider:SetValueStep(valueStep)
-    slider:SetObeyStepOnDrag(true)
-    local editBox = CreateFrame("EditBox", name .. "_EditBox", slider,
-                                "BackdropTemplate")
-    editBox:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 12,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
-    })
-    editBox:SetBackdropColor(0.2, 0.2, .2, 1)
-    editBox:SetTextInsets(5, 5, 0, 0)
-    editBox:SetHeight(25)
-    editBox:SetWidth(50)
-    editBox:SetPoint("RIGHT", 55, 0)
-    editBox:SetAutoFocus(false)
-    editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
-    editBox:SetNumeric(isNumeric or false)
-    if isNumeric then
-        editBox:SetNumber(defaultValue)
-        editBox:SetScript("OnTextChanged",
-                      function(self) slider:SetValue(self:GetNumber()) end)
-        slider:SetScript("OnValueChanged", function(self, value)
-            if editBox:GetNumber() == tonumber(value) then
-                return
-            else
-                local index = string.find(tostring(value), "%p")
-                if type(index) ~= "nil" then
-                    value = string.sub(tostring(value), 0, index - 1)
-                end
-                value = tonumber(value)
-                editBox:SetNumber(value)
-            end
-        end)
-    else
-        editBox:SetText(defaultValue)
-        editBox:SetScript("OnTextChanged", function(self) slider:SetValue(decimalRound(self:GetText(), decimals)) end)
-        slider:SetScript("OnValueChanged", function(self, value)
-            if editBox:GetText() == decimalRound(value, decimals) then
-                return
-            else
-                editBox:SetText(decimalRound(value, decimals))
-            end
-        end)
-    end
-    editBox:SetMaxLetters(4)
-    slider:SetAttribute("defaultValue", defaultValue)
-    slider.editbox = editBox
-    return slider
-end
-local function CreateCustomDropDown(title, width, parent, anchor, relativePoint,
-                                    xOffset, yOffset, valueRef, values,
-                                    onChangeFunc, checkFunc)
-    -- Create the dropdown, and configure its appearance
-    local dropDown = CreateFrame("FRAME", "$parent_"..title, parent,
-                                 "UIDropDownMenuTemplate")
-    dropDown:SetPoint(anchor, parent, relativePoint, xOffset, yOffset)
-    UIDropDownMenu_SetWidth(dropDown, width)
-    UIDropDownMenu_SetText(dropDown, title)
-
-    -- Create and bind the initialization function to the dropdown menu
-    UIDropDownMenu_Initialize(dropDown, function(self)
-        local info = UIDropDownMenu_CreateInfo()
-        info.func = self.SetValue
-        for k, v in pairs(values) do
-            local value = v or k
-            info.text = value
-            info.arg1 = value
-            info.checked = checkFunc
-            UIDropDownMenu_AddButton(info)
-        end
-    end)
-
-    -- Implement the function to change the favoriteNumber
-    function dropDown:SetValue(newValue)
-        UIDropDownMenu_SetText(dropDown, title)
-        srslylawlUI_SetDirtyFlag()
-        onChangeFunc(newValue)
-        -- Update the text; if we merely wanted it to display newValue, we would not need to do this
-
-        -- Because this is called from a sub-menu, only that menu level is closed by default.
-        -- Close the entire menu with this next call
-        -- CloseDropDownMenus()
-    end
-
-    return dropDown
 end
 local function CreateEditBox(name, parent, defaultValue, funcOnTextChanged,
                              point, xOffset, yOffset, isNumeric)
@@ -1947,6 +1837,108 @@ function srslylawlUI_RemoveDirtyFlag()
     for k, v in ipairs(unsaved.buttons) do v:Disable() end
 end
 local function CreateConfig()
+    local function CreateCustomSlider(name, min, max, defaultValue, parent, offset, valueStep, isNumeric, decimals)
+        local title = name
+        name = "$parent_Slider"..name
+        local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
+        name = slider:GetName()
+        _G[name .. "Low"]:SetText(min)
+        _G[name .. "High"]:SetText(max)
+        _G[name .. "Text"]:SetText(title)
+        _G[name .. "Text"]:SetTextColor(1, 0.82, 0, 1)
+        _G[name .. "Text"]:SetPoint("TOP", 0, 15)
+        slider:SetPoint("TOP", 0, offset)
+        slider:SetWidth(150)
+        slider:SetHeight(16)
+        slider:SetMinMaxValues(min, max)
+        slider:SetValue(defaultValue)
+        slider:SetValueStep(valueStep)
+        slider:SetObeyStepOnDrag(true)
+        local editBox = CreateFrame("EditBox", name .. "_EditBox", slider,
+                                    "BackdropTemplate")
+        editBox:SetBackdrop({
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 12,
+            insets = {left = 4, right = 4, top = 4, bottom = 4}
+        })
+        editBox:SetBackdropColor(0.2, 0.2, .2, 1)
+        editBox:SetTextInsets(5, 5, 0, 0)
+        editBox:SetHeight(25)
+        editBox:SetWidth(50)
+        editBox:SetPoint("RIGHT", 55, 0)
+        editBox:SetAutoFocus(false)
+        editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
+        editBox:SetNumeric(isNumeric or false)
+        if isNumeric then
+            editBox:SetNumber(defaultValue)
+            editBox:SetScript("OnTextChanged",
+                          function(self) slider:SetValue(self:GetNumber()) end)
+            slider:SetScript("OnValueChanged", function(self, value)
+                if editBox:GetNumber() == tonumber(value) then
+                    return
+                else
+                    local index = string.find(tostring(value), "%p")
+                    if type(index) ~= "nil" then
+                        value = string.sub(tostring(value), 0, index - 1)
+                    end
+                    value = tonumber(value)
+                    editBox:SetNumber(value)
+                end
+            end)
+        else
+            editBox:SetText(defaultValue)
+            editBox:SetScript("OnTextChanged", function(self) slider:SetValue(decimalRound(self:GetText(), decimals)) end)
+            slider:SetScript("OnValueChanged", function(self, value)
+                if editBox:GetText() == decimalRound(value, decimals) then
+                    return
+                else
+                    editBox:SetText(decimalRound(value, decimals))
+                end
+            end)
+        end
+        editBox:SetMaxLetters(4)
+        slider:SetAttribute("defaultValue", defaultValue)
+        slider.editbox = editBox
+        return slider
+    end
+    local function CreateCustomDropDown(title, width, parent, anchor, relativePoint,
+                                    xOffset, yOffset, valueRef, values,
+                                    onChangeFunc, checkFunc)
+        -- Create the dropdown, and configure its appearance
+        local dropDown = CreateFrame("FRAME", "$parent_"..title, parent,
+                                     "UIDropDownMenuTemplate")
+        dropDown:SetPoint(anchor, parent, relativePoint, xOffset, yOffset)
+        UIDropDownMenu_SetWidth(dropDown, width)
+        UIDropDownMenu_SetText(dropDown, title)
+
+        -- Create and bind the initialization function to the dropdown menu
+        UIDropDownMenu_Initialize(dropDown, function(self)
+            local info = UIDropDownMenu_CreateInfo()
+            info.func = self.SetValue
+            for k, v in pairs(values) do
+                local value = v or k
+                info.text = value
+                info.arg1 = value
+                info.checked = checkFunc
+                UIDropDownMenu_AddButton(info)
+            end
+        end)
+
+        -- Implement the function to change the favoriteNumber
+        function dropDown:SetValue(newValue)
+            UIDropDownMenu_SetText(dropDown, title)
+            srslylawlUI_SetDirtyFlag()
+            onChangeFunc(newValue)
+            -- Update the text; if we merely wanted it to display newValue, we would not need to do this
+
+            -- Because this is called from a sub-menu, only that menu level is closed by default.
+            -- Close the entire menu with this next call
+            -- CloseDropDownMenus()
+        end
+
+        return dropDown
+    end
     local function CreateConfigBody(name, parent)
         local f = CreateFrame("Frame", name, parent, "BackdropTemplate")
         f:SetSize(500, 500)
@@ -2037,7 +2029,7 @@ local function CreateConfig()
 
         local visibility = CreateFrameWBG("Visibility", lockFrames)
         visibility:SetPoint("TOPLEFT", lockFrames, "BOTTOMLEFT", 0, -15)
-        visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -85)
+        visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -115)
 
         local showParty = CreateCheckButton("Show In Party", visibility)
         
@@ -2083,6 +2075,15 @@ local function CreateConfig()
         AddTooltip(showSolo, "Show Frames while not in a group (overrides Show Player)")
         showSolo:SetChecked(srslylawlUI.settings.showSolo)
         showSolo:SetAttribute("defaultValue", srslylawlUI.settings.showSolo)
+
+        local showArena = CreateCheckButton("Show Arena", visibility)
+        showArena:SetScript("OnClicK", function(self)
+        srslylawlUI.settings.showArena = self:GetChecked()
+            srslylawlUI.UpdateFrameVisibility()
+            srslylawlUI_SetDirtyFlag()
+        end)
+        showArena:SetPoint("TOPLEFT", showParty, "BOTTOMLEFT", 0, 0)
+        showArena:SetAttribute("defaultValue", srslylawlUI.settings.showArena)
     end
     local function FillFramesTab(tab)
         -- HP Bar Sliders
@@ -2725,29 +2726,7 @@ local function CreateConfig()
     srslylawlUI_ToggleConfigVisible(false)
     InterfaceOptions_AddCategory(srslylawlUI_ConfigFrame)
 end
-local function CreateSlashCommands()
-    -- Setting Slash Commands
-    SLASH_SRSLYLAWLUI1 = "/srslylawlUI"
-    SLASH_SRSLYLAWLUI2 = "/srslylawlUI"
-    SLASH_SRSLYLAWLUI3 = "/srsUI"
-    SLASH_SRSLYLAWLUI4 = "/srslylawl"
-    SLASH_SRSLYLAWLUI5 = "/srslylawl save"
-
-    SLASH_SRLYLAWLAPPROVESPELL1 = "/approvespell id"
-
-    SlashCmdList["SRSLYLAWLUI"] = function(msg, txt)
-        if InCombatLockdown() then
-            srslylawlUI.Log("Can't access menu while in combat.")
-            return
-        end
-        if msg and msg == "save" then
-            SaveSettings()
-        else
-            srslylawlUI_ToggleConfigVisible(true)
-        end
-    end
-end
-local function SortPartyFrames()
+function srslylawlUI.SortPartyFrames()
     --print("sort called")
     local list, _, _, hasUnknownMember = srslylawlUI_GetPartyHealth()
 
@@ -2766,7 +2745,7 @@ local function SortPartyFrames()
             srslylawlUI.sortTimerActive = true
             C_Timer.After(1, function()
                 srslylawlUI.sortTimerActive = false
-                SortPartyFrames()
+                srslylawlUI.SortPartyFrames()
             end)
         end
         return
@@ -2817,6 +2796,8 @@ function srslylawlUI.UpdateFrameVisibility()
         UpdateHeaderVisible(srslylawlUI.settings.showParty)
     elseif isInRaid then
         UpdateHeaderVisible(srslylawlUI.settings.showRaid)
+    elseif isInArena then
+        UpdateHeaderVisible(srslylawlUI.settings.showArena)
     else
         local frame = srslylawlUI_PartyHeader.player
         if srslylawlUI.settings.showSolo then
@@ -2831,7 +2812,6 @@ function srslylawlUI.UpdateFrameVisibility()
         UpdateHeaderVisible(srslylawlUI.settings.showSolo)
     end
 end
-
 function srslylawlUI.TranslateTexY(texture, amount, onlyIfChanged)
     local coords = {texture:GetTexCoord()}
     if onlyIfChanged then
@@ -2875,6 +2855,28 @@ function srslylawlUI.TranslateTexX(texture, amount, onlyIfChanged)
 end
 
 local function srslylawlUI_Initialize()
+    local function CreateSlashCommands()
+        -- Setting Slash Commands
+        SLASH_SRSLYLAWLUI1 = "/srslylawlUI"
+        SLASH_SRSLYLAWLUI2 = "/srslylawlUI"
+        SLASH_SRSLYLAWLUI3 = "/srsUI"
+        SLASH_SRSLYLAWLUI4 = "/srslylawl"
+        SLASH_SRSLYLAWLUI5 = "/srslylawl save"
+
+        SLASH_SRLYLAWLAPPROVESPELL1 = "/approvespell id"
+
+        SlashCmdList["SRSLYLAWLUI"] = function(msg, txt)
+            if InCombatLockdown() then
+                srslylawlUI.Log("Can't access menu while in combat.")
+                return
+            end
+            if msg and msg == "save" then
+                SaveSettings()
+            else
+                srslylawlUI_ToggleConfigVisible(true)
+            end
+        end
+    end
     LoadSettings()
     HeaderSetup()
     CreateSlashCommands()
@@ -2882,7 +2884,7 @@ local function srslylawlUI_Initialize()
     CreateBuffFrames()
     CreateDebuffFrames()
 end
-srslylawlUI.AreFramesVisible = function()
+function srslylawlUI.AreFramesVisible()
 
     return srslylawlUI_PartyHeader:IsVisible()
 
@@ -2920,10 +2922,10 @@ srslylawlUI.AreFramesVisible = function()
     -- -- print("frames are visible")
     -- return true
 end
-srslylawlUI.SortAfterCombat = function()
+function srslylawlUI.SortAfterCombat()
     srslylawlUI_EventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 end
-srslylawlUI.SortAfterLogin = function()
+function srslylawlUI.SortAfterLogin()
     local _, _, _, hasUnknownMember = srslylawlUI_GetPartyHealth()
     if srslylawlUI.AreFramesVisible and not hasUnknownMember then
         srslylawlUI_EventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
@@ -2933,9 +2935,9 @@ srslylawlUI.SortAfterLogin = function()
         C_Timer.After(.5, function() srslylawlUI.SortAfterLogin() end)
     end
 end
-srslylawlUI.UpdateEverything = function()
+function srslylawlUI.UpdateEverything()
     if InCombatLockdown() == false then
-        SortPartyFrames()
+        srslylawlUI.SortPartyFrames()
         srslylawlUI_ResizeHealthBarScale()
     else
         C_Timer.After(1, function() srslylawlUI.UpdateEverything() end)
@@ -2958,7 +2960,7 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         end
         C_Timer.After(.1, function()
             --print(event, " sort after maxhealth/grp change", arg1)
-            SortPartyFrames()
+            srslylawlUI.SortPartyFrames()
             srslylawlUI_ResizeHealthBarScale()
         end)
 
@@ -2971,11 +2973,11 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         elseif arg1 then
             -- srslylawlUI.SortAfterLogin()
             -- since it takes a while for everything to load, we just wait until all our frames are visible before we do anything else
-            SortPartyFrames()
+            srslylawlUI.SortPartyFrames()
         elseif arg2 then
             -- print("reload ui")
             srslylawlUI_ResizeHealthBarScale()
-            SortPartyFrames()
+            srslylawlUI.SortPartyFrames()
         end
     elseif event == "PLAYER_REGEN_ENABLED" then
         -- print("regen enabled sort")
