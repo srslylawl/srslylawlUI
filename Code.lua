@@ -674,7 +674,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         elseif event == "UNIT_CONNECTION" then
             srslylawlUI_ResetHealthBar(self.unit, unit)
             srslylawlUI_ResetPowerBar(self.unit, unit)
-            srslylawlUI.Log(UnitName(unit) .. UnitIsConnected(unit) and " came online." or " disconnected.")
+            srslylawlUI.Log(UnitName(unit) .. (UnitIsConnected(unit) and " came online." or " disconnected."))
         elseif event == "UNIT_AURA" then
             srslylawlUI_Frame_HandleAuras(self.unit, unit)
         elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
@@ -781,42 +781,44 @@ function srslylawlUI_GetPartyHealth()
 
     return nameStringSortedByHealthDesc, highestHP, averageHP, hasUnknownMember
 end
-function srslylawlUI.HasDefensiveKeyword(tooltipText)
-    local s = string.lower(tooltipText)
-    local keyPhrases = {
-        "reduces damage taken", "damage taken reduced", "reducing damage taken",
-        "reducing all damage taken", "reduces all damage taken"
-    }
 
-    for _, phrase in pairs(keyPhrases) do
-        if s:match(phrase) and true then return true end
-    end
 
-    return false
-end
-function srslylawlUI.HasAbsorbKeyword(tooltipText)
-    local s = string.lower(tooltipText)
-    local keyPhrases = {"absorb"}
-
-    for _, phrase in pairs(keyPhrases) do
-        if s:match(phrase) and true then return true end
-    end
-
-    return false
-end
 function srslylawlUI.RememberSpellID(spellId, buffIndex, unit, arg1)
     local function GetPercentValue(tooltipText)
-        -- %d+ = multiple numbers in a row
-        -- %% = the % sign
-        -- so we are looking for something like 15%
-        local valueWithSign = tooltipText:match("%d*%.?%d+")
+            -- %d+ = multiple numbers in a row
+            -- %% = the % sign
+            -- so we are looking for something like 15%
+            local valueWithSign = tooltipText:match("%d*%.?%d+%%")
 
-        if not valueWithSign then return 0 end
-        -- remove the percent sign now
+            if not valueWithSign then return 0 end
+            -- remove the percent sign now
 
-        local number = valueWithSign:match("%d+")
+            local number = valueWithSign:match("%d+")
 
-        return tonumber(number) or 0
+            return tonumber(number) or 0
+    end
+    local function HasDefensiveKeyword(tooltipText)
+        local s = string.lower(tooltipText)
+        local keyPhrases = {
+        "reduces damage taken", "damage taken reduced", "reducing damage taken",
+        "reducing all damage taken", "reduces all damage taken"
+        }
+
+        for _, phrase in pairs(keyPhrases) do
+            if s:match(phrase) and true then return true end
+        end
+
+        return false
+    end
+    local function HasAbsorbKeyword(tooltipText)
+        local s = string.lower(tooltipText)
+        local keyPhrases = {"absorb"}
+
+        for _, phrase in pairs(keyPhrases) do
+            if s:match(phrase) and true then return true end
+        end
+
+        return false
     end
     local function ProcessID(spellId, buffIndex, unit, arg1)
         local spellName = GetSpellInfo(spellId)
@@ -828,9 +830,9 @@ function srslylawlUI.RememberSpellID(spellId, buffIndex, unit, arg1)
             buffLower = ""
         end
         local autoApprove = srslylawlUI.settings.autoApproveKeywords
-        local keyWordAbsorb = srslylawlUI.HasAbsorbKeyword(buffLower) and
+        local keyWordAbsorb = HasAbsorbKeyword(buffLower) and
                                   autoApprove and ((arg1 ~= nil) and (arg1 > 1))
-        local keyWordDefensive = srslylawlUI.HasDefensiveKeyword(buffLower) and
+        local keyWordDefensive = HasDefensiveKeyword(buffLower) and
                                      autoApprove
         local isKnown = srslylawlUI.spells.known[spellId] ~= nil
 
@@ -857,7 +859,7 @@ function srslylawlUI.RememberSpellID(spellId, buffIndex, unit, arg1)
 
             if abs(amount) ~= 0 then spell.reductionAmount = amount
             else
-                error("reduction amount is 0")
+                error("reduction amount is 0 " .. spellName .. " " .. buffText)
             end
 
             if (srslylawlUI.spells.defensives[spellId] == nil) then
@@ -1764,9 +1766,9 @@ function srslylawlUI_GetFrameByUnitType(unit)
     return nil
 end
 function srslylawlUI.ResetAllFrames()
-    for k, v in pairs(srslylawlUI_PartyHeader) do
-        local button = v
-        if k ~= 0 then
+    for k, v in pairs(unitTable) do
+        local button = srslylawlUI_GetFrameByUnitType(v)
+        if v then
             srslylawlUI_Frame_ResetDimensions(button)
         end
     end
@@ -2217,7 +2219,7 @@ local function CreateConfig()
             srslylawlUI_SetDirtyFlag()
         end)
         cFrame.editBoxes.debuffIconSize = debuffIconSize
-        debuffIconSize.title = buffIconSize:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        debuffIconSize.title = debuffIconSize:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
         debuffIconSize.title:SetPoint("TOP", 0, 12)
         debuffIconSize.title:SetText("Size")
 
