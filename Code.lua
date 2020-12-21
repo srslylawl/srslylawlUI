@@ -1040,11 +1040,12 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             --error("error while untracking an aura", units[unit][byIndex][index].name)
         end
 
+        units[unit][byIndex][index] = nil
+
         if units[unit][byAura][src] == nil then
             return;
         end
         units[unit][byAura][src][s] = nil
-        units[unit][byIndex][index] = nil
         local t = tablelength(units[unit][byAura][src])
 
         --No more auras being tracked for that unit, untrack source
@@ -1239,7 +1240,9 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     -- we checked all frames, untrack any that are gone
     -- print("untrack all that are gone")
     for k, v in pairs(units[unit].trackedAurasByIndex) do
-        if (v["checkedThisEvent"] == false) then UntrackAura(k) end
+        if (v["checkedThisEvent"] == false) then
+            UntrackAura(k)
+        end
     end
     -- we tracked all absorbs, now we have to visualize them. if absorbchange fired, we need to rearrange them
     -- check if segments already exist for unit
@@ -1257,12 +1260,13 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     local overlapBarIndex = 1
     ---create frames if needed
     local function CreateAbsorbFrame(parent, i, height, parentTable)
-        local n = unit .. "AbsorbFrame" .. i
+        local isOverlapFrame = parentTable == units[unit]["absorbFramesOverlap"]
+        local n = unit .. (isOverlapFrame and "AbsorbFrameOverlap" or "AbsorbFrame") .. i
         local f = CreateFrame("Frame", "srslylawlUI_"..n, parent)
         f.texture = f:CreateTexture("n".."texture", "ARTWORK")
         f.texture:SetAllPoints()
         f.texture:SetTexture(statusBarTex)
-        if parentTable == units[unit]["absorbFramesOverlap"] then
+        if isOverlapFrame then
             f:SetPoint("TOPRIGHT", parent, "TOPLEFT", -1, 0)
         else
             f:SetPoint("TOPLEFT", parent, "TOPRIGHT", 1, 0)
@@ -1529,9 +1533,9 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
     local incomingHealWidth
     if incomingHeal ~= nil then
         incomingHealWidth = floor(incomingHeal * pixelPerHp)
-         if incomingHealWidth > 2 then
-        CalcSegment(incomingHeal, "incomingHeal", nil)
-    end
+        if incomingHealWidth > 2 then
+            CalcSegment(incomingHeal, "incomingHeal", nil)
+        end
     end
    
     -- absorb auras seem to get consumed in order by their spellid, ascending, (not confirmed)
@@ -1583,8 +1587,8 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             else
                 if segment.tAura == nil then
                     srslylawlUI.Log("ERROR: segment nil", segment.oIndex, segment.amount, segment.sType);
-                return
-            end
+                    return
+                end
                 SetupSegment(segment.tAura, bar, segment.amount, segment.width, height)
             end
             bar.hide = false
@@ -1594,7 +1598,6 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
             else
                 curBarIndex = curBarIndex + 1
             end
-
         end
     end
     --flag all bars as hide
@@ -1624,24 +1627,6 @@ function srslylawlUI_Frame_HandleAuras(unitbutton, unit, absorbChanged)
 
         -- make sure that our first absorb anchor moves with the bar fill amount
     srslylawlUI_MoveAbsorbAnchorWithHealth(unit)
-
-    local areShown = units[unit]["absorbFrames"][1]:IsVisible() or units[unit]["absorbFramesOverlap"][1]:IsVisible() and srslylawlUI_GetFrameByUnitType(unit):IsVisible()
-    local hasSegments = #absorbSegments > 0
-    if hasSegments and not areShown then
-        --something went wrong
-        local str = ""
-
-        for k, v in pairs(units[unit].trackedAurasByIndex) do
-            for k1, k2 in pairs(v) do
-                str = str .. tostring(k1) .. " " .. tostring(k2).." /n"
-            end
-        end
-
-        print(areShown, hasSegments, str)
-
-        error("frames not shown" .. str)
-    end
-
 end
 function srslylawlUI_ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, isHealPrediction)
     frame:SetAttribute("absorbAmount", absorbAmount)
