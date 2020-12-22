@@ -26,6 +26,22 @@ srslylawlUI.spells = {
     whiteList = {},
     blackList = {}
 }
+srslylawlUI.sortedSpellLists = {
+    buffs = { 
+        known = {},
+        absorbs = {},
+        defensives = {},
+        whiteList = {},
+        blackList = {}
+    },
+    debuffs = {
+        known = {},
+        absorbs = {},
+        defensives = {},
+        whiteList = {},
+        blackList = {}
+    }
+}
 local powerUpdateType = "UNIT_POWER_UPDATE" -- "UNIT_POWER_UPDATE" or "UNIT_POWER_FRQUENT"
 local unsaved = {flag = false, buttons = {}}
 
@@ -56,19 +72,14 @@ local debugString = ""
 
 
 -- TODO:
---      absorb frame sometimes does not show up (observed with warlock and power word shield)
---      some debuff frames dont anchor correctly
---      pet anchor to end
+--      rare bug: absorb frame sometimes does not show up (observed with warlock and power word shield, use /srsdbg to debug)
 --      readycheck
 --      necrotic/healabsorb
---      defensives with stacks need to be reworked (testing: ignoring stack count altogether)
---      hide ehp on death
 --      debuff white/blacklist/spellremember etc
 --      CC
 --      phase/shard
 --      UnitHasIncomingResurrection(unit)
 --      config window
---      test (performance)
 
 
 --Utils
@@ -279,7 +290,7 @@ function srslylawlUI.GetDebuffOffsets()
     end
     return xOffset, yOffset
 end
-function srslylawlUI.InitialFrameConfig(buttonFrame)
+function srslylawlUI.Frame_InitialUnitConfig(buttonFrame)
     --buttonFrame = _G[buttonFrame]
     -- local frameLevel = buttonFrame.unit:GetFrameLevel()
     -- buttonFrame.unit:SetFrameLevel(2)
@@ -465,38 +476,6 @@ function srslylawlUI.Frame_MakeFrameMoveable(frame)
     frame:RegisterForDrag("LeftButton")
     frame:SetMovable(true)
     frame:EnableMouse(true)
-end
-
-function srslylawlUI_Frame_OnShow(button)
-    -- button = UnitButtonX
-
-    local unit = button:GetAttribute("unit")
-    -- i think the code below never executes since the button will never have the unit attribute on show (gets assigned later)
-    if unit then
-        local guid = UnitGUID(unit)
-        if guid ~= button.guid then
-            srslylawlUI.Frame_ResetUnitButton(button.unit, unit)
-            srslylawlUI.Frame_ResetUnitButton(button.pet, unit .. "pet")
-            button.guid = guid
-        end
-    end
-end
-function srslylawlUI_Frame_OnHide(button)
-    local unit = button:GetAttribute("unit")
-
-    if unit == nil then
-        srslylawlUI.Log("error unit nil on frame hide")
-        return
-    end
-    if units[unit]["absorbFrames"] ~= nil then
-        units[unit]["absorbFrames"][1]:Hide()
-    end
-    if units[unit]["absorbFramesOverlap"] ~= nil then
-        units[unit]["absorbFramesOverlap"][1]:Hide()
-    end
-    if units[unit]["effectiveHealthFrames"] ~= nil then
-        units[unit]["effectiveHealthFrames"][1]:Hide()
-    end
 end
 function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
     local unit = self:GetAttribute("unit")
@@ -707,7 +686,37 @@ function srslylawlUI_Button_OnDragStop(self, button)
         srslylawlUI.SetDirtyFlag()
     end
 end
+function srslylawlUI_Frame_OnShow(button)
+    -- button = UnitButtonX
 
+    local unit = button:GetAttribute("unit")
+    -- i think the code below never executes since the button will never have the unit attribute on show (gets assigned later)
+    if unit then
+        local guid = UnitGUID(unit)
+        if guid ~= button.guid then
+            srslylawlUI.Frame_ResetUnitButton(button.unit, unit)
+            srslylawlUI.Frame_ResetUnitButton(button.pet, unit .. "pet")
+            button.guid = guid
+        end
+    end
+end
+function srslylawlUI_Frame_OnHide(button)
+    local unit = button:GetAttribute("unit")
+
+    if unit == nil then
+        srslylawlUI.Log("error unit nil on frame hide")
+        return
+    end
+    if units[unit]["absorbFrames"] ~= nil then
+        units[unit]["absorbFrames"][1]:Hide()
+    end
+    if units[unit]["absorbFramesOverlap"] ~= nil then
+        units[unit]["absorbFramesOverlap"][1]:Hide()
+    end
+    if units[unit]["effectiveHealthFrames"] ~= nil then
+        units[unit]["effectiveHealthFrames"][1]:Hide()
+    end
+end
 
 --Sorting
 function srslylawlUI.SortAfterCombat()
@@ -1845,11 +1854,11 @@ end
 function srslylawlUI.SetDirtyFlag()
     if unsaved.flag == true then return end
     unsaved.flag = true
-    for k, v in ipairs(unsaved.buttons) do v:Enable() end
+    for _, v in ipairs(unsaved.buttons) do v:Enable() end
 end
 function srslylawlUI.RemoveDirtyFlag()
     unsaved.flag = false
-    for k, v in ipairs(unsaved.buttons) do v:Disable() end
+    for _, v in ipairs(unsaved.buttons) do v:Disable() end
 end
 local function CreateConfigWindow()
     local function CreateEditBox(name, parent, defaultValue, funcOnTextChanged,
@@ -2001,6 +2010,7 @@ local function CreateConfigWindow()
     end
     local function AddTooltip(frame, text)
         local function OnEnter(self)
+            print("show", text)
             customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
             customTooltip:SetText(text)
         end
@@ -2295,6 +2305,7 @@ local function CreateConfigWindow()
         elseif newValue > self:GetVerticalScrollRange() then
             newValue = self:GetVerticalScrollRange()
         end
+
         self:SetVerticalScroll(newValue)
     end
     local function Tab_OnClick(self)
@@ -2349,101 +2360,31 @@ local function CreateConfigWindow()
 
         return unpack(contents)
     end
-    local function GenerateSpellList(parent, spellList)
-        function Button_OnClick(self)
-            local id = self:GetID()
-            local parent = self:GetParent()
-            local tabcontent = parent:GetParent():GetParent():GetParent()
-            for _, button in pairs(parent.buttons) do
-                button:SetChecked(button:GetID() == id)
-            end
-            tabcontent.activeButton = self
+    local function GenerateSpellList(spellListKey, filter)
+        local function startsWith(str, start)
+            return str:sub(1, #start) == start
         end
-        if parent.buttons == nil then parent.buttons = {} end
-        local first = true
-        local previousButton
-        local firstButton
-        local buttonParent = parent
-        local iconSize = 25
-        local offset = 3
-        local count = 0
-        if spellList == nil then
-            error("No spell list, saved variables corrupt?")
-            return
-        end
+        local filter = (filter ~= nil and filter) or ""
+        spellList = srslylawlUI.spells[spellListKey]
+        if spellList == nil then error("spelllist nil") end
         -- sort list
         local sortedSpellList = {}
         for spellId, _ in pairs(spellList) do
             local name, _, icon = GetSpellInfo(spellId)
             local spell = {name = name, spellId = spellId, icon = icon}
-            table.insert(sortedSpellList, spell)
+            if startsWith(name, filter) then
+                table.insert(sortedSpellList, spell)
+            end
         end
 
         table.sort(sortedSpellList, function(a, b) return b.name > a.name end)
 
-        for index, spell in ipairs(sortedSpellList) do
-            local name, spellId, icon = spell.name, spell.spellId, spell.icon
+        print("SpellList", spellListKey, "Generated with filter ", filter, "and len", #sortedSpellList)
 
-            if not first then buttonParent = previousButton end
-
-            local button = parent.buttons[count + 1]
-            if button == nil then
-                button = CreateFrame("CheckButton", parent:GetName() .. name,
-                                     parent, "UIMenuButtonStretchTemplate")
-                button:SetCheckedTexture(button:GetHighlightTexture())
-                button:SetScript("OnClick", Button_OnClick)
-                button:SetID(count + 1)
-
-                button.icon = CreateFrame("Frame", "icon", button)
-                button.icon.texture = button.icon:CreateTexture("icon",
-                                                                "ARTWORK")
-                button.icon:SetSize(iconSize, iconSize)
-                button.icon.texture:SetAllPoints()
-                button.icon:SetPoint("RIGHT", button, "LEFT")
-
-                parent.buttons[count + 1] = button
-            end
-
-            if first then
-                first = false
-                firstButton = button
-                firstButton:SetPoint("TOPLEFT", parent, "TOPLEFT",
-                                     iconSize + offset, -10)
-            else
-                button:SetPoint("TOPLEFT", buttonParent, "BOTTOMLEFT", 0, 0)
-            end
-            button:SetText(name)
-            button:SetPoint("RIGHT", parent, "RIGHT")
-
-            button:SetAttribute("spellId", spellId)
-
-            if(srslylawlUI.spells.known[spellId] ~= nil) then
-                local tooltipText = srslylawlUI.spells.known[spellId].text
-                if tooltipText and tooltipText ~= "" then
-                    AddTooltip(button.icon, tooltipText)
-                end
-            end
-
-            button.icon.texture:SetTexture(icon)
-            button:Show()
-
-            count = count + 1
-
-            previousButton = button
-        end
-        for i = count + 1, #parent.buttons do
-            -- hide all inactive buttons
-            local button = parent.buttons[i]
-            if button then button:Hide() end
-        end
-        parent:SetHeight(count * (iconSize))
-
-        return firstButton
+        srslylawlUI.sortedSpellLists.buffs[spellListKey] = sortedSpellList
     end
     local function CreateScrollFrame(parent)
-        local ScrollFrame
-        ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", parent,
-                                  "UIPanelScrollFrameTemplate")
+        local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", parent, "UIPanelScrollFrameTemplate")
         ScrollFrame:SetClipsChildren(true)
         ScrollFrame:SetScript("OnMouseWheel", ScrollFrame_OnMouseWheel)
         ScrollFrame.ScrollBar:ClearAllPoints()
@@ -2452,6 +2393,114 @@ local function CreateConfigWindow()
         ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame,
                                        "BOTTOMRIGHT", -7, 17)
 
+        return ScrollFrame
+    end
+    local function CreateFauxScrollFrame(parent, spellList)
+        local function ScrollFrame_Update(frame)
+                print("UpdateScrollFrame")
+                local list = spellList
+                local lineplusoffset
+                local sortedSpellList = srslylawlUI.sortedSpellLists.buffs[list]
+                local maxButtons = frame.ButtonCount or 0
+                local totalItems = #sortedSpellList or 0
+                frame.TotalItems = totalItems
+                local buttonHeight = frame.ButtonHeight or 0
+                FauxScrollFrame_Update(frame,totalItems,maxButtons,buttonHeight)
+                for line=1,maxButtons do
+
+                    lineplusoffset = line + FauxScrollFrame_GetOffset(frame)
+                    local curr = frame.Buttons[line]
+                    if curr == nil then error("button nil") end
+                    if lineplusoffset <= totalItems then
+                        local spell = sortedSpellList[lineplusoffset]
+                        local name, spellId, icon = spell.name, spell.spellId, spell.icon
+                        curr:SetText(name)
+                        curr:SetAttribute("spellId", spellId)
+                        curr.icon.texture:SetTexture(icon)
+                        if srslylawlUI.spells.known[spellId] ~= nil then
+                            local tooltipText = srslylawlUI.spells.known[spellId].text
+                            if tooltipText and tooltipText ~= "" then
+                                AddTooltip(button.icon, tooltipText)
+                            end
+                        end
+                        curr:Show()
+                    else
+                        curr:Hide()
+                    end
+                end
+        end
+        local function CreateButtons(parent,count, tab)
+            function Button_OnClick(self)
+                local id = self:GetID()
+                local parent = self:GetParent()
+                local tabcontent = parent:GetParent():GetParent():GetParent()
+                for _, button in pairs(parent.buttons) do
+                    button:SetChecked(button:GetID() == id)
+                end
+                tabcontent.activeButton = self
+            end
+            local anchorParent = parent
+            local iconSize = 25
+            local offset = 3
+            local firstButton
+            for i=1, count do
+                button = CreateFrame("CheckButton", parent:GetName() .. "ListButton"..i, anchorParent, "UIMenuButtonStretchTemplate")
+                button:SetCheckedTexture(button:GetHighlightTexture())
+                button:SetScript("OnClick", Button_OnClick)
+                button:SetID(i)
+
+                button.icon = CreateFrame("Frame", "$parent_icon", button)
+                button.icon.texture = button.icon:CreateTexture("$parent_texture", "ARTWORK")
+                button.icon:SetSize(iconSize, iconSize)
+                button.icon.texture:SetAllPoints()
+                button.icon:SetPoint("RIGHT", button, "LEFT")
+
+                parent.Buttons[i] = button
+
+
+                if i == 1 then
+                    firstButton = button
+                    button:SetPoint("TOPLEFT", anchorParent, "TOPLEFT", iconSize + offset, -10)
+                else
+                    button:SetPoint("TOPLEFT", anchorParent, "BOTTOMLEFT", 0, 0)
+                end
+                anchorParent = button
+                button:SetPoint("RIGHT", parent, "RIGHT", -25, 0)
+
+                button:Show()
+            end
+
+            parent.ButtonCount = count
+            parent.ButtonHeight = iconSize
+
+            return firstButton
+        end
+        local function Faux_OnMouseWheel(self, delta)
+            local old = self.ScrollBar:GetValue()
+            local valueStep = self.ScrollBar:GetValueStep()
+            local newValue = old - delta*valueStep
+            local max = (self.TotalItems - self.ButtonCount) * self.ButtonHeight
+            if newValue < 0 then
+                newValue = 0
+            elseif newValue > max then
+                newValue = max
+            end
+            self.ScrollBar:SetValue(newValue)
+
+            FauxScrollFrame_OnVerticalScroll(self, newValue, self.ButtonHeight, ScrollFrame_Update)
+        end
+        local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", parent, "FauxScrollFrameTemplate")
+        ScrollFrame:SetClipsChildren(true)
+        ScrollFrame:SetScript("OnMouseWheel", Faux_OnMouseWheel)
+        ScrollFrame.ScrollBar:ClearAllPoints()
+        ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -40, -18)
+        ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 17)
+        ScrollFrame.Buttons = {}
+        CreateButtons(ScrollFrame, 11, parent)
+        ScrollFrame:SetScript("OnVerticalScroll", function(self, offset) print("offsetscroll:", offset) FauxScrollFrame_OnVerticalScroll(self, offset, self.ButtonHeight, ScrollFrame_Update) end)
+        ScrollFrame:SetScript("OnShow", function(self)
+            GenerateSpellList(spellList)
+            ScrollFrame_Update(self) end)
         return ScrollFrame
     end
     local function CreateScrollFrameWithBGAndChild(parent)
@@ -2464,11 +2513,11 @@ local function CreateConfigWindow()
             insets = {left = 4, right = 4, top = 4, bottom = 4}
         })
         parent.borderFrame:SetBackdropColor(0, 1, 1, .4)
-        parent.borderFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -5)
+        parent.borderFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -45)
         parent.borderFrame:SetPoint("TOPRIGHT", parent, "TOPLEFT", 230, -5)
         parent.borderFrame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, 5)
 
-        parent.ScrollFrame = CreateScrollFrame(parent.borderFrame)
+        parent.ScrollFrame = CreateFauxScrollFrame(parent.borderFrame, parent:GetAttribute("spellList"))
         parent.ScrollFrame:SetPoint("TOPLEFT", parent.borderFrame, "TOPLEFT", 2,
                                     -5)
         parent.ScrollFrame:SetPoint("TOPRIGHT", parent.borderFrame, "TOPRIGHT",
@@ -2485,6 +2534,10 @@ local function CreateConfigWindow()
         parent.ScrollFrame.child:SetPoint("RIGHT", parent.ScrollFrame, "RIGHT")
         parent.ScrollFrame.child:SetSize(parent.borderFrame:GetWidth() - 30, 100)
         parent.ScrollFrame:SetScrollChild(parent.ScrollFrame.child)
+        parent.FilterFrame = CreateFrameWBG("FilterFrame", parent)
+        parent.FilterFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -5)
+        parent.FilterFrame:SetPoint("BOTTOMRIGHT", parent.borderFrame, "TOPRIGHT", 0, 5)
+        parent.FilterFrame.title:SetText("Filter By Name..")
 
         return parent.ScrollFrame, parent.ScrollFrame.child
     end
@@ -2639,55 +2692,36 @@ local function CreateConfigWindow()
         parentTab.AttributePanel:SetPoint("BOTTOMRIGHT", parentTab,
                                           "BOTTOMRIGHT", -5, 5)
     end
-    local function CreateSpellMenus(knownSpells, absorbSpells, defensives,
-                                    whiteList, blackList)
+    local function CreateSpellMenus(knownSpells, absorbSpells, defensives, whiteList, blackList)
         local function Menu_OnShow(parentTab, list)
-            local f = function()
+            return function()
                 OpenSpellAttributePanel(parentTab)
-                local mainButton = GenerateSpellList(
-                                       parentTab.ScrollFrame.child,
-                                       srslylawlUI.spells[list])
+                local mainButton = nil
                 if mainButton then mainButton:Click() end
             end
-
-            return f
         end
-        Mixin(knownSpells, BackdropTemplateMixin)
-        knownSpells:SetBackdrop({
-            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-            edgeSize = 10,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
-        })
-        knownSpells:SetBackdropColor(0, 0, 1, .4)
-        CreateScrollFrameWithBGAndChild(knownSpells)
-        knownSpells:SetScript("OnShow", Menu_OnShow(knownSpells, "known"))
         knownSpells:SetAttribute("spellList", "known")
+        knownSpells:SetScript("OnShow", Menu_OnShow(knownSpells, "known"))
+        local scrollFrame, child = CreateScrollFrameWithBGAndChild(knownSpells)
 
-        CreateScrollFrameWithBGAndChild(absorbSpells)
         absorbSpells:SetScript("OnShow", Menu_OnShow(absorbSpells, "absorbs"))
         absorbSpells:SetAttribute("spellList", "absorbs")
+        CreateScrollFrameWithBGAndChild(absorbSpells)
 
-        CreateScrollFrameWithBGAndChild(defensives)
+
         defensives:SetScript("OnShow", Menu_OnShow(defensives, "defensives"))
         defensives:SetAttribute("spellList", "defensives")
+        CreateScrollFrameWithBGAndChild(defensives)
 
-        CreateScrollFrameWithBGAndChild(whiteList)
+
         whiteList:SetScript("OnShow", Menu_OnShow(whiteList, "whiteList"))
         whiteList:SetAttribute("spellList", "whiteList")
+        CreateScrollFrameWithBGAndChild(whiteList)
 
-        Mixin(blackList, BackdropTemplateMixin)
-        blackList:SetBackdrop({
-            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-            edgeSize = 10,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
-        })
-        blackList:SetBackdropColor(1, 0, 0, .4)
-        CreateScrollFrameWithBGAndChild(blackList)
-        blackList:SetScript("OnShow",
-                                   Menu_OnShow(blackList, "blackList"))
+        blackList:SetScript("OnShow", Menu_OnShow(blackList, "blackList"))
         blackList:SetAttribute("spellList", "blackList")
+        CreateScrollFrameWithBGAndChild(blackList)
+
     end
     srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config",
                                           UIParent, "UIPanelDialogTemplate")
@@ -2742,11 +2776,6 @@ local function CreateConfigWindow()
         insets = {left = 4, right = 4, top = 4, bottom = 4}})
     buffsTab:SetBackdropColor(0, 0, 0, .4)
 
-    -- Debug Texture
-    -- buffsTab.bg = buffsTab:CreateTexture(nil, "BACKGROUND")
-    -- buffsTab.bg:SetAllPoints()
-    -- buffsTab.bg:SetColorTexture(.3, 1, .4, .2)
-
     -- Buffs Tab buttons
     local knownSpells, absorbSpells, defensives, whiteList, blackList =
         SetTabs(buffsTab, "Encountered", "Absorbs", "Defensives", "Whitelist",
@@ -2766,7 +2795,7 @@ local function CreateConfigWindow()
     CreateSpellMenus(knownSpells, absorbSpells, defensives, whiteList,
                      blackList)
 
-    srslylawlUI.ToggleConfigVisible(false)
+    srslylawlUI.ToggleConfigVisible(true)
     InterfaceOptions_AddCategory(srslylawlUI_ConfigFrame)
 end
 
@@ -2888,7 +2917,7 @@ local function Initialize()
             header[unit] = unitFrame
             unitFrame:SetAttribute("unit", unit)
 
-            srslylawlUI.InitialFrameConfig(unitFrame)
+            srslylawlUI.Frame_InitialUnitConfig(unitFrame)
             RegisterUnitWatch(unitFrame)
         end
         srslylawlUI.Frame_UpdateVisibility()
