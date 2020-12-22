@@ -108,22 +108,4 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 			<OnEvent function="srslylawlUI_Frame_OnEvent"/>
 		</Scripts>
 	</Frame>
-	<!-- <Frame name="srslylawlUI_PartyHeader" parent="UIParent" inherits="SecurePartyHeaderTemplate" movable="false">
-		<Anchors>
-			<Anchor point="TOPLEFT"/>
-		</Anchors>
-		<Attributes>
-			<Attribute name="showParty" type="boolean" value="true"/>
-			<Attribute name="showRaid" type="boolean" value="false"/>
-			<Attribute name="showPlayer" type="boolean" value="true"/>
-			<Attribute name="showSolo" type="boolean" value="false"/>
-			<Attribute name="maxColumns" type="number" value="1"/>
-			<Attribute name="unitsPerColumn" type="number" value="5"/>
-			<Attribute name="point" type="string" value="TOP"/>
-			<Attribute name="sortMethod" type="string" value="NAMELIST"/>
-			<Attribute name="template" type="string" value="srslylawlUI_UnitTemplate"/>
-			<Attribute name="templateType" type="string" value="Frame"/>
-			<Attribute name="columnSpacing" type="number" value="1"/>
-		</Attributes>
-	</Frame> -->
 </Ui>
