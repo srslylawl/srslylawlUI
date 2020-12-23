@@ -606,7 +606,8 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local online = UnitIsConnected(unit)
     local SBColor = { r = classColor.r, g = classColor.g, b =classColor.b, a = classColor.a}
     -- button.healthBar.text:SetText(health .. "/" .. healthMax .. " " ..
-    --                                   healthPercent .. "%")
+    --                                 healthPercent .. "%")
+
     button.healthBar.text:SetText(health .. " " .. healthPercent .. "%")
     if not alive or not online then
         -- If dead, set bar color to grey and fill bar
@@ -687,15 +688,11 @@ function srslylawlUI_Button_OnDragStop(self, button)
     end
 end
 function srslylawlUI_Frame_OnShow(button)
-    -- button = UnitButtonX
-
     local unit = button:GetAttribute("unit")
-    -- i think the code below never executes since the button will never have the unit attribute on show (gets assigned later)
     if unit then
         local guid = UnitGUID(unit)
         if guid ~= button.guid then
             srslylawlUI.Frame_ResetUnitButton(button.unit, unit)
-            srslylawlUI.Frame_ResetUnitButton(button.pet, unit .. "pet")
             button.guid = guid
         end
     end
