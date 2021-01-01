@@ -73,6 +73,7 @@ local debugString = ""
 
 -- TODO:
 --      rare bug: absorb frame sometimes does not show up (observed with warlock and power word shield, use /srsdbg to debug)
+--      right click buffs to blacklist them
 --      readycheck
 --      necrotic/healabsorb
 --      debuff white/blacklist/spellremember etc
@@ -89,6 +90,25 @@ function srslylawlUI.Log(text, ...)
         str = str .. (select(i, ...) .. " ")
     end
     print("|cff4D00FFsrslylawlUI:|r " .. text, str)
+end
+function srslylawlUI.Utils_ShortenString(str, start, numChars)
+    -- This function can return a substring of a UTF-8 string, properly handling UTF-8 codepoints. Rather than taking a start index and optionally an end index, it takes the string, the start index, and
+    -- the number of characters to select from the string.
+    local currentIndex = start
+    while numChars > 0 and currentIndex <= #str do
+        local char = string.byte(str, currentIndex)
+        if char >= 240 then
+            currentIndex = currentIndex + 4
+        elseif char >= 225 then
+            currentIndex = currentIndex + 3
+        elseif char >= 192 then
+            currentIndex = currentIndex + 2
+        else
+            currentIndex = currentIndex + 1
+        end
+        numChars = numChars - 1
+    end
+    return str:sub(start, currentIndex - 1)
 end
 function srslylawlUI.Utils_TableDeepCopy(orig)
     local orig_type = type(orig)
@@ -550,31 +570,11 @@ function srslylawlUI.Frame_ResetUnitButton(button, unit)
     end
 end
 function srslylawlUI.Frame_ResetName(button, unit)
-    -- This function can return a substring of a UTF-8 string, properly handling UTF-8 codepoints. Rather than taking a start index and optionally an end index, it takes the string, the start index, and
-    -- the number of characters to select from the string.
-    local function utf8sub(str, start, numChars)
-        local currentIndex = start
-        while numChars > 0 and currentIndex <= #str do
-            local char = string.byte(str, currentIndex)
-            if char >= 240 then
-                currentIndex = currentIndex + 4
-            elseif char >= 225 then
-                currentIndex = currentIndex + 3
-            elseif char >= 192 then
-                currentIndex = currentIndex + 2
-            else
-                currentIndex = currentIndex + 1
-            end
-            numChars = numChars - 1
-        end
-        return str:sub(start, currentIndex - 1)
-    end
-
     local name = UnitName(unit) or UNKNOWN
     local substring
     local maxLength = srslylawlUI.settings.hp.width
     for length = #name, 1, -1 do
-        substring = utf8sub(name, 1, length)
+        substring = srslylawlUI.Utils_ShortenString(name, 1, length)
         button.healthBar.name:SetText(substring)
         if button.healthBar.name:GetStringWidth() <= maxLength then
             return
@@ -652,6 +652,10 @@ function srslylawlUI.Frame_GetCustomPowerBarColor(powerToken)
 end
 function srslylawlUI.Frame_ResizeHealthBarScale()
     local list, highestHP, averageHP = srslylawlUI.GetPartyHealth()
+
+    if not highestHP then
+        return
+    end
 
     --only one sortmethod for now
     local scaleByHighest = true
@@ -2007,9 +2011,25 @@ local function CreateConfigWindow()
     end
     local function AddTooltip(frame, text)
         local function OnEnter(self)
-            print("show", text)
             customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
             customTooltip:SetText(text)
+        end
+        local function OnLeave(self) customTooltip:Hide() end
+
+        frame:EnableMouse(true)
+        frame:SetScript("OnEnter", OnEnter)
+        frame:SetScript("OnLeave", OnLeave)
+    end
+    local function RemoveTooltip(frame)
+        frame:EnableMouse(false)
+        frame:SetScript("OnEnter", nil)
+        frame:SetScript("OnLeave", nil)
+    end
+    local function AddSpellTooltip(frame, id)
+        local function OnEnter(self)
+            customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
+            customTooltip:ClearLines()
+            customTooltip:AddSpellByID(id)
         end
         local function OnLeave(self) customTooltip:Hide() end
 
@@ -2376,7 +2396,7 @@ local function CreateConfigWindow()
 
         table.sort(sortedSpellList, function(a, b) return b.name > a.name end)
 
-        print("SpellList", spellListKey, "Generated with filter ", filter, "and len", #sortedSpellList)
+        --print("SpellList", spellListKey, "Generated with filter ", filter, "and len", #sortedSpellList)
 
         srslylawlUI.sortedSpellLists.buffs[spellListKey] = sortedSpellList
     end
@@ -2394,7 +2414,6 @@ local function CreateConfigWindow()
     end
     local function CreateFauxScrollFrame(parent, spellList)
         local function ScrollFrame_Update(frame)
-                print("UpdateScrollFrame")
                 local list = spellList
                 local lineplusoffset
                 local sortedSpellList = srslylawlUI.sortedSpellLists.buffs[list]
@@ -2404,20 +2423,29 @@ local function CreateConfigWindow()
                 local buttonHeight = frame.ButtonHeight or 0
                 FauxScrollFrame_Update(frame,totalItems,maxButtons,buttonHeight)
                 for line=1,maxButtons do
-
                     lineplusoffset = line + FauxScrollFrame_GetOffset(frame)
                     local curr = frame.Buttons[line]
                     if curr == nil then error("button nil") end
                     if lineplusoffset <= totalItems then
                         local spell = sortedSpellList[lineplusoffset]
                         local name, spellId, icon = spell.name, spell.spellId, spell.icon
+                        local nameWidth = curr:GetWidth()
+                        local length = #name
+                        local addNameTooltip = false
                         curr:SetText(name)
+                        while curr:GetTextWidth() > nameWidth do
+                            substring = srslylawlUI.Utils_ShortenString(name, 1, length)
+                            curr:SetText(substring)
+                            length = length - 1
+                        end
+                        AddTooltip(curr, name.."\nID: ".. spellId)
                         curr:SetAttribute("spellId", spellId)
                         curr.icon.texture:SetTexture(icon)
                         if srslylawlUI.spells.known[spellId] ~= nil then
                             local tooltipText = srslylawlUI.spells.known[spellId].text
                             if tooltipText and tooltipText ~= "" then
-                                AddTooltip(button.icon, tooltipText)
+                                tooltipText = tooltipText .. "\n\nID:" .. spellId
+                                AddSpellTooltip(curr.icon, spellId)
                             end
                         end
                         curr:Show()
@@ -2451,9 +2479,7 @@ local function CreateConfigWindow()
                 button.icon:SetSize(iconSize, iconSize)
                 button.icon.texture:SetAllPoints()
                 button.icon:SetPoint("RIGHT", button, "LEFT")
-
                 parent.Buttons[i] = button
-
 
                 if i == 1 then
                     firstButton = button
@@ -2462,7 +2488,7 @@ local function CreateConfigWindow()
                     button:SetPoint("TOPLEFT", anchorParent, "BOTTOMLEFT", 0, 0)
                 end
                 anchorParent = button
-                button:SetPoint("RIGHT", parent, "RIGHT", -25, 0)
+                button:SetPoint("RIGHT", parent, "RIGHT", -35, 0)
 
                 button:Show()
             end
@@ -2494,7 +2520,7 @@ local function CreateConfigWindow()
         ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 17)
         ScrollFrame.Buttons = {}
         CreateButtons(ScrollFrame, 11, parent)
-        ScrollFrame:SetScript("OnVerticalScroll", function(self, offset) print("offsetscroll:", offset) FauxScrollFrame_OnVerticalScroll(self, offset, self.ButtonHeight, ScrollFrame_Update) end)
+        ScrollFrame:SetScript("OnVerticalScroll", function(self, offset) FauxScrollFrame_OnVerticalScroll(self, offset, self.ButtonHeight, ScrollFrame_Update) end)
         ScrollFrame:SetScript("OnShow", function(self)
             GenerateSpellList(spellList)
             ScrollFrame_Update(self) end)
