@@ -27,7 +27,7 @@ srslylawlUI.spells = {
     blackList = {}
 }
 srslylawlUI.sortedSpellLists = {
-    buffs = { 
+    buffs = {
         known = {},
         absorbs = {},
         defensives = {},
@@ -2026,16 +2026,64 @@ local function CreateConfigWindow()
         frame:SetScript("OnLeave", nil)
     end
     local function AddSpellTooltip(frame, id)
+        --since the tooltip seems to glitch the first time we mouseover, we add an onupdate
         local function OnEnter(self)
             customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
             customTooltip:ClearLines()
             customTooltip:AddSpellByID(id)
         end
+        local function OnUpdate(self)
+            if customTooltip:IsOwned(self) then
+                customTooltip:ClearLines()
+                customTooltip:AddSpellByID(id)
+            end
+        end
         local function OnLeave(self) customTooltip:Hide() end
 
         frame:EnableMouse(true)
         frame:SetScript("OnEnter", OnEnter)
+        frame:SetScript("OnUpdate", OnUpdate)
         frame:SetScript("OnLeave", OnLeave)
+    end
+    local function ScrollFrame_Update(frame)
+        local list = frame:GetParent():GetParent():GetAttribute("spellList")
+        local lineplusoffset
+        local sortedSpellList = srslylawlUI.sortedSpellLists.buffs[list]
+        local maxButtons = frame.ButtonCount or 0
+        local totalItems = (sortedSpellList ~= nil and #sortedSpellList) or 0
+        frame.TotalItems = totalItems
+        local buttonHeight = frame.ButtonHeight or 0
+        FauxScrollFrame_Update(frame,totalItems,maxButtons,buttonHeight, nil, nil, nil, nil, nil, nil, true)
+        for line=1,maxButtons do
+            lineplusoffset = line + FauxScrollFrame_GetOffset(frame)
+            local curr = frame.Buttons[line]
+            if curr == nil then error("button nil") end
+            if lineplusoffset <= totalItems then
+                local spell = sortedSpellList[lineplusoffset]
+                local name, spellId, icon = spell.name, spell.spellId, spell.icon
+                local nameWidth = curr:GetWidth()
+                local length = #name
+                curr:SetText(name)
+                while curr:GetTextWidth() > nameWidth do
+                    substring = srslylawlUI.Utils_ShortenString(name, 1, length)
+                    curr:SetText(substring)
+                    length = length - 1
+                end
+                AddTooltip(curr, name.."\nID: ".. spellId)
+                curr:SetAttribute("spellId", spellId)
+                curr.icon.texture:SetTexture(icon)
+                if srslylawlUI.spells.known[spellId] ~= nil then
+                    local tooltipText = srslylawlUI.spells.known[spellId].text
+                    if tooltipText and tooltipText ~= "" then
+                        tooltipText = tooltipText .. "\n\nID:" .. spellId
+                        AddSpellTooltip(curr.icon, spellId)
+                    end
+                end
+                curr:Show()
+            else
+                curr:Hide()
+            end
+        end
     end
     local function CreateFrameWBG(name, parent)
         local f = CreateFrame("Frame", "$parent_" ..name, parent, "BackdropTemplate")
@@ -2379,6 +2427,8 @@ local function CreateConfigWindow()
     end
     local function GenerateSpellList(spellListKey, filter)
         local function startsWith(str, start)
+            str = string.lower(str)
+            start = string.lower(start)
             return str:sub(1, #start) == start
         end
         local filter = (filter ~= nil and filter) or ""
@@ -2389,7 +2439,7 @@ local function CreateConfigWindow()
         for spellId, _ in pairs(spellList) do
             local name, _, icon = GetSpellInfo(spellId)
             local spell = {name = name, spellId = spellId, icon = icon}
-            if startsWith(name, filter) then
+            if startsWith(name, filter) or startsWith(spellId, filter) then
                 table.insert(sortedSpellList, spell)
             end
         end
@@ -2399,6 +2449,7 @@ local function CreateConfigWindow()
         --print("SpellList", spellListKey, "Generated with filter ", filter, "and len", #sortedSpellList)
 
         srslylawlUI.sortedSpellLists.buffs[spellListKey] = sortedSpellList
+        print(#sortedSpellList, (#srslylawlUI.sortedSpellLists.buffs[spellListKey] > 0 and "list exists" or "list doesnt exist"))
     end
     local function CreateScrollFrame(parent)
         local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", parent, "UIPanelScrollFrameTemplate")
@@ -2413,47 +2464,6 @@ local function CreateConfigWindow()
         return ScrollFrame
     end
     local function CreateFauxScrollFrame(parent, spellList)
-        local function ScrollFrame_Update(frame)
-                local list = spellList
-                local lineplusoffset
-                local sortedSpellList = srslylawlUI.sortedSpellLists.buffs[list]
-                local maxButtons = frame.ButtonCount or 0
-                local totalItems = #sortedSpellList or 0
-                frame.TotalItems = totalItems
-                local buttonHeight = frame.ButtonHeight or 0
-                FauxScrollFrame_Update(frame,totalItems,maxButtons,buttonHeight)
-                for line=1,maxButtons do
-                    lineplusoffset = line + FauxScrollFrame_GetOffset(frame)
-                    local curr = frame.Buttons[line]
-                    if curr == nil then error("button nil") end
-                    if lineplusoffset <= totalItems then
-                        local spell = sortedSpellList[lineplusoffset]
-                        local name, spellId, icon = spell.name, spell.spellId, spell.icon
-                        local nameWidth = curr:GetWidth()
-                        local length = #name
-                        local addNameTooltip = false
-                        curr:SetText(name)
-                        while curr:GetTextWidth() > nameWidth do
-                            substring = srslylawlUI.Utils_ShortenString(name, 1, length)
-                            curr:SetText(substring)
-                            length = length - 1
-                        end
-                        AddTooltip(curr, name.."\nID: ".. spellId)
-                        curr:SetAttribute("spellId", spellId)
-                        curr.icon.texture:SetTexture(icon)
-                        if srslylawlUI.spells.known[spellId] ~= nil then
-                            local tooltipText = srslylawlUI.spells.known[spellId].text
-                            if tooltipText and tooltipText ~= "" then
-                                tooltipText = tooltipText .. "\n\nID:" .. spellId
-                                AddSpellTooltip(curr.icon, spellId)
-                            end
-                        end
-                        curr:Show()
-                    else
-                        curr:Hide()
-                    end
-                end
-        end
         local function CreateButtons(parent,count, tab)
             function Button_OnClick(self)
                 local id = self:GetID()
@@ -2558,10 +2568,18 @@ local function CreateConfigWindow()
         parent.ScrollFrame.child:SetSize(parent.borderFrame:GetWidth() - 30, 100)
         parent.ScrollFrame:SetScrollChild(parent.ScrollFrame.child)
         parent.FilterFrame = CreateFrameWBG("FilterFrame", parent)
-        parent.FilterFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -5)
-        parent.FilterFrame:SetPoint("BOTTOMRIGHT", parent.borderFrame, "TOPRIGHT", 0, 5)
-        parent.FilterFrame.title:SetText("Filter By Name..")
-
+        parent.FilterFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -20)
+        parent.FilterFrame:SetPoint("BOTTOMRIGHT", parent.borderFrame, "TOPRIGHT", 0, 2)
+        parent.FilterFrame.title:SetText("Filter by Name or ID:")
+        parent.FilterFrame.EditBox = CreateEditBox("filterBox", parent.FilterFrame, "",
+            function(self)
+                local listKey = parent:GetAttribute("spellList")
+                local filterText = self:GetText()
+                GenerateSpellList(listKey, filterText)
+                ScrollFrame_Update(parent.ScrollFrame)
+            end, "CENTER", 0, 0, false)
+        parent.FilterFrame.EditBox:SetMaxLetters(20)
+        parent.FilterFrame.EditBox:SetAllPoints(true)
         return parent.ScrollFrame, parent.ScrollFrame.child
     end
     local function OpenSpellAttributePanel(parentTab)
