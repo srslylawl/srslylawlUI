@@ -28,10 +28,15 @@ srslylawl_saved = {
         showPlayer = true,
         frameOnUpdateInterval = 0.1
     },
-    spells = {
+    buffs = {
         known = {},
         absorbs = {},
         defensives = {},
+        whiteList = {},
+        blackList = {}
+    },
+    debuffs = {
+        known = {},
         whiteList = {},
         blackList = {}
     }

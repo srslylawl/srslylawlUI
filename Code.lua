@@ -19,10 +19,15 @@ srslylawlUI.settings = {
     showPlayer = true,
     frameOnUpdateInterval = 0.1
 }
-srslylawlUI.spells = {
+srslylawlUI.buffs = {
     known = {},
     absorbs = {},
     defensives = {},
+    whiteList = {},
+    blackList = {}
+}
+srslylawlUI.debuffs = {
+    known = {},
     whiteList = {},
     blackList = {}
 }
@@ -36,8 +41,6 @@ srslylawlUI.sortedSpellLists = {
     },
     debuffs = {
         known = {},
-        absorbs = {},
-        defensives = {},
         whiteList = {},
         blackList = {}
     }
@@ -840,9 +843,9 @@ end
 function srslylawlUI.Frame_HandleAuras(unitbutton, unit, absorbChanged)
     local function GetTypeOfAuraID(spellId)
         local auraType = nil
-        if srslylawlUI.spells.absorbs[spellId] ~= nil then
+        if srslylawlUI.buffs.absorbs[spellId] ~= nil then
             auraType = "absorb"
-        elseif srslylawlUI.spells.defensives[spellId] ~= nil then
+        elseif srslylawlUI.buffs.defensives[spellId] ~= nil then
             auraType = "defensive"
         end
 
@@ -1023,7 +1026,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit, absorbChanged)
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
-            srslylawlUI.Auras_RememberSpellID(spellId, i, unit, absorb)
+            srslylawlUI.Auras_RememberBuff(spellId, i, unit, absorb)
             if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i)) and i <= srslylawlUI.settings.buffs.maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
@@ -1297,7 +1300,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit, absorbChanged)
         for k, v in ipairs(units[unit].effectiveHealthSegments) do
             --tooltip gets updated with stacks anyway so we might want to ignore it until we config a per stack amount
             stackMultiplier = 1 --v.stacks > 1 and v.stacks or 1 TODO:check if this works out fine
-            reducAmount = srslylawlUI.spells.known[v.spellId].reductionAmount /
+            reducAmount = srslylawlUI.buffs.known[v.spellId].reductionAmount /
                               100
 
             effectiveHealthMod = effectiveHealthMod *
@@ -1550,26 +1553,22 @@ function srslylawlUI.Frame_MoveAbsorbAnchorWithHealth(unit)
     units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
     units[unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
 end
-function srslylawlUI.Auras_HasToolTipChanged(spellId, index, unit)
-    local s = srslylawlUI.Auras_GetBuffText(index, unit)
-    return srslylawlUI.spells.known[spellId].text ~= s
-end
 function srslylawlUI.Auras_ShouldDisplayBuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
-    if srslylawlUI.spells.whiteList[spellId] ~= nil then
+    if srslylawlUI.buffs.whiteList[spellId] ~= nil then
         --always show whitelisted spells
         return true
     end
 
-    if srslylawlUI.spells.blackList[spellId] ~= nil then
+    if srslylawlUI.buffs.blackList[spellId] ~= nil then
         --never show blacklisted spells
         return false
     end
 
-    if srslylawlUI.settings.buffs.showDefensives and srslylawlUI.spells.defensives[spellId] ~= nil then
+    if srslylawlUI.settings.buffs.showDefensives and srslylawlUI.buffs.defensives[spellId] ~= nil then
         --if we want to show defensives, do so
         return true
     end
@@ -1579,7 +1578,7 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
         return false
     end
 
-    if srslylawlUI.spells.absorbs[spellId] ~= nil then
+    if srslylawlUI.buffs.absorbs[spellId] ~= nil then
         --dont show absorb spells unless whitelisted
         return false
     end
@@ -1589,11 +1588,11 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
         return true
     end
 
-    return false
+    return true
 end
-function srslylawlUI.Auras_RememberSpellID(spellId, buffIndex, unit, arg1)
+function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
     local function SpellIsKnown(spellId)
-        return srslylawlUI.spells.known[spellId] ~= nil
+        return srslylawlUI.buffs.known[spellId] ~= nil
     end
     local function GetPercentValue(tooltipText)
             -- %d+ = multiple numbers in a row
@@ -1645,7 +1644,7 @@ function srslylawlUI.Auras_RememberSpellID(spellId, buffIndex, unit, arg1)
                                   autoApprove and ((arg1 ~= nil) and (arg1 > 1))
         local keyWordDefensive = HasDefensiveKeyword(buffLower) and
                                      autoApprove
-        local isKnown = srslylawlUI.spells.known[spellId] ~= nil
+        local isKnown = srslylawlUI.buffs.known[spellId] ~= nil
 
         local spell = {
             name = spellName,
@@ -1653,18 +1652,19 @@ function srslylawlUI.Auras_RememberSpellID(spellId, buffIndex, unit, arg1)
             isAbsorb = keyWordAbsorb,
             isDefensive = keyWordDefensive
         }
+        local link = GetSpellLink(spellId)
 
         if keyWordAbsorb then
-            if (srslylawlUI.spells.absorbs[spellId] == nil) then
+            if (srslylawlUI.buffs.absorbs[spellId] == nil) then
                 -- first time entry
-                srslylawlUI.Log("absorb spell " .. spellName ..
-                                    " auto-approved !")
+                srslylawlUI.Log("new absorb spell " .. link ..
+                                    " encountered!")
             else
                 -- srslylawlUI.Log("spell updated " .. spellName .. "!")
             end
 
-            srslylawlUI.spells.absorbs[spellId] = spell
-            srslylawl_saved.spells.absorbs[spellId] = spell
+            srslylawlUI.buffs.absorbs[spellId] = spell
+            srslylawl_saved.buffs.absorbs[spellId] = spell
         elseif keyWordDefensive then
             local amount = GetPercentValue(buffLower)
 
@@ -1673,63 +1673,62 @@ function srslylawlUI.Auras_RememberSpellID(spellId, buffIndex, unit, arg1)
                 error("reduction amount is 0 " .. spellName .. " " .. buffText)
             end
 
-            if (srslylawlUI.spells.defensives[spellId] == nil) then
+            
+
+            if (srslylawlUI.buffs.defensives[spellId] == nil) then
                 -- first time entry
-                srslylawlUI.Log("defensive spell " .. spellName ..
-                                    " auto-approved with a reduction of " ..
+                srslylawlUI.Log("new defensive spell " .. link ..
+                                    " encountered with a reduction of " ..
                                     amount .. "%!")
             else
                 -- srslylawlUI.Log("spell updated " .. spellName .. "!")
             end
-            srslylawlUI.spells.defensives[spellId] = spell
-            srslylawl_saved.spells.defensives[spellId] = spell
+            srslylawlUI.buffs.defensives[spellId] = spell
+            srslylawl_saved.buffs.defensives[spellId] = spell
         else
             -- couldnt identify spell, add to unapproved
-            -- srslylawlUI.spells.blackList[spellId] = spell
-            -- srslylawl_saved.spells.blackList[spellId] = spell
+            -- srslylawlUI.buffs.blackList[spellId] = spell
+            -- srslylawl_saved.buffs.blackList[spellId] = spell
         end
 
         if isKnown then
             -- make sure not to replace any other keys
             for key, _ in pairs(spell) do
-                srslylawlUI.spells.known[spellId][key] = spell[key]
-                srslylawl_saved.spells.known[spellId][key] = spell[key]
+                srslylawlUI.buffs.known[spellId][key] = spell[key]
+                srslylawl_saved.buffs.known[spellId][key] = spell[key]
             end
         else
-            srslylawlUI.Log("new spell encountered: " .. spellName .. "!")
+            --srslylawlUI.Log("new spell encountered: " .. spellName .. "!")
             -- Add spell to known spell list
-            srslylawlUI.spells.known[spellId] = spell
-            srslylawl_saved.spells.known[spellId] = spell
+            srslylawlUI.buffs.known[spellId] = spell
+            srslylawl_saved.buffs.known[spellId] = spell
         end
     end
 
-    if SpellIsKnown(spellId) and
-        srslylawlUI.Auras_HasToolTipChanged(spellId, buffIndex, unit) then
-        ProcessID(spellId, buffIndex, unit, arg1)
-    else
-        ProcessID(spellId, buffIndex, unit, arg1)
-    end
+    --if not SpellIsKnown(spellId) then
+    ProcessID(spellId, buffIndex, unit, arg1)
+    --end
 end
 function srslylawlUI.Auras_ManuallyAddSpell(spellId, list)
     -- we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it
     -- it should get added/updated though once we ever see it on any party members
 
-    local isKnown = srslylawlUI.spells.known[spellId] ~= nil
+    local isKnown = srslylawlUI.buffs.known[spellId] ~= nil
 
     if isKnown then
-        local spell = srslylawlUI.spells.known[spellId]
+        local spell = srslylawlUI.buffs.known[spellId]
 
-        if srslylawlUI.spells[list][spellId] ~= nil then
+        if srslylawlUI.buffs[list][spellId] ~= nil then
             srslylawlUI.Log(spell.name .. " is already part of list " .. list ..
                                 ", I refuse to work under these conditions.")
             return
         end
 
         -- we already know the spell, just move it to list and remove from other lists
-        srslylawlUI.spells[list][spellId] = spell
-        srslylawl_saved.spells[list][spellId] = spell
-        srslylawlUI.spells.blackList[spellId] = nil
-        srslylawl_saved.spells.blackList[spellId] = nil
+        srslylawlUI.buffs[list][spellId] = spell
+        srslylawl_saved.buffs[list][spellId] = spell
+        srslylawlUI.buffs.blackList[spellId] = nil
+        srslylawl_saved.buffs.blackList[spellId] = nil
         srslylawlUI.Log(spell.name .. " added to " .. list .. "!")
     else
         local n = GetSpellInfo(spellId)
@@ -1740,20 +1739,20 @@ function srslylawlUI.Auras_ManuallyAddSpell(spellId, list)
         end
         local spell = {name = n}
 
-        srslylawlUI.spells.known[spellId] = spell
-        srslylawl_saved.spells.known[spellId] = spell
+        srslylawlUI.buffs.known[spellId] = spell
+        srslylawl_saved.buffs.known[spellId] = spell
         srslylawlUI.Log("New spell approved: " .. n .. "!")
     end
 end
 function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, list)
-    local spell = srslylawlUI.spells[list][spellId]
+    local spell = srslylawlUI.buffs[list][spellId]
     if list == "known" then
         srslylawlUI.Log(
             "I never forget spells! Unless.. you delete my savefile.")
         return
     end
-    srslylawlUI.spells[list][spellId] = nil
-    srslylawl_saved.spells[list][spellId] = nil
+    srslylawlUI.buffs[list][spellId] = nil
+    srslylawl_saved.buffs[list][spellId] = nil
     srslylawlUI.Log(spell.name .. " removed from " .. list .. "!")
 
     -- see if the spell is somewhere else, if not then put it to unapproved spells
@@ -1769,6 +1768,21 @@ function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, list)
     --     srslylawlUI.spells.blackList[spellId] = spell
     -- end
 end
+function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
+    local spell = srslylawlUI[auraType].known[spellId]
+    local str = spell.name
+
+    srslylawlUI[auraType].blackList[spellId] = spell
+    srslylawl_saved[auraType].blackList[spellId] = spell
+
+    if srslylawlUI[auraType].whiteList[spellId] ~= nil then
+        srslylawlUI[auraType].whiteList[spellId] = nil
+        srslylawl_saved[auraType].whiteList[spellID] = nil
+        str = str .. " removed from whitelist and "
+    end
+    
+    srslylawlUI.Log(str .. " blacklisted, will no longer be shown.")
+end
 
 --Config
 function srslylawlUI.ToggleConfigVisible(visible)
@@ -1783,10 +1797,17 @@ function srslylawlUI.LoadSettings(reset, announce)
     if srslylawl_saved.settings ~= nil then
         srslylawlUI.settings = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings)
     end
-    if srslylawl_saved.spells == nil then
-        srslylawl_saved.spells = srslylawlUI.spells
+    --buffs
+    if srslylawl_saved.buffs == nil then
+        srslylawl_saved.buffs = srslylawlUI.buffs
     else
-        srslylawlUI.spells = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.spells)
+        srslylawlUI.buffs = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.buffs)
+    end
+    --debuffs
+    if srslylawl_saved.debuffs == nil then
+        srslylawl_saved.debuffs = srslylawlUI.debuffs
+    else
+        srslylawlUI.debuffs = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.debuffs)
     end
 
     local c = srslylawlUI_ConfigFrame
@@ -1824,7 +1845,8 @@ end
 function srslylawlUI.SaveSettings()
     srslylawlUI.Log("Settings Saved")
     srslylawl_saved.settings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.settings)
-    srslylawl_saved.spells = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.spells)
+    srslylawl_saved.buffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.buffs)
+    srslylawl_saved.debuffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.debuffs)
 
     for k, v in pairs(srslylawlUI_ConfigFrame.editBoxes) do
         v:SetAttribute("defaultValue", v:GetText())
@@ -2072,8 +2094,8 @@ local function CreateConfigWindow()
                 AddTooltip(curr, name.."\nID: ".. spellId)
                 curr:SetAttribute("spellId", spellId)
                 curr.icon.texture:SetTexture(icon)
-                if srslylawlUI.spells.known[spellId] ~= nil then
-                    local tooltipText = srslylawlUI.spells.known[spellId].text
+                if srslylawlUI.buffs.known[spellId] ~= nil then
+                    local tooltipText = srslylawlUI.buffs.known[spellId].text
                     if tooltipText and tooltipText ~= "" then
                         tooltipText = tooltipText .. "\n\nID:" .. spellId
                         AddSpellTooltip(curr.icon, spellId)
@@ -2425,14 +2447,14 @@ local function CreateConfigWindow()
 
         return unpack(contents)
     end
-    local function GenerateSpellList(spellListKey, filter)
+    local function GenerateSpellList(spellListKey, filter, auratype)
         local function startsWith(str, start)
             str = string.lower(str)
             start = string.lower(start)
             return str:sub(1, #start) == start
         end
         local filter = (filter ~= nil and filter) or ""
-        spellList = srslylawlUI.spells[spellListKey]
+        spellList = srslylawlUI[auratype][spellListKey]
         if spellList == nil then error("spelllist nil") end
         -- sort list
         local sortedSpellList = {}
@@ -2448,8 +2470,7 @@ local function CreateConfigWindow()
 
         --print("SpellList", spellListKey, "Generated with filter ", filter, "and len", #sortedSpellList)
 
-        srslylawlUI.sortedSpellLists.buffs[spellListKey] = sortedSpellList
-        print(#sortedSpellList, (#srslylawlUI.sortedSpellLists.buffs[spellListKey] > 0 and "list exists" or "list doesnt exist"))
+        srslylawlUI.sortedSpellLists[auratype][spellListKey] = sortedSpellList
     end
     local function CreateScrollFrame(parent)
         local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", parent, "UIPanelScrollFrameTemplate")
@@ -2532,7 +2553,7 @@ local function CreateConfigWindow()
         CreateButtons(ScrollFrame, 11, parent)
         ScrollFrame:SetScript("OnVerticalScroll", function(self, offset) FauxScrollFrame_OnVerticalScroll(self, offset, self.ButtonHeight, ScrollFrame_Update) end)
         ScrollFrame:SetScript("OnShow", function(self)
-            GenerateSpellList(spellList)
+            GenerateSpellList(spellList, "", self:GetParent():GetParent():GetAttribute("auraType"))
             ScrollFrame_Update(self) end)
         return ScrollFrame
     end
@@ -2575,7 +2596,7 @@ local function CreateConfigWindow()
             function(self)
                 local listKey = parent:GetAttribute("spellList")
                 local filterText = self:GetText()
-                GenerateSpellList(listKey, filterText)
+                GenerateSpellList(listKey, filterText, parent:GetAttribute("auraType"))
                 ScrollFrame_Update(parent.ScrollFrame)
             end, "CENTER", 0, 0, false)
         parent.FilterFrame.EditBox:SetMaxLetters(20)
@@ -2742,25 +2763,30 @@ local function CreateConfigWindow()
             end
         end
         knownSpells:SetAttribute("spellList", "known")
+        knownSpells:SetAttribute("auraType", "buffs")
         knownSpells:SetScript("OnShow", Menu_OnShow(knownSpells, "known"))
         local scrollFrame, child = CreateScrollFrameWithBGAndChild(knownSpells)
 
         absorbSpells:SetScript("OnShow", Menu_OnShow(absorbSpells, "absorbs"))
         absorbSpells:SetAttribute("spellList", "absorbs")
+        absorbSpells:SetAttribute("auraType", "buffs")
         CreateScrollFrameWithBGAndChild(absorbSpells)
 
 
         defensives:SetScript("OnShow", Menu_OnShow(defensives, "defensives"))
         defensives:SetAttribute("spellList", "defensives")
+        defensives:SetAttribute("auraType", "buffs")
         CreateScrollFrameWithBGAndChild(defensives)
 
 
         whiteList:SetScript("OnShow", Menu_OnShow(whiteList, "whiteList"))
         whiteList:SetAttribute("spellList", "whiteList")
+        whiteList:SetAttribute("auraType", "buffs")
         CreateScrollFrameWithBGAndChild(whiteList)
 
         blackList:SetScript("OnShow", Menu_OnShow(blackList, "blackList"))
         blackList:SetAttribute("spellList", "blackList")
+        blackList:SetAttribute("auraType", "buffs")
         CreateScrollFrameWithBGAndChild(blackList)
 
     end
@@ -2907,6 +2933,15 @@ local function Initialize()
                 f:SetScript("OnUpdate", function(self)
                     if GameTooltip:IsOwned(f) then
                         GameTooltip:SetUnitBuff(self:GetAttribute("unit"),self:GetID())
+                    end
+                end)
+                --Right click blacklists spell
+                f:SetScript("OnClick", function(self, button, down)
+                    if button == "RightButton" then
+                        GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                        local id = self:GetID()
+                        local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HELPFUL"))
+                        srslylawlUI.Auras_BlacklistSpell(spellID, "buffs")
                     end
                 end)
                 units[unitName].buffFrames[i] = f
