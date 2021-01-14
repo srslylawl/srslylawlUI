@@ -38,6 +38,12 @@ srslylawl_saved = {
     debuffs = {
         known = {},
         whiteList = {},
-        blackList = {}
+        blackList = {},
+        roots = {},
+        stuns = {},
+        incaps = {},
+        horrors = {},
+        silences = {},
+        disorients = {},
     }
 }

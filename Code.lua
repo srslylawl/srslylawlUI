@@ -22,14 +22,20 @@ srslylawlUI.settings = {
 srslylawlUI.buffs = {
     known = {},
     absorbs = {},
-    defensives = {},
     whiteList = {},
-    blackList = {}
+    blackList = {},
+    defensives = {},
 }
 srslylawlUI.debuffs = {
     known = {},
     whiteList = {},
-    blackList = {}
+    blackList = {},
+    roots = {},
+    stuns = {},
+    incaps = {},
+    horrors = {},
+    silences = {},
+    disorients = {},
 }
 srslylawlUI.sortedSpellLists = {
     buffs = {
@@ -75,15 +81,12 @@ local debugString = ""
 
 
 -- TODO:
---      rare bug: absorb frame sometimes does not show up (observed with warlock and power word shield, use /srsdbg to debug)
---      right click buffs to blacklist them
 --      readycheck
 --      necrotic/healabsorb
---      debuff white/blacklist/spellremember etc
 --      CC
 --      phase/shard
 --      UnitHasIncomingResurrection(unit)
---      config window
+--      config window: list management, aura view (def values)
 
 
 --Utils
@@ -405,8 +408,7 @@ function srslylawlUI.Frame_ResetDimensions(button)
         end
     end
 
-    local needsResize = abs(button.unit.healthBar:GetWidth() - w) > 1 or
-                            abs(button.unit.healthBar:GetHeight() - h) > 1
+    local needsResize = abs(button.unit.healthBar:GetWidth() - w) > 1 or abs(button.unit.healthBar:GetHeight() - h) > 1
     if needsResize then
         -- print("sizing req, cur:", button.unit.healthBar:GetWidth(), "tar", w)
         button.unit.auraAnchor:SetSize(srslylawlUI.settings.hp.width, srslylawlUI.settings.hp.height)
@@ -417,6 +419,7 @@ function srslylawlUI.Frame_ResetDimensions(button)
         button.unit.healthBar.bg:SetSize(w + 2, h + 2)
         button.unit.powerBar:SetHeight(h)
         button.unit.powerBar.background:SetSize(button.unit.powerBar:GetWidth() + 2, h + 2)
+        srslylawlUI.Frame_MoveAbsorbAnchorWithHealth(unitType)
 
         if not InCombatLockdown() then
             -- stuff that taints in combat
@@ -562,7 +565,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
     end
 end
 function srslylawlUI.Frame_ResetUnitButton(button, unit)
-    if unit == nil then error("trying to reset nonexisting button"..unit) return end
+    if button == nil then error("trying to reset nonexisting button"..unit) return end
     srslylawlUI.Frame_ResetHealthBar(button, unit)
     srslylawlUI.Frame_ResetPowerBar(button, unit)
     srslylawlUI.Frame_ResetName(button, unit)
@@ -840,7 +843,14 @@ function srslylawlUI.Auras_GetBuffText(buffIndex, unit)
     tooltipTextGrabber:Hide()
     return n2
 end
-function srslylawlUI.Frame_HandleAuras(unitbutton, unit, absorbChanged)
+function srslylawlUI.Auras_GetDebuffText(debuffIndex, unit)
+    tooltipTextGrabber:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
+    tooltipTextGrabber:SetUnitDebuff(unit, debuffIndex)
+    local n2 = srslylawl_TooltipTextGrabberTextLeft2:GetText()
+    tooltipTextGrabber:Hide()
+    return n2
+end
+function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     local function GetTypeOfAuraID(spellId)
         local auraType = nil
         if srslylawlUI.buffs.absorbs[spellId] ~= nil then
@@ -1027,7 +1037,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit, absorbChanged)
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(spellId, i, unit, absorb)
-            if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i)) and i <= srslylawlUI.settings.buffs.maxBuffs then
+            if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and i <= srslylawlUI.settings.buffs.maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
                 f:Show()
@@ -1066,6 +1076,8 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit, absorbChanged)
         end
     end
     -- process debuffs on unit
+
+    local appliedCC = {}
     currentDebuffFrame = 1
     for i = 1, 40 do
         local f = unitbutton.debuffFrames[currentDebuffFrame]
@@ -1074,10 +1086,14 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit, absorbChanged)
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
             UnitAura(unit, i, "HARMFUL")
         if name then -- if aura on this index exists, assign it
-            --srslylawlUI.RememberSpellID(spellId, i, unit, absorb)
+            srslylawlUI.Auras_RememberDebuff(spellId, i, unit)
 
-            --TODO: remember debuff auras
-            if true and i <= srslylawlUI.settings.debuffs.maxDebuffs then
+            --check if its CC
+            if srslylawlUI.debuffs.known[spellId] ~= nil and srslylawlUI.debuffs.known[spellId].crowdControlType ~= "none" then
+                table.insert(appliedCC, srslylawlUI.debuffs.known[spellId])
+            end
+
+            if srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and i <= srslylawlUI.settings.debuffs.maxDebuffs then
                 f.icon:SetTexture(icon)
                 if ( count > 1 ) then
 		            local countText = count;
@@ -1113,6 +1129,13 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit, absorbChanged)
             end
         end
         
+    end
+
+    --see if we want to display our cced frame
+    if #appliedCC > 0 then
+        unitbutton.CCTexture:Show()
+    else
+        unitbutton.CCTexture:Hide()
     end
     
 
@@ -1568,6 +1591,11 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
         return false
     end
 
+    if srslylawlUI.buffs.absorbs[spellId] ~= nil then
+        --dont show absorb spells unless whitelisted
+        return false
+    end
+
     if srslylawlUI.settings.buffs.showDefensives and srslylawlUI.buffs.defensives[spellId] ~= nil then
         --if we want to show defensives, do so
         return true
@@ -1578,14 +1606,38 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
         return false
     end
 
-    if srslylawlUI.buffs.absorbs[spellId] ~= nil then
-        --dont show absorb spells unless whitelisted
-        return false
-    end
-
     if source == "player" and srslylawlUI.settings.buffs.showCastByPlayer then
         --show cast by player if wanted
         return true
+    end
+
+
+
+    return true
+end
+function srslylawlUI.Auras_ShouldDisplayDebuff(...)
+    local name, icon, count, debuffType, duration, expirationTime, source,
+              isStealable, nameplateShowPersonal, spellId, canApplyAura,
+              isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
+
+    if srslylawlUI.debuffs.whiteList[spellId] ~= nil then
+        --always show whitelisted spells
+        return true
+    end
+
+    if srslylawlUI.debuffs.blackList[spellId] ~= nil then
+        --never show blacklisted spells
+        return false
+    end
+
+    if source == "player" and srslylawlUI.settings.debuffs.showCastByPlayer then
+        --show cast by player if wanted
+        return true
+    end
+
+    if duration == 0 or duration > srslylawlUI.settings.buffs.maxDuration then
+        --dont show infinite duration spells or long duration spells
+        return false
     end
 
     return true
@@ -1633,12 +1685,7 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
     local function ProcessID(spellId, buffIndex, unit, arg1)
         local spellName = GetSpellInfo(spellId)
         local buffText = srslylawlUI.Auras_GetBuffText(buffIndex, unit)
-        local buffLower = buffText
-        if buffText ~= nil then
-            buffLower = string.lower(buffText)
-        else
-            buffLower = ""
-        end
+        local buffLower = buffText ~= nil and string.lower(buffText) or ""
         local autoApprove = srslylawlUI.settings.autoApproveKeywords
         local keyWordAbsorb = HasAbsorbKeyword(buffLower) and
                                   autoApprove and ((arg1 ~= nil) and (arg1 > 1))
@@ -1685,10 +1732,6 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
             end
             srslylawlUI.buffs.defensives[spellId] = spell
             srslylawl_saved.buffs.defensives[spellId] = spell
-        else
-            -- couldnt identify spell, add to unapproved
-            -- srslylawlUI.buffs.blackList[spellId] = spell
-            -- srslylawl_saved.buffs.blackList[spellId] = spell
         end
 
         if isKnown then
@@ -1707,6 +1750,79 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
 
     --if not SpellIsKnown(spellId) then
     ProcessID(spellId, buffIndex, unit, arg1)
+    --end
+end
+function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
+    local function SpellIsKnown(spellId)
+        return srslylawlUI.debuffs.known[spellId] ~= nil
+    end
+    local function GetCrowdControlType(tooltipText)
+        local s = string.lower(tooltipText)
+
+        if s:match("stunned") then
+            return "stuns"
+        elseif s:match("silenced") then
+            return "silences"
+        elseif s:match("disoriented") then
+            return "disorients"
+        elseif s:match("incapacitated") or s:match("sleep") then
+            return "incaps"
+        elseif s:match("horrified") then
+            return "horrors"        
+        end
+
+        if s:match("rooted") or s:match("immobilized") or s:match("frozen in place") or s:match("pinned in place") or s:match("immobile") then
+            return "roots"
+        end
+
+        return "none"
+    end
+    local function ProcessID(spellId, debuffIndex, unit, arg1)
+        local spellName = GetSpellInfo(spellId)
+        local debuffText = srslylawlUI.Auras_GetDebuffText(debuffIndex, unit)
+        local debuffLower = debuffText ~= nil and string.lower(debuffText) or ""
+
+        local autoApprove = srslylawlUI.settings.autoApproveKeywords
+        local CCType = GetCrowdControlType(debuffLower)
+
+        local isKnown = SpellIsKnown(spellId)
+
+        local spell = {
+            name = spellName,
+            text = buffText,
+            crowdControlType = CCType
+        }
+        local link = GetSpellLink(spellId)
+
+        if CCType ~= "none" then
+            if (srslylawlUI.debuffs.known[spellId] == nil) then
+                -- first time entry
+                srslylawlUI.Log("new crowd control spell " .. link ..
+                                    " encountered!")
+            else
+                -- srslylawlUI.Log("spell updated " .. spellName .. "!")
+            end
+
+            srslylawlUI.debuffs[CCType][spellId] = spell
+            srslylawl_saved.debuffs[CCType][spellId] = spell
+        end
+
+        if isKnown then
+            -- make sure not to replace any other keys
+            for key, _ in pairs(spell) do
+                srslylawlUI.debuffs.known[spellId][key] = spell[key]
+                srslylawl_saved.debuffs.known[spellId][key] = spell[key]
+            end
+        else
+            --srslylawlUI.Log("new spell encountered: " .. spellName .. "!")
+            -- Add spell to known spell list
+            srslylawlUI.debuffs.known[spellId] = spell
+            srslylawl_saved.debuffs.known[spellId] = spell
+        end
+    end
+
+    --if not SpellIsKnown(spellId) then
+    ProcessID(spellId, debuffIndex, unit, arg1)
     --end
 end
 function srslylawlUI.Auras_ManuallyAddSpell(spellId, list)
@@ -2042,11 +2158,6 @@ local function CreateConfigWindow()
         frame:SetScript("OnEnter", OnEnter)
         frame:SetScript("OnLeave", OnLeave)
     end
-    local function RemoveTooltip(frame)
-        frame:EnableMouse(false)
-        frame:SetScript("OnEnter", nil)
-        frame:SetScript("OnLeave", nil)
-    end
     local function AddSpellTooltip(frame, id)
         --since the tooltip seems to glitch the first time we mouseover, we add an onupdate
         local function OnEnter(self)
@@ -2069,15 +2180,16 @@ local function CreateConfigWindow()
     end
     local function ScrollFrame_Update(frame)
         local list = frame:GetParent():GetParent():GetAttribute("spellList")
+        local auraType = frame:GetParent():GetParent():GetAttribute("auraType")
         local lineplusoffset
-        local sortedSpellList = srslylawlUI.sortedSpellLists.buffs[list]
+        local sortedSpellList = srslylawlUI.sortedSpellLists[auraType][list]
         local maxButtons = frame.ButtonCount or 0
         local totalItems = (sortedSpellList ~= nil and #sortedSpellList) or 0
         frame.TotalItems = totalItems
         local buttonHeight = frame.ButtonHeight or 0
         FauxScrollFrame_Update(frame,totalItems,maxButtons,buttonHeight, nil, nil, nil, nil, nil, nil, true)
         for line=1,maxButtons do
-            lineplusoffset = line + FauxScrollFrame_GetOffset(frame)
+            lineplusoffset = line + (FauxScrollFrame_GetOffset(frame) >= 0 and FauxScrollFrame_GetOffset(frame) or 0)
             local curr = frame.Buttons[line]
             if curr == nil then error("button nil") end
             if lineplusoffset <= totalItems then
@@ -2094,13 +2206,7 @@ local function CreateConfigWindow()
                 AddTooltip(curr, name.."\nID: ".. spellId)
                 curr:SetAttribute("spellId", spellId)
                 curr.icon.texture:SetTexture(icon)
-                if srslylawlUI.buffs.known[spellId] ~= nil then
-                    local tooltipText = srslylawlUI.buffs.known[spellId].text
-                    if tooltipText and tooltipText ~= "" then
-                        tooltipText = tooltipText .. "\n\nID:" .. spellId
-                        AddSpellTooltip(curr.icon, spellId)
-                    end
-                end
+                AddSpellTooltip(curr.icon, spellId)
                 curr:Show()
             else
                 curr:Hide()
@@ -2417,17 +2523,14 @@ local function CreateConfigWindow()
 
         for i = 1, numTabs do
             local n = select(i, ...)
-            tab = CreateFrame("Button", "$parent_" .. n, frame,
-                              "OptionsFrameTabButtonTemplate") -- name .. "Tab" .. i, frame
+            tab = CreateFrame("Button", "$parent_" .. n, frame, "OptionsFrameTabButtonTemplate")
             tab:SetID(i)
-
             tab:SetText(n)
             tab:SetScript("OnClick", Tab_OnClick)
 
             local width = tab:GetWidth()
             PanelTemplates_TabResize(tab, -10, nil, width)
-            tab.content = CreateFrame("Frame", "$parent_" .. n .. "Content",
-                                      frame)
+            tab.content = CreateFrame("Frame", "$parent_" .. n .. "Content", frame)
             tab.content:SetAllPoints()
             tab.content:Hide()
             tab.content.tabButton = tab
@@ -2438,8 +2541,7 @@ local function CreateConfigWindow()
             if i == 1 then
                 tab:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", -5, 0)
             else
-                tab:SetPoint("BOTTOMLEFT", frame.Tabs[i - 1], "BOTTOMRIGHT",
-                             -10, 0)
+                tab:SetPoint("BOTTOMLEFT", frame.Tabs[i - 1], "BOTTOMRIGHT", -10, 0)
             end
         end
 
@@ -2455,7 +2557,7 @@ local function CreateConfigWindow()
         end
         local filter = (filter ~= nil and filter) or ""
         spellList = srslylawlUI[auratype][spellListKey]
-        if spellList == nil then error("spelllist nil") end
+        if spellList == nil then error("spelllist nil "..spellListKey.. " "..auratype) end
         -- sort list
         local sortedSpellList = {}
         for spellId, _ in pairs(spellList) do
@@ -2485,12 +2587,13 @@ local function CreateConfigWindow()
         return ScrollFrame
     end
     local function CreateFauxScrollFrame(parent, spellList)
+        --fauxscrollframe doesnt actually create a button for every item, it just creates max amount of buttons once and then updates them during scrolling
         local function CreateButtons(parent,count, tab)
             function Button_OnClick(self)
                 local id = self:GetID()
-                local parent = self:GetParent()
+                --local parent = self:GetParent()
                 local tabcontent = parent:GetParent():GetParent():GetParent()
-                for _, button in pairs(parent.buttons) do
+                for _, button in pairs(parent.Buttons) do
                     button:SetChecked(button:GetID() == id)
                 end
                 tabcontent.activeButton = self
@@ -2558,8 +2661,7 @@ local function CreateConfigWindow()
         return ScrollFrame
     end
     local function CreateScrollFrameWithBGAndChild(parent)
-        parent.borderFrame = CreateFrame("Frame", "$parent_BorderFrame", parent,
-                                         "BackdropTemplate")
+        parent.borderFrame = CreateFrame("Frame", "$parent_BorderFrame", parent, "BackdropTemplate")
         parent.borderFrame:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
@@ -2568,21 +2670,16 @@ local function CreateConfigWindow()
         })
         parent.borderFrame:SetBackdropColor(0, 1, 1, .4)
         parent.borderFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -45)
-        parent.borderFrame:SetPoint("TOPRIGHT", parent, "TOPLEFT", 230, -5)
+        parent.borderFrame:SetPoint("TOPRIGHT", parent, "TOPLEFT", 300, -5)
         parent.borderFrame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, 5)
 
         parent.ScrollFrame = CreateFauxScrollFrame(parent.borderFrame, parent:GetAttribute("spellList"))
-        parent.ScrollFrame:SetPoint("TOPLEFT", parent.borderFrame, "TOPLEFT", 2,
-                                    -5)
-        parent.ScrollFrame:SetPoint("TOPRIGHT", parent.borderFrame, "TOPRIGHT",
-                                    5, -5)
+        parent.ScrollFrame:SetPoint("TOPLEFT", parent.borderFrame, "TOPLEFT", 2, -5)
+        parent.ScrollFrame:SetPoint("TOPRIGHT", parent.borderFrame, "TOPRIGHT", 5, -5)
         parent.ScrollFrame:SetPoint("BOTTOM", parent.borderFrame, "BOTTOM", 0, 5)
-        parent.ScrollFrame:SetPoint("BOTTOMLEFT", parent.borderFrame,
-                                    "BOTTOMRIGHT", 0, 5)
+        parent.ScrollFrame:SetPoint("BOTTOMLEFT", parent.borderFrame, "BOTTOMRIGHT", 0, 5)
 
-        parent.ScrollFrame.child = CreateFrame("Frame",
-                                               "$parent_ScrollFrameChild",
-                                               parent.ScrollFrame)
+        parent.ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", parent.ScrollFrame)
         parent.ScrollFrame.child:SetPoint("CENTER", parent.ScrollFrame)
         parent.ScrollFrame.child:SetPoint("LEFT", parent.ScrollFrame, "LEFT")
         parent.ScrollFrame.child:SetPoint("RIGHT", parent.ScrollFrame, "RIGHT")
@@ -2639,9 +2736,7 @@ local function CreateConfigWindow()
             tabcontent:Show()
         end
         local function CreatePanel(parentTab)
-            parentTab.AttributePanel = CreateFrame("Frame",
-                                                   "$parent_AttributePanel",
-                                                   parentTab, "BackdropTemplate")
+            parentTab.AttributePanel = CreateFrame("Frame","$parent_AttributePanel",parentTab, "BackdropTemplate")
             parentTab.AttributePanel:SetBackdrop(
                 {
                     bgFile = "Interface/Tooltips/UI-Tooltip-Background",
@@ -2651,45 +2746,25 @@ local function CreateConfigWindow()
                 })
             parentTab.AttributePanel:SetBackdropColor(1, 1, 1, .4)
             parentTab.AttributePanel.NewSpellEditBox =
-                CreateFrame("EditBox", "$parent_AddSpellBox",
-                            parentTab.AttributePanel, "InputBoxTemplate")
+                CreateFrame("EditBox", "$parent_AddSpellBox",parentTab.AttributePanel, "InputBoxTemplate")
             parentTab.AttributePanel.NewSpellEditBox:SetAutoFocus(false)
-            parentTab.AttributePanel.NewSpellEditBox:SetPoint("TOPLEFT",
-                                                              parentTab.AttributePanel,
-                                                              "TOPLEFT", 15, -10)
-            parentTab.AttributePanel.NewSpellEditBox:SetPoint("BOTTOMRIGHT",
-                                                              parentTab.AttributePanel,
-                                                              "TOPRIGHT", -15,
-                                                              -60)
+            parentTab.AttributePanel.NewSpellEditBox:SetPoint("TOPLEFT",parentTab.AttributePanel,"TOPLEFT", 15, -10)
+            parentTab.AttributePanel.NewSpellEditBox:SetPoint("BOTTOMRIGHT",parentTab.AttributePanel,"TOPRIGHT", -15,-60)
             parentTab.AttributePanel.NewSpellEditBox.Title =
-                parentTab.AttributePanel.NewSpellEditBox:CreateFontString(
-                    "$parent_Title", "OVERLAY", "GameFontNormal")
-            parentTab.AttributePanel.NewSpellEditBox.Title:SetText(
-                "Add new spell")
-            parentTab.AttributePanel.NewSpellEditBox.Title:SetPoint("BOTTOM",
-                                                                    parentTab.AttributePanel
-                                                                        .NewSpellEditBox,
-                                                                    "TOP", 0,
-                                                                    -10)
+                parentTab.AttributePanel.NewSpellEditBox:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+            parentTab.AttributePanel.NewSpellEditBox.Title:SetText("Add new spell")
+            parentTab.AttributePanel.NewSpellEditBox.Title:SetPoint("BOTTOM",parentTab.AttributePanel.NewSpellEditBox,"TOP", 0,-10)
             parentTab.AttributePanel.NewSpellEditBox:SetText("enter spellID...")
-            parentTab.AttributePanel.NewSpellEditBox:SetScript("OnEnterPressed",
-                                                               AddSpell_OnEnterPressed)
+            parentTab.AttributePanel.NewSpellEditBox:SetScript("OnEnterPressed",AddSpell_OnEnterPressed)
 
             parentTab.AttributePanel.RemoveSpellButton =
                 CreateFrame("Button", "$parent_RemoveSpellButton",
                             parentTab.AttributePanel, "UIPanelButtonTemplate")
             parentTab.AttributePanel.RemoveSpellButton:SetText(
                 "Remove spell from this list")
-            parentTab.AttributePanel.RemoveSpellButton:SetPoint("BOTTOMRIGHT",
-                                                                parentTab.AttributePanel,
-                                                                "BOTTOMRIGHT",
-                                                                -5, 5)
-            parentTab.AttributePanel.RemoveSpellButton:SetPoint("TOPLEFT",
-                                                                parentTab.AttributePanel,
-                                                                "BOTTOMLEFT", 5,
-                                                                30)
-            parentTab.AttributePanel.RemoveSpellButton:SetScript("OnClick",
-                                                                 RemoveSpell_OnClick)
+            parentTab.AttributePanel.RemoveSpellButton:SetPoint("BOTTOMRIGHT",parentTab.AttributePanel,"BOTTOMRIGHT",-5, 5)
+            parentTab.AttributePanel.RemoveSpellButton:SetPoint("TOPLEFT",parentTab.AttributePanel,"BOTTOMLEFT", 5,30)
+            parentTab.AttributePanel.RemoveSpellButton:SetScript("OnClick",RemoveSpell_OnClick)
 
             parentTab.AttributePanel.AddSpellToWhiteListButton =
                 CreateFrame("Button", "$AddSpellToWhiteListButton",
@@ -2733,11 +2808,7 @@ local function CreateConfigWindow()
                 "BOTTOMRIGHT",
                 parentTab.AttributePanel.AddSpellToDefensivesButton, "TOPRIGHT",
                 0, 0)
-            parentTab.AttributePanel.AddSpellToAbsorbsButton:SetPoint("TOPLEFT",
-                                                                      parentTab.AttributePanel
-                                                                          .AddSpellToDefensivesButton,
-                                                                      "TOPLEFT",
-                                                                      0, 25)
+            parentTab.AttributePanel.AddSpellToAbsorbsButton:SetPoint("TOPLEFT",parentTab.AttributePanel.AddSpellToDefensivesButton,"TOPLEFT",0, 25)
             parentTab.AttributePanel.AddSpellToAbsorbsButton:SetScript(
                 "OnClick", MoveSpellToList)
             parentTab.AttributePanel.AddSpellToAbsorbsButton:SetAttribute(
@@ -2749,12 +2820,10 @@ local function CreateConfigWindow()
         local buttons = {}
 
         parentTab.AttributePanel:SetParent(parentTab)
-        parentTab.AttributePanel:SetPoint("TOPLEFT", parentTab.borderFrame,
-                                          "TOPRIGHT")
-        parentTab.AttributePanel:SetPoint("BOTTOMRIGHT", parentTab,
-                                          "BOTTOMRIGHT", -5, 5)
+        parentTab.AttributePanel:SetPoint("TOPLEFT", parentTab.borderFrame,"TOPRIGHT")
+        parentTab.AttributePanel:SetPoint("BOTTOMRIGHT", parentTab,"BOTTOMRIGHT", -5, 5)
     end
-    local function CreateSpellMenus(knownSpells, absorbSpells, defensives, whiteList, blackList)
+    local function CreateBuffTabs(knownSpells, absorbSpells, defensives, whiteList, blackList)
         local function Menu_OnShow(parentTab, list)
             return function()
                 OpenSpellAttributePanel(parentTab)
@@ -2762,40 +2831,47 @@ local function CreateConfigWindow()
                 if mainButton then mainButton:Click() end
             end
         end
-        knownSpells:SetAttribute("spellList", "known")
-        knownSpells:SetAttribute("auraType", "buffs")
-        knownSpells:SetScript("OnShow", Menu_OnShow(knownSpells, "known"))
-        local scrollFrame, child = CreateScrollFrameWithBGAndChild(knownSpells)
-
-        absorbSpells:SetScript("OnShow", Menu_OnShow(absorbSpells, "absorbs"))
-        absorbSpells:SetAttribute("spellList", "absorbs")
-        absorbSpells:SetAttribute("auraType", "buffs")
-        CreateScrollFrameWithBGAndChild(absorbSpells)
-
-
-        defensives:SetScript("OnShow", Menu_OnShow(defensives, "defensives"))
-        defensives:SetAttribute("spellList", "defensives")
-        defensives:SetAttribute("auraType", "buffs")
-        CreateScrollFrameWithBGAndChild(defensives)
-
-
-        whiteList:SetScript("OnShow", Menu_OnShow(whiteList, "whiteList"))
-        whiteList:SetAttribute("spellList", "whiteList")
-        whiteList:SetAttribute("auraType", "buffs")
-        CreateScrollFrameWithBGAndChild(whiteList)
-
-        blackList:SetScript("OnShow", Menu_OnShow(blackList, "blackList"))
-        blackList:SetAttribute("spellList", "blackList")
-        blackList:SetAttribute("auraType", "buffs")
-        CreateScrollFrameWithBGAndChild(blackList)
-
+        local function CreateFrames(tab, key)
+            tab:SetScript("OnShow", Menu_OnShow(tab, key))
+            tab:SetAttribute("spellList", key)
+            tab:SetAttribute("auraType", "buffs")
+            CreateScrollFrameWithBGAndChild(tab)
+        end
+        CreateFrames(knownSpells, "known")
+        CreateFrames(absorbSpells, "absorbs")
+        CreateFrames(defensives, "defensives")
+        CreateFrames(whiteList, "whiteList")
+        CreateFrames(blackList, "blackList")
     end
-    srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config",
-                                          UIParent, "UIPanelDialogTemplate")
+    local function CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, horrors, roots)
+        local function Menu_OnShow(parentTab, list)
+            return function()
+                OpenSpellAttributePanel(parentTab)
+                local mainButton = nil
+                if mainButton then mainButton:Click() end
+            end
+        end
+        local function CreateFrames(tab, key)
+            tab:SetScript("OnShow", Menu_OnShow(tab, key))
+            tab:SetAttribute("spellList", key)
+            tab:SetAttribute("auraType", "debuffs")
+            CreateScrollFrameWithBGAndChild(tab)
+        end
+        CreateFrames(knownDebuffs, "known")
+        CreateFrames(whiteList, "whiteList")
+        CreateFrames(blackList, "blackList")
+        CreateFrames(stuns, "stuns")
+        CreateFrames(incaps, "incaps")
+        CreateFrames(disorients, "disorients")
+        CreateFrames(silences, "silences")
+        CreateFrames(horrors, "horrors")
+        CreateFrames(roots, "roots")
+        
+    end
+    srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "UIPanelDialogTemplate")
     local cFrame = srslylawlUI_ConfigFrame
-    local cFrameSizeX = 500
+    local cFrameSizeX = 750
     local cFrameSizeY = 500
-    local topOffset = 30
 
     -- Main Config Frame
     cFrame.name = "srslylawlUI"
@@ -2808,7 +2884,7 @@ local function CreateConfigWindow()
 
     CreateSaveLoadButtons(cFrame)
 
-    local generalTab, framesTab, buffsTab = SetTabs(cFrame.body, "General", "Frames", "Buffs")
+    local generalTab, framesTab, buffsTab, debuffsTab = SetTabs(cFrame.body, "General", "Frames", "Buffs", "Debuffs")
 
     -- Create General Tab
     Mixin(generalTab, BackdropTemplateMixin)
@@ -2830,7 +2906,7 @@ local function CreateConfigWindow()
     framesTab:SetBackdropColor(0, 0, 0, .4)
     FillFramesTab(framesTab)
 
-    -- Create Spells Tab
+    -- Create Buffs Tab
     buffsTab:ClearAllPoints()
     buffsTab:SetPoint("TOP", cFrame.body, "TOP", 0, -35)
     buffsTab:SetPoint("BOTTOMLEFT", cFrame.body, "BOTTOMLEFT", 4, 4)
@@ -2844,23 +2920,37 @@ local function CreateConfigWindow()
     buffsTab:SetBackdropColor(0, 0, 0, .4)
 
     -- Buffs Tab buttons
-    local knownSpells, absorbSpells, defensives, whiteList, blackList =
-        SetTabs(buffsTab, "Encountered", "Absorbs", "Defensives", "Whitelist",
-                "Blacklist")
+    local knownBuffs, absorbs, defensives, whiteList, blackList =
+        SetTabs(buffsTab, "Encountered", "Absorbs", "Defensives", "Whitelist", "Blacklist")
+    AddTooltip(knownBuffs.tabButton, "List of all encountered buffs.")
+    AddTooltip(absorbs.tabButton, "Buffs with absorb effects, will be shown as segments.")
+    AddTooltip(defensives.tabButton, "Buffs with damage reduction effects, will increase your effective health.")
+    AddTooltip(whiteList.tabButton, "Whitelisted buffs will always appear as buff frames.")
+    AddTooltip(blackList.tabButton, "Buffs that will not be displayed on the interface")
 
-    AddTooltip(knownSpells.tabButton, "List of all encountered buffs.")
-    AddTooltip(absorbSpells.tabButton,
-               "Buffs with absorb effects, will be shown as segments.")
-    AddTooltip(defensives.tabButton,
-               "Buffs with damage reduction effects, will increase your effective health.")
-    AddTooltip(whiteList.tabButton,
-               "Whitelisted buffs will always appear as buff frames.")
-    AddTooltip(blackList.tabButton,
-               "Buffs that will not be displayed on the interface")
+    Mixin(knownBuffs, BackdropTemplateMixin)
+    CreateBuffTabs(knownBuffs, absorbs, defensives, whiteList, blackList)
 
-    Mixin(knownSpells, BackdropTemplateMixin)
-    CreateSpellMenus(knownSpells, absorbSpells, defensives, whiteList,
-                     blackList)
+    -- Create Debuffs Tab
+    debuffsTab:ClearAllPoints()
+    debuffsTab:SetPoint("TOP", cFrame.body, "TOP", 0, -35)
+    debuffsTab:SetPoint("BOTTOMLEFT", cFrame.body, "BOTTOMLEFT", 4, 4)
+    debuffsTab:SetPoint("BOTTOMRIGHT", cFrame.body, "BOTTOMRIGHT", -4, 2)
+    Mixin(debuffsTab, BackdropTemplateMixin)
+    debuffsTab:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 10,
+        insets = {left = 4, right = 4, top = 4, bottom = 4}})
+    debuffsTab:SetBackdropColor(0, 0, 0, .4)
+    
+    local knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, horrors, roots = 
+        SetTabs(debuffsTab, "Encountered", "Whitelist", "Blacklist", "Stuns", "Incapacitates", "Disorients", "Silences", "Horrors", "Roots")
+    CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, horrors, roots)
+    AddTooltip(knownDebuffs.tabButton, "List of all encountered debuffs.")
+    AddTooltip(whiteList.tabButton, "Whitelisted debuffs will always be displayed.")
+    AddTooltip(blackList.tabButton, "Blacklisted debuffs will never be displayed.")
+
 
     srslylawlUI.ToggleConfigVisible(true)
     InterfaceOptions_AddCategory(srslylawlUI_ConfigFrame)
@@ -2935,9 +3025,9 @@ local function Initialize()
                         GameTooltip:SetUnitBuff(self:GetAttribute("unit"),self:GetID())
                     end
                 end)
-                --Right click blacklists spell
+                --shift-Right click blacklists spell
                 f:SetScript("OnClick", function(self, button, down)
-                    if button == "RightButton" then
+                    if button == "RightButton" and IsShiftKeyDown() then
                         GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
                         local id = self:GetID()
                         local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HELPFUL"))
@@ -2971,6 +3061,14 @@ local function Initialize()
                     GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
                     GameTooltip:SetUnitDebuff(self:GetAttribute("unit"), self:GetID())
                 end)
+                f:SetScript("OnClick", function(self, button, down)
+                    if button == "RightButton" and IsShiftKeyDown() then
+                        GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                        local id = self:GetID()
+                        local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HARMFUL"))
+                        srslylawlUI.Auras_BlacklistSpell(spellID, "debuffs")
+                    end
+                end)
                 f:SetScript("OnUpdate", function(self)
                     if GameTooltip:IsOwned(f) then
                         GameTooltip:SetUnitDebuff(self:GetAttribute("unit"),self:GetID())
@@ -2992,12 +3090,18 @@ local function Initialize()
             local unitFrame = CreateFrame("Frame", "$parent_"..unit, header, "srslylawlUI_UnitTemplate")
             header[unit] = unitFrame
             unitFrame:SetAttribute("unit", unit)
+            unitFrame.unit.CCTexture = unitFrame:CreateTexture("$parent_CCTexture", "OVERLAY")
+            unitFrame.unit.CCTexture:SetTexture("Interface/AddOns/srslylawlUI/media/ccHighlight", true, true)
+            unitFrame.unit.CCTexture:SetBlendMode("ADD")
+            unitFrame.unit.CCTexture:SetAllPoints(true)
+            unitFrame.unit.CCTexture:Show()
 
             srslylawlUI.Frame_InitialUnitConfig(unitFrame)
             RegisterUnitWatch(unitFrame)
         end
         srslylawlUI.Frame_UpdateVisibility()
     end
+
     srslylawlUI.LoadSettings()
     HeaderSetup()
     CreateSlashCommands()
