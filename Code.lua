@@ -1096,7 +1096,8 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                     ["expirationTime"] = expirationTime,
                     ["icon"] = icon,
                     ["debuffType"] = debuffType,
-                    ["ccType"] = srslylawlUI.debuffs.known[spellId].crowdControlType
+                    ["ccType"] = srslylawlUI.debuffs.known[spellId].crowdControlType,
+                    ["remaining"] = expirationTime-GetTime()
                 }
                 table.insert(appliedCC, cc)
             end
@@ -1141,30 +1142,42 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
 
     --see if we want to display our cced frame
     if #appliedCC > 0 then
-        local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
-        unitbutton.CCTexture:SetVertexColor(color.r, color.g, color.b, 1)
-        unitbutton.CCTexture:Show()
         --Decide which cc to display
-        table.sort(appliedCC, function(a, b) return b < a end)
+        table.sort(appliedCC, function(a, b) return b.remaining < a.remaining end)
         local CCToDisplay = appliedCC[1]
 
-        local notExists = unitbutton.CCDurBar.spellData == nil
-        local differentSpell = not notExists and unitbutton.CCDurBar.spellData.ID ~= CCToDisplay.ID
-        local differentExpTime = not notExists and unitbutton.CCDurBar.spellData.expirationTime ~= CCToDisplay.expirationTime
-        local differentIndex = not notExists and unitbutton.CCDurBar.spellData.index ~= CCToDisplay.index
+        if CCToDisplay.debuffType == "root" then
+            --if we picked a root, see if theres a hardcc applied as well, and if yes, display it instead
+            for i=2, #appliedCC do
+                if appliedCC[i] ~= "root" then
+                    CCToDisplay = appliedCC[i]
+                    break
+                end
+            end
+        end
+
+        local color = DebuffTypeColor[CCToDisplay.debuffType] or DebuffTypeColor["none"];
+        unitbutton.CCTexture:SetVertexColor(color.r, color.g, color.b)
+        unitbutton.CCTexture:Show()
+
+        local exists = unitbutton.CCDurBar.spellData ~= nil
+        local differentSpell = exists and unitbutton.CCDurBar.spellData.ID ~= CCToDisplay.ID
+        local differentExpTime = exists and unitbutton.CCDurBar.spellData.expirationTime ~= CCToDisplay.expirationTime
+        local differentIndex = exists and unitbutton.CCDurBar.spellData.index ~= CCToDisplay.index
 
         --See if its already being displayed
-        if notExists or differentSpell or differentExpTime or differentIndex then
+        if not exists or differentSpell or differentExpTime or differentIndex then
             --not being displayed
             unitbutton.CCDurBar.spellData = CCToDisplay
             unitbutton.CCDurBar.icon:SetTexture(CCToDisplay.icon)
             unitbutton.CCDurBar:SetStatusBarColor(color.r, color.g, color.b)
             local timer, duration, expirationTime, remaining = 0, 0, 0, 0
+            local updateInterval = 0.02
             unitbutton.CCDurBar:SetScript("OnUpdate", 
                 function(self, elapsed)
                     timer = timer + elapsed
                     _, _, _, _, duration, expirationTime = UnitAura(unit, self.spellData.index, "HARMFUL")
-                    if timer >= 0.025 then
+                    if timer >= updateInterval then
                         if self.spellData.duration == 0 then
                             self:SetValue(1)
                         else
@@ -1174,7 +1187,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                             timerstring = timerstring:match("%d+%p?%d")
                             self.timer:SetText(timerstring)
                         end
-                        timer = 0
+                        timer = timer - updateInterval
                     end
                 end)
         else
@@ -1184,7 +1197,6 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         unitbutton.CCDurBar:Show()
     else
         unitbutton.CCDurBar:Hide()
-        unitbutton.CCDurBar:SetScript("OnUpdate", nil)
         unitbutton.CCTexture:Hide()
     end
     
@@ -1816,7 +1828,7 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
             return "incaps"    
         end
 
-        if s:match("rooted") or s:match("immobilized") or s:match("frozen in place") or s:match("pinned in place") or s:match("immobile") then
+        if s:match("rooted") or s:match("immobilized") or s:match("frozen") or s:match("pinned in place") or s:match("immobile") then
             return "roots"
         end
 
@@ -3150,7 +3162,7 @@ local function Initialize()
             unitFrame.unit.CCDurBar.icon:SetTexture(408)
             unitFrame.unit.CCDurBar.timer = unitFrame.unit.CCDurBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
             unitFrame.unit.CCDurBar.timer:SetText("5")
-            unitFrame.unit.CCDurBar.timer:SetPoint("CENTER")
+            unitFrame.unit.CCDurBar.timer:SetPoint("LEFT")
         end
         for _, unit in pairs(unitTable) do
             local unitFrame = CreateFrame("Frame", "$parent_"..unit, header, "srslylawlUI_UnitTemplate")
