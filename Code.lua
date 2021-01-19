@@ -742,7 +742,10 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
             ["hpmax"] = health,
             ["hp"] = ceil(health/1.5),
             ["mana"] = 1,
-            ["powerToken"] = powerToken
+            ["powerToken"] = powerToken,
+            ["CCIcon"] = 132298,
+            ["CCColor"] = "none",
+            ["CCMaxDur"] = 6
         }
         local lowerCap = srslylawlUI.settings.hp.minWidthPercent -- bars can not get smaller than this percent of highest
         local pixelPerHp = srslylawlUI.settings.hp.width / health
@@ -757,28 +760,40 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                 fauxUnit.hp = ceil(fauxUnit.hpmax)
                 fauxUnit.mana = 1
                 fauxUnit.powerToken = "MANA"
+                fauxUnit.CCIcon = 136071 --poly
+                fauxUnit.CCColor = "Magic"
+                fauxUnit.CCMaxDur = 8
             elseif unit == "party2" then
                 fauxUnit.class = "ROGUE"
                 fauxUnit.hpmax = ceil(fauxUnit.hpmax * 0.90)
                 fauxUnit.hp = ceil(fauxUnit.hpmax * 0.6)
                 fauxUnit.mana = 0.4
                 fauxUnit.powerToken = "ENERGY"
+                fauxUnit.CCIcon = 132310 -- sap
+                fauxUnit.CCColor = "none"
+                fauxUnit.CCMaxDur = 8
             elseif unit == "party3" then
                 fauxUnit.class = "MAGE"
                 fauxUnit.hpmax = ceil(fauxUnit.hpmax)
                 fauxUnit.hp = ceil(fauxUnit.hpmax * 0.3)
                 fauxUnit.mana = 0.8
                 fauxUnit.powerToken = "MANA"
+                fauxUnit.CCIcon = 136183 -- fear
+                fauxUnit.CCColor = "Magic"
+                fauxUnit.CCMaxDur = 6
             elseif unit == "party4" then
                 fauxUnit.class = "SHAMAN"
                 fauxUnit.hpmax = ceil(fauxUnit.hpmax * 0.2)
                 fauxUnit.hp = ceil(fauxUnit.hpmax)
                 fauxUnit.mana = 0.3
                 fauxUnit.powerToken = "MANA"
+                fauxUnit.CCIcon = 458230 -- silence
+                fauxUnit.CCColor = "Magic"
+                fauxUnit.CCMaxDur = 4
             end
 
             --CC bar
-            local timer, duration, expirationTime, remaining = 0, 5, 0, 0
+            local timer, duration, expirationTime, remaining = 0, fauxUnit.CCMaxDur, 0, 0
             frame.unit.CCDurBar:SetScript("OnUpdate", 
                 function(self, elapsed)
                     timer = timer + elapsed
@@ -795,8 +810,8 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                     end
                 end)
             frame.unit.CCDurBar:Show()
-            frame.unit.CCDurBar.icon:SetTexture(132298)
-            local color = DebuffTypeColor["none"]
+            frame.unit.CCDurBar.icon:SetTexture(fauxUnit.CCIcon)
+            local color = DebuffTypeColor[fauxUnit.CCColor]
             frame.unit.CCDurBar:SetStatusBarColor(color.r, color.g, color.b)
 
             color = RAID_CLASS_COLORS[fauxUnit.class]
@@ -3343,7 +3358,7 @@ local function Initialize()
             --CCDurationBar:SetPoint("BOTTOMLEFT", unitFrame.unit.auraAnchor, "BOTTOMRIGHT", 17, 0)
             unitFrame.unit.CCDurBar.icon = unitFrame.unit.CCDurBar:CreateTexture("icon", "OVERLAY", nil, 2)
             --unitFrame.unit.CCDurBar.icon:SetPoint("LEFT", CCDurationBar, "RIGHT")
-            unitFrame.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", unitFrame.unit.auraAnchor, "BOTTOMRIGHT", petW, 0)
+            unitFrame.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", unitFrame.unit.auraAnchor, "BOTTOMRIGHT", petW+2, 0)
             CCDurationBar:SetPoint("LEFT", unitFrame.unit.CCDurBar.icon, "RIGHT", 1, 0)
             unitFrame.unit.CCDurBar.icon:SetSize(iconSize, iconSize)
             unitFrame.unit.CCDurBar.icon:SetTexCoord(.08, .92, .08, .92)
