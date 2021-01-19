@@ -411,7 +411,7 @@ function srslylawlUI.Frame_ResetDimensions(button)
     local needsResize = abs(button.unit.healthBar:GetWidth() - w) > 1 or abs(button.unit.healthBar:GetHeight() - h) > 1
     if needsResize then
         -- print("sizing req, cur:", button.unit.healthBar:GetWidth(), "tar", w)
-        button.unit.auraAnchor:SetSize(srslylawlUI.settings.hp.width, srslylawlUI.settings.hp.height)
+        button.unit.auraAnchor:SetSize(w, h)
         button.unit.healthBar:SetSize(w, h)
         if button.unit.healthBar["bg"] == nil then
             srslylawlUI.CreateBackground(button.unit.healthBar)
@@ -1090,7 +1090,15 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
 
             --check if its CC
             if srslylawlUI.debuffs.known[spellId] ~= nil and srslylawlUI.debuffs.known[spellId].crowdControlType ~= "none" then
-                table.insert(appliedCC, srslylawlUI.debuffs.known[spellId])
+                local cc = {
+                    ["ID"] = spellId,
+                    ["index"] = i,
+                    ["expirationTime"] = expirationTime,
+                    ["icon"] = icon,
+                    ["debuffType"] = debuffType,
+                    ["ccType"] = srslylawlUI.debuffs.known[spellId].crowdControlType
+                }
+                table.insert(appliedCC, cc)
             end
 
             if srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and i <= srslylawlUI.settings.debuffs.maxDebuffs then
@@ -1133,8 +1141,50 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
 
     --see if we want to display our cced frame
     if #appliedCC > 0 then
+        local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
+        unitbutton.CCTexture:SetVertexColor(color.r, color.g, color.b, 1)
         unitbutton.CCTexture:Show()
+        --Decide which cc to display
+        table.sort(appliedCC, function(a, b) return b < a end)
+        local CCToDisplay = appliedCC[1]
+
+        local notExists = unitbutton.CCDurBar.spellData == nil
+        local differentSpell = not notExists and unitbutton.CCDurBar.spellData.ID ~= CCToDisplay.ID
+        local differentExpTime = not notExists and unitbutton.CCDurBar.spellData.expirationTime ~= CCToDisplay.expirationTime
+        local differentIndex = not notExists and unitbutton.CCDurBar.spellData.index ~= CCToDisplay.index
+
+        --See if its already being displayed
+        if notExists or differentSpell or differentExpTime or differentIndex then
+            --not being displayed
+            unitbutton.CCDurBar.spellData = CCToDisplay
+            unitbutton.CCDurBar.icon:SetTexture(CCToDisplay.icon)
+            unitbutton.CCDurBar:SetStatusBarColor(color.r, color.g, color.b)
+            local timer, duration, expirationTime, remaining = 0, 0, 0, 0
+            unitbutton.CCDurBar:SetScript("OnUpdate", 
+                function(self, elapsed)
+                    timer = timer + elapsed
+                    _, _, _, _, duration, expirationTime = UnitAura(unit, self.spellData.index, "HARMFUL")
+                    if timer >= 0.025 then
+                        if self.spellData.duration == 0 then
+                            self:SetValue(1)
+                        else
+                            remaining = expirationTime-GetTime()
+                            self:SetValue(remaining/duration)
+                            local timerstring = tostring(remaining)
+                            timerstring = timerstring:match("%d+%p?%d")
+                            self.timer:SetText(timerstring)
+                        end
+                        timer = 0
+                    end
+                end)
+        else
+            --just update data
+            unitbutton.CCDurBar.spellData = CCToDisplay
+        end
+        unitbutton.CCDurBar:Show()
     else
+        unitbutton.CCDurBar:Hide()
+        unitbutton.CCDurBar:SetScript("OnUpdate", nil)
         unitbutton.CCTexture:Hide()
     end
     
@@ -1216,8 +1266,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
             if i == 1 then
                 parentFrame = buttonFrame.unit.healthBar or UIParent
             end
-            CreateAbsorbFrame(parentFrame, i, height,
-                              units[unit]["absorbFrames"])
+            CreateAbsorbFrame(parentFrame, i, height, units[unit]["absorbFrames"])
         end
     end
     if units[unit]["absorbFramesOverlap"] == nil then
@@ -1323,11 +1372,9 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         for k, v in ipairs(units[unit].effectiveHealthSegments) do
             --tooltip gets updated with stacks anyway so we might want to ignore it until we config a per stack amount
             stackMultiplier = 1 --v.stacks > 1 and v.stacks or 1 TODO:check if this works out fine
-            reducAmount = srslylawlUI.buffs.known[v.spellId].reductionAmount /
-                              100
+            reducAmount = srslylawlUI.buffs.known[v.spellId].reductionAmount / 100
 
-            effectiveHealthMod = effectiveHealthMod *
-                                     (1 - (reducAmount * stackMultiplier))
+            effectiveHealthMod = effectiveHealthMod * (1 - (reducAmount * stackMultiplier))
         end
     end
     if effectiveHealthMod ~= 1 then
@@ -1402,7 +1449,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
             currentBarLength = currentBarLength + barWidth
             absorbAmount = overlapAmount
         end
-    end
+    end  
     local function SetupSegment(tAura, bar, absorbAmount, barWidth, height)
         local iconID = tAura.icon
         local duration = tAura.duration
@@ -1440,7 +1487,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         end
     end
    
-    -- absorb auras seem to get consumed in order by their spellid, ascending, (not confirmed)
+    -- absorb auras seem to get consumed in order by their spellid, ascending, (not consistently)
     -- so we sort by descending to visualize which one gets removed first
     for _, value in ipairs(sortedAbsorbAuras) do
         CalcSegment(value.absorb, "aura", value)
@@ -1763,12 +1810,10 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
             return "stuns"
         elseif s:match("silenced") then
             return "silences"
-        elseif s:match("disoriented") then
+        elseif s:match("disoriented") or s:match("feared") then
             return "disorients"
         elseif s:match("incapacitated") or s:match("sleep") then
-            return "incaps"
-        elseif s:match("horrified") then
-            return "horrors"        
+            return "incaps"    
         end
 
         if s:match("rooted") or s:match("immobilized") or s:match("frozen in place") or s:match("pinned in place") or s:match("immobile") then
@@ -1835,8 +1880,7 @@ function srslylawlUI.Auras_ManuallyAddSpell(spellId, list)
         local spell = srslylawlUI.buffs.known[spellId]
 
         if srslylawlUI.buffs[list][spellId] ~= nil then
-            srslylawlUI.Log(spell.name .. " is already part of list " .. list ..
-                                ", I refuse to work under these conditions.")
+            srslylawlUI.Log(spell.name .. " is already part of list " .. list .. ", I refuse to work under these conditions.")
             return
         end
 
@@ -2230,7 +2274,8 @@ local function CreateConfigWindow()
         return f
     end
     local function CreateCheckButton(name, parent)
-        local checkButton = CreateFrame("CheckButton",name,parent,"UICheckButtonTemplate")
+        local nameWithoutSpace = name:gsub(" ", "_")
+        local checkButton = CreateFrame("CheckButton","$parent_"..nameWithoutSpace,parent,"UICheckButtonTemplate")
         if srslylawlUI_ConfigFrame.checkButtons == nil then srslylawlUI_ConfigFrame.checkButtons = {} end
         srslylawlUI_ConfigFrame.checkButtons[name] = checkButton
         checkButton.text:SetText(name)
@@ -2275,10 +2320,9 @@ local function CreateConfigWindow()
 
         local visibility = CreateFrameWBG("Visibility", lockFrames)
         visibility:SetPoint("TOPLEFT", lockFrames, "BOTTOMLEFT", 0, -15)
-        visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -115)
+        visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -85)
 
         local showParty = CreateCheckButton("Show In Party", visibility)
-        
         showParty:SetScript("OnClick", function(self)
             srslylawlUI.settings.showParty = self:GetChecked()
             srslylawlUI.Frame_UpdateVisibility()
@@ -2324,11 +2368,12 @@ local function CreateConfigWindow()
 
         local showArena = CreateCheckButton("Show Arena", visibility)
         showArena:SetScript("OnClicK", function(self)
-        srslylawlUI.settings.showArena = self:GetChecked()
+            srslylawlUI.settings.showArena = self:GetChecked()
             srslylawlUI.Frame_UpdateVisibility()
             srslylawlUI.SetDirtyFlag()
         end)
-        showArena:SetPoint("TOPLEFT", showParty, "BOTTOMLEFT", 0, 0)
+        showArena:SetPoint("LEFT", showSolo.text, "RIGHT")
+        showArena:SetChecked(srslylawlUI.settings.showArena)
         showArena:SetAttribute("defaultValue", srslylawlUI.settings.showArena)
     end
     local function FillFramesTab(tab)
@@ -2843,7 +2888,7 @@ local function CreateConfigWindow()
         CreateFrames(whiteList, "whiteList")
         CreateFrames(blackList, "blackList")
     end
-    local function CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, horrors, roots)
+    local function CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots)
         local function Menu_OnShow(parentTab, list)
             return function()
                 OpenSpellAttributePanel(parentTab)
@@ -2864,7 +2909,6 @@ local function CreateConfigWindow()
         CreateFrames(incaps, "incaps")
         CreateFrames(disorients, "disorients")
         CreateFrames(silences, "silences")
-        CreateFrames(horrors, "horrors")
         CreateFrames(roots, "roots")
         
     end
@@ -2944,9 +2988,9 @@ local function CreateConfigWindow()
         insets = {left = 4, right = 4, top = 4, bottom = 4}})
     debuffsTab:SetBackdropColor(0, 0, 0, .4)
     
-    local knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, horrors, roots = 
-        SetTabs(debuffsTab, "Encountered", "Whitelist", "Blacklist", "Stuns", "Incapacitates", "Disorients", "Silences", "Horrors", "Roots")
-    CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, horrors, roots)
+    local knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots = 
+        SetTabs(debuffsTab, "Encountered", "Whitelist", "Blacklist", "Stuns", "Incapacitates", "Disorients", "Silences", "Roots")
+    CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots)
     AddTooltip(knownDebuffs.tabButton, "List of all encountered debuffs.")
     AddTooltip(whiteList.tabButton, "Whitelisted debuffs will always be displayed.")
     AddTooltip(blackList.tabButton, "Blacklisted debuffs will never be displayed.")
@@ -3086,6 +3130,28 @@ local function Initialize()
         srslylawlUI.settings.header.yOffset)
         header:Show()
         --Create Unit Frames
+        local function CreateCCBar(unitFrame, unit)
+            local CCDurationBar = CreateFrame("StatusBar", "$parent_CCDurBar"..unit, unitFrame.unit.auraAnchor)
+            unitFrame.unit.CCDurBar = CCDurationBar
+            CCDurationBar:SetStatusBarTexture("Interface/Addons/srslylawlUI/media/healthBar")
+            local h = srslylawlUI.settings.hp.height/2
+            local w = 100
+            local petW = srslylawlUI.settings.pet.width + 2
+            local iconSize = (w > h and h) or w
+            CCDurationBar:SetSize(w, h)
+            CCDurationBar:SetMinMaxValues(0, 1)
+            --CCDurationBar:SetPoint("BOTTOMLEFT", unitFrame.unit.auraAnchor, "BOTTOMRIGHT", 17, 0)
+            unitFrame.unit.CCDurBar.icon = unitFrame.unit.CCDurBar:CreateTexture("icon", "OVERLAY", nil, 2)
+            --unitFrame.unit.CCDurBar.icon:SetPoint("LEFT", CCDurationBar, "RIGHT")
+            unitFrame.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", unitFrame.unit.auraAnchor, "BOTTOMRIGHT", petW, 0)
+            CCDurationBar:SetPoint("LEFT", unitFrame.unit.CCDurBar.icon, "RIGHT", 1, 0)
+            unitFrame.unit.CCDurBar.icon:SetSize(iconSize, iconSize)
+            unitFrame.unit.CCDurBar.icon:SetTexCoord(.08, .92, .08, .92)
+            unitFrame.unit.CCDurBar.icon:SetTexture(408)
+            unitFrame.unit.CCDurBar.timer = unitFrame.unit.CCDurBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
+            unitFrame.unit.CCDurBar.timer:SetText("5")
+            unitFrame.unit.CCDurBar.timer:SetPoint("CENTER")
+        end
         for _, unit in pairs(unitTable) do
             local unitFrame = CreateFrame("Frame", "$parent_"..unit, header, "srslylawlUI_UnitTemplate")
             header[unit] = unitFrame
@@ -3096,6 +3162,8 @@ local function Initialize()
             unitFrame.unit.CCTexture:SetAllPoints(true)
             unitFrame.unit.CCTexture:Show()
 
+            CreateCCBar(unitFrame, unit)
+            
             srslylawlUI.Frame_InitialUnitConfig(unitFrame)
             RegisterUnitWatch(unitFrame)
         end
