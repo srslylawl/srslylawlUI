@@ -1297,7 +1297,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
             srslylawlUI.Auras_RememberDebuff(spellId, i, unit)
 
             --check if its CC
-            if srslylawlUI.debuffs.known[spellId] ~= nil and srslylawlUI.debuffs.known[spellId].crowdControlType ~= "none" then
+            if srslylawlUI.debuffs.known[spellId] ~= nil and srslylawlUI.debuffs.known[spellId].crowdControlType ~= "none" and srslylawlUI.debuffs.blackList[spellId] == nil then
                 local cc = {
                     ["ID"] = spellId,
                     ["index"] = i,
@@ -1354,10 +1354,10 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         table.sort(appliedCC, function(a, b) return b.remaining < a.remaining end)
         local CCToDisplay = appliedCC[1]
 
-        if CCToDisplay.debuffType == "root" then
+        if CCToDisplay.ccType == "roots" then
             --if we picked a root, see if theres a hardcc applied as well, and if yes, display it instead
             for i=2, #appliedCC do
-                if appliedCC[i] ~= "root" then
+                if appliedCC[i].ccType ~= "roots" then
                     CCToDisplay = appliedCC[i]
                     break
                 end
@@ -1385,9 +1385,11 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                 function(self, elapsed)
                     timer = timer + elapsed
                     _, _, _, _, duration, expirationTime = UnitAura(unit, self.spellData.index, "HARMFUL")
+                    if expirationTime == nil then return end
                     if timer >= updateInterval then
-                        if self.spellData.duration == 0 then
+                        if duration == 0 then
                             self:SetValue(1)
+                            self.timer:SetText("")
                         else
                             remaining = expirationTime-GetTime()
                             self:SetValue(remaining/duration)
@@ -3417,6 +3419,7 @@ srslylawlUI_EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     if (event == "PLAYER_LOGIN") then
         Initialize()
+        srslylawlUI.SortAfterLogin()
         self:UnregisterEvent("PLAYER_LOGIN")
     elseif event == "UNIT_MAXHEALTH" or event == "GROUP_ROSTER_UPDATE" then
         -- delay since it bugs if it happens at the same frame for some reason
