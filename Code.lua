@@ -72,6 +72,7 @@ local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrab
 local customTooltip = CreateFrame("GameTooltip", "srslylawl_CustomTooltip", UIParent, "GameTooltipTemplate")
 
 local unitTable = { "player", "party1", "party2", "party3", "party4"}
+local crowdControlTable = { "stuns", "incaps", "disorients", "silences", "roots"}
 local anchorTable = {
     "TOP", "RIGHT", "BOTTOM", "LEFT", "CENTER", "TOPRIGHT", "TOPLEFT",
     "BOTTOMLEFT", "BOTTOMRIGHT"
@@ -81,12 +82,12 @@ local debugString = ""
 
 
 -- TODO:
+--      config window: list management, aura view (def values)
 --      readycheck
 --      necrotic/healabsorb
---      CC
 --      phase/shard
 --      UnitHasIncomingResurrection(unit)
---      config window: list management, aura view (def values)
+--      more sort methods?
 
 
 --Utils
@@ -373,6 +374,13 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
         RegisterUnitWatch(buttonFrame.pet)
     end
 
+    buttonFrame.pet:SetPoint(
+        select(1, buttonFrame.pet:GetPoint()), 
+        buttonFrame.unit, 
+        select(3, buttonFrame.pet:GetPoint()), 
+        select(4, buttonFrame.pet:GetPoint()), 
+        select(5, buttonFrame.pet:GetPoint())
+    )
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
 
     srslylawlUI.CreateBackground(buttonFrame.pet)
@@ -393,7 +401,7 @@ function srslylawlUI.Frame_GetByUnitType(unit)
 
     return nil
 end
-function srslylawlUI.Frame_ResetAllFrames()
+function srslylawlUI.Frame_ResetDimensions_ALL()
     for k, v in pairs(unitTable) do
         local button = srslylawlUI.Frame_GetByUnitType(v)
         if v then
@@ -681,7 +689,7 @@ function srslylawlUI.Frame_ResizeHealthBarScale()
         end
     else -- sort by average
     end
-    srslylawlUI.Frame_ResetAllFrames()
+    srslylawlUI.Frame_ResetDimensions_ALL()
 end
 function srslylawlUI_Button_OnDragStart(self, button)
     if not srslylawlUI_PartyHeader:IsMovable() then return end
@@ -747,12 +755,8 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
             ["CCColor"] = "none",
             ["CCMaxDur"] = 6
         }
-        local lowerCap = srslylawlUI.settings.hp.minWidthPercent -- bars can not get smaller than this percent of highest
-        local pixelPerHp = srslylawlUI.settings.hp.width / health
-        local minWidth = floor(health * pixelPerHp * lowerCap)
         for i,unit in pairs(unitTable) do
             local frame = _G["srslylawlUI_FAUX_PartyHeader_"..unit]
-            
 
             if unit == "party1" then
                 fauxUnit.class = "WARLOCK"
@@ -791,19 +795,36 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                 fauxUnit.CCColor = "Magic"
                 fauxUnit.CCMaxDur = 4
             end
+            frame:SetAttribute("hpMax", fauxUnit.hpmax)
+
+            local function AddTooltip(frame, text)
+                local function OnEnter(self)
+                    customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
+                    customTooltip:SetText(text)
+                end
+                local function OnLeave(self) customTooltip:Hide() end
+
+                frame:EnableMouse(true)
+                frame:SetScript("OnEnter", OnEnter)
+                frame:SetScript("OnLeave", OnLeave)
+            end
+
+            AddTooltip(frame.unit, unit.." frame")
+            AddTooltip(frame.pet, unit.." petframe")
+            AddTooltip(frame.unit.powerBar, unit.." power bar")
 
             --CC bar
-            local timer, duration, expirationTime, remaining = 0, fauxUnit.CCMaxDur, 0, 0
+            local timerCC, duration, expirationTime, remaining = 0, fauxUnit.CCMaxDur, 0, 0
             frame.unit.CCDurBar:SetScript("OnUpdate", 
                 function(self, elapsed)
-                    timer = timer + elapsed
-                    if timer >= 0.025 then
+                    timerCC = timerCC + elapsed
+                    if timerCC >= 0.025 then
                         remaining = expirationTime-GetTime()
                         self:SetValue(remaining/duration)
                         local timerstring = tostring(remaining)
                         timerstring = timerstring:match("%d+%p?%d")
                         self.timer:SetText(timerstring)
-                        timer = 0
+                        timerCC = 0
                     end
                     if remaining <= 0 then
                         expirationTime = GetTime()+duration
@@ -818,9 +839,6 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
 
             local hp = (fauxUnit.hp .. " " .. ceil(fauxUnit.hp / fauxUnit.hpmax * 100) .. "%")
 
-            local w = srslylawlUI.settings.hp.width
-            local h = srslylawlUI.settings.hp.height
-
             frame.unit.CCTexture:Hide()
 
             local powerToken = fauxUnit.powerToken
@@ -828,7 +846,6 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
             frame.unit.powerBar:SetStatusBarColor(powerColor.r, powerColor.g, powerColor.b)
             frame.unit.powerBar:SetMinMaxValues(0, 1)
             frame.unit.powerBar:SetValue(fauxUnit.mana)
-
 
             if unit == "player" then
                 frame:SetPoint("TOPLEFT", srslylawlUI_FAUX_PartyHeader, "TOPLEFT")
@@ -840,12 +857,6 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                 frame.unit.healthBar:SetMinMaxValues(0, fauxUnit.hpmax)
                 frame.unit.healthBar:SetValue(fauxUnit.hp)
                 frame.unit.healthBar:SetStatusBarColor(color.r, color.g, color.b)
-                local scaledWidth = (fauxUnit.hpmax * pixelPerHp)
-                scaledWidth = scaledWidth < minWidth and minWidth or scaledWidth
-                frame:SetSize(scaledWidth+2, h+2)
-                frame.unit.healthBar.bg:SetSize(scaledWidth + 2, h + 2)
-                frame.unit.auraAnchor:SetSize(scaledWidth, h)
-                frame.unit.healthBar:SetSize(scaledWidth, h)
             end
 
             --buffs
@@ -887,43 +898,84 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                 frame.debuffs[i] = f
             end
 
+            local timerFrame = 1
+
+            --update frames to reflect current settings
             frame:SetScript("OnUpdate", 
-                function(self)
-                if self.shownBuffs ~= srslylawlUI.settings.buffs.maxBuffs then
-                    self.shownBuffs = srslylawlUI.settings.buffs.maxBuffs
-                    for i=1,40 do
-                        self.buffs[i]:SetShown(i <= self.shownBuffs)
-                        local size = srslylawlUI.settings.buffs.size
-                        local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
-                        local anchor = "CENTER"
-                        if (i == 1) then
-                            anchor = srslylawlUI.settings.buffs.anchor
-                            xOffset = srslylawlUI.settings.buffs.xOffset
-                            yOffset = srslylawlUI.settings.buffs.yOffset
-                            self.buffs[i]:SetParent(self.unit.auraAnchor)
+                function(self, elapsed)
+                timerFrame = timerFrame + elapsed
+                if timerFrame > 0.1 then
+                    local countChanged = self.shownBuffs ~= srslylawlUI.settings.buffs.maxBuffs
+                    local anchorChanged = self.buffs.anchor ~= srslylawlUI.settings.buffs.anchor or self.buffs.xOffset ~= srslylawlUI.settings.buffs.xOffset or self.buffs.yOffset ~= srslylawlUI.settings.buffs.yOffset
+                    local sizeChanged = self.buffs.size ~= srslylawlUI.settings.buffs.size
+                    if countChanged or anchorChanged or sizeChanged then
+                        self.shownBuffs = srslylawlUI.settings.buffs.maxBuffs
+                        for i=1,40 do
+                            self.buffs[i]:SetShown(i <= self.shownBuffs)
+                            local size = srslylawlUI.settings.buffs.size
+                            local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
+                            local anchor = "CENTER"
+                            if (i == 1) then
+                                anchor = srslylawlUI.settings.buffs.anchor
+                                xOffset = srslylawlUI.settings.buffs.xOffset
+                                yOffset = srslylawlUI.settings.buffs.yOffset
+                                self.buffs[i]:SetParent(self.unit.auraAnchor)
+
+                                self.buffs.anchor = anchor
+                                self.buffs.xOffset = xOffset
+                                self.buffs.yOffset = yOffset
+                                self.buffs.size = size
+                            end
+                            self.buffs[i]:ClearAllPoints()
+                            self.buffs[i]:SetPoint(anchor, xOffset, yOffset)
+                            self.buffs[i]:SetSize(size, size)
+
                         end
-                        self.buffs[i]:ClearAllPoints()
-                        self.buffs[i]:SetPoint(anchor, xOffset, yOffset)
-                        self.buffs[i]:SetSize(size, size)
                     end
-                end
-                if self.shownDebuffs ~= srslylawlUI.settings.debuffs.maxDebuffs then
-                    self.shownDebuffs = srslylawlUI.settings.debuffs.maxDebuffs
-                    for i=1,40 do
-                        self.debuffs[i]:SetShown(i <= self.shownDebuffs)
-                        local size = srslylawlUI.settings.debuffs.size
-                        local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
-                        local anchor = "CENTER"
-                        if (i == 1) then
-                            anchor = srslylawlUI.settings.debuffs.anchor
-                            xOffset = srslylawlUI.settings.debuffs.xOffset
-                            yOffset = srslylawlUI.settings.debuffs.yOffset
-                            self.debuffs[i]:SetParent(self.unit.auraAnchor)
+                    countChanged = self.shownDebuffs ~= srslylawlUI.settings.debuffs.maxDebuffs
+                    sizeChanged = self.debuffs.size ~= srslylawlUI.settings.debuffs.size
+                    anchorChanged = self.debuffs.anchor ~= srslylawlUI.settings.debuffs.anchor or self.debuffs.xOffset ~= srslylawlUI.settings.debuffs.xOffset or self.debuffs.yOffset ~= srslylawlUI.settings.debuffs.yOffset
+                    if countChanged or anchorChanged or sizeChanged then
+                        self.shownDebuffs = srslylawlUI.settings.debuffs.maxDebuffs
+                        for i=1,40 do
+                            self.debuffs[i]:SetShown(i <= self.shownDebuffs)
+                            local size = srslylawlUI.settings.debuffs.size
+                            local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
+                            local anchor = "CENTER"
+                            if (i == 1) then
+                                anchor = srslylawlUI.settings.debuffs.anchor
+                                xOffset = srslylawlUI.settings.debuffs.xOffset
+                                yOffset = srslylawlUI.settings.debuffs.yOffset
+                                self.debuffs[i]:SetParent(self.unit.auraAnchor)
+
+                                self.debuffs.anchor = anchor
+                                self.debuffs.xOffset = xOffset
+                                self.debuffs.yOffset = yOffset
+                                self.debuffs.size = size
+                            end
+                            self.debuffs[i]:ClearAllPoints()
+                            self.debuffs[i]:SetPoint(anchor, xOffset, yOffset)
+                            self.debuffs[i]:SetSize(size, size)
+                            self.debuffs.size = size
                         end
-                        self.debuffs[i]:ClearAllPoints()
-                        self.debuffs[i]:SetPoint(anchor, xOffset, yOffset)
-                        self.debuffs[i]:SetSize(size, size)
                     end
+                    local h = srslylawlUI.settings.hp.height
+                    local lowerCap = srslylawlUI.settings.hp.minWidthPercent
+                    local health = UnitHealthMax("player")
+                    local pixelPerHp = srslylawlUI.settings.hp.width / health
+                    local minWidth = floor(health * pixelPerHp * lowerCap)
+                    local scaledWidth = (self:GetAttribute("hpMax") * pixelPerHp)
+                    scaledWidth = scaledWidth < minWidth and minWidth or scaledWidth
+                    self:SetSize(scaledWidth+2, h+2)
+                    self.unit.healthBar.bg:SetSize(scaledWidth + 2, h + 2)
+                    self.unit.auraAnchor:SetSize(scaledWidth, h)
+                    self.unit.healthBar:SetSize(scaledWidth, h)
+                    self.unit.powerBar:SetHeight(h)
+                    self.unit.powerBar.background:SetHeight(h+2)
+                    self.pet.healthBar:SetHeight(h)
+                    self.pet:SetHeight(h)
+                    self.pet.bg:SetHeight(h+2)
+                    timerFrame = 0
                 end
             end)
             frame:Show()
@@ -2445,8 +2497,9 @@ local function CreateConfigWindow()
         frame:SetScript("OnLeave", OnLeave)
     end
     local function ScrollFrame_Update(frame)
-        local list = frame:GetParent():GetParent():GetAttribute("spellList")
-        local auraType = frame:GetParent():GetParent():GetAttribute("auraType")
+        local tabcontent = frame:GetParent():GetParent()
+        local list = tabcontent:GetAttribute("spellList")
+        local auraType = tabcontent:GetAttribute("auraType")
         local lineplusoffset
         local sortedSpellList = srslylawlUI.sortedSpellLists[auraType][list]
         local maxButtons = frame.ButtonCount or 0
@@ -2471,6 +2524,12 @@ local function CreateConfigWindow()
                 end
                 AddTooltip(curr, name.."\nID: ".. spellId)
                 curr:SetAttribute("spellId", spellId)
+                if tabcontent.lastSelectedSpellId == spellId then 
+                    curr:Click()
+                    curr:SetChecked(true)
+                else
+                    curr:SetChecked(false)
+                end
                 curr.icon.texture:SetTexture(icon)
                 AddSpellTooltip(curr.icon, spellId)
                 curr:Show()
@@ -2534,17 +2593,17 @@ local function CreateConfigWindow()
         c:SetPoint("TOPRIGHT", 0, 0)
     end
     local function FillGeneralTab(tab)
-        local lockFrames = CreateCheckButton("Make frames moveable", tab)
-        lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
-        lockFrames:SetScript("OnClick", function(self)
-            srslylawlUI_PartyHeader:SetMovable(self:GetChecked())
-            srslylawlUI_Frame_ToggleFauxFrames(self:GetChecked())
-        end
-        )
+        -- local lockFrames = CreateCheckButton("Make frames moveable", tab)
+        -- lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
+        -- lockFrames:SetScript("OnClick", function(self)
+        --     srslylawlUI_PartyHeader:SetMovable(self:GetChecked())
+        --     srslylawlUI_Frame_ToggleFauxFrames(self:GetChecked())
+        -- end
+        -- )
 
-        local visibility = CreateFrameWBG("Visibility", lockFrames)
-        visibility:SetPoint("TOPLEFT", lockFrames, "BOTTOMLEFT", 0, -15)
-        visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -85)
+        local visibility = CreateFrameWBG("Party Frame Visibility", tab)
+        visibility:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -25)
+        visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -55)
 
         local showParty = CreateCheckButton("Show In Party", visibility)
         showParty:SetScript("OnClick", function(self)
@@ -2606,9 +2665,17 @@ local function CreateConfigWindow()
         cFrame.editBoxes = {}
         cFrame.sliders = {}
 
+        local lockFrames = CreateCheckButton("Preview settings and make frames moveable", tab)
+        lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
+        lockFrames:SetScript("OnClick", function(self)
+            srslylawlUI_PartyHeader:SetMovable(self:GetChecked())
+            srslylawlUI_Frame_ToggleFauxFrames(self:GetChecked())
+        end
+        )
+
         local healthBarFrame = CreateFrameWBG("Health Bar", tab)
-        healthBarFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -25)
-        healthBarFrame:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -5, -135)
+        healthBarFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -55)
+        healthBarFrame:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -5, -155)
         
         local width = floor(srslylawlUI.settings.hp.width)
         local height = floor(srslylawlUI.settings.hp.height)
@@ -2759,17 +2826,6 @@ local function CreateConfigWindow()
             srslylawlUI.SetDirtyFlag() end)
         AddTooltip(cFrame.sliders.maxDebuffs, "Requires UI Reload")
     end
-    local function ScrollFrame_OnMouseWheel(self, delta)
-        local newValue = self:GetVerticalScroll() - (delta * 20)
-
-        if newValue < 0 then
-            newValue = 0
-        elseif newValue > self:GetVerticalScrollRange() then
-            newValue = self:GetVerticalScrollRange()
-        end
-
-        self:SetVerticalScroll(newValue)
-    end
     local function Tab_OnClick(self)
         local parent = self:GetParent()
         PanelTemplates_SetTab(parent, self:GetID())
@@ -2843,17 +2899,125 @@ local function CreateConfigWindow()
 
         srslylawlUI.sortedSpellLists[auratype][spellListKey] = sortedSpellList
     end
-    local function CreateScrollFrame(parent)
-        local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", parent, "UIPanelScrollFrameTemplate")
-        ScrollFrame:SetClipsChildren(true)
-        ScrollFrame:SetScript("OnMouseWheel", ScrollFrame_OnMouseWheel)
-        ScrollFrame.ScrollBar:ClearAllPoints()
-        ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -40,
-                                       -18)
-        ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame,
-                                       "BOTTOMRIGHT", -7, 17)
+    local function OpenSpellAttributePanel(parentTab, spellId)
+        --auraType "buffs" or "debuffs"
+        local function CreatePanel(parentTab, auraType)
+            local attributePanel = CreateFrame("Frame","$parent_AttributePanel",parentTab, "BackdropTemplate")
+            parentTab:GetParent().AttributePanel = attributePanel --make the attribute panel unique to the auratype buff
+            attributePanel:SetBackdrop(
+                {
+                    bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+                    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+                    edgeSize = 10,
+                    insets = {left = 4, right = 4, top = 4, bottom = 4}
+            })
+            attributePanel:SetBackdropColor(1, 1, 1, .4)
 
-        return ScrollFrame
+            local function ButtonCheckFunction(auraType, category, attribute)
+                return function(self)
+                    local id = self:GetParent():GetAttribute("spellId")
+                    local checked = self:GetChecked()
+
+                    srslylawlUI[auraType].known[id][attribute] = checked
+                    srslylawl_saved[auraType].known[id][attribute] = checked
+
+                    if checked then
+                        srslylawlUI[auraType][category][id] = srslylawlUI[auraType].known[id]
+                        srslylawl_saved[auraType][category][id] = srslylawlUI[auraType].known[id]
+
+                        --remove from opposite list
+                        if category == "whiteList" then
+                            srslylawlUI[auraType].blackList[id] = nil
+                            srslylawl_saved[auraType].blackList[id] = nil
+                            self:GetParent().isBlacklisted:SetChecked(not checked)
+                        elseif category == "blackList" then
+                            srslylawlUI[auraType].whiteList[id] = nil
+                            srslylawl_saved[auraType].whiteList[id] = nil
+                            self:GetParent().isWhitelisted:SetChecked(not checked)
+                        end
+                    else
+                        srslylawlUI[auraType][category][id] = nil
+                        srslylawl_saved[auraType][category][id] = nil
+                    end
+
+
+
+                    --refresh buttons to reflect new list
+                    parentTab:Hide()
+                    parentTab:Show()
+                end
+            end
+
+            attributePanel.SpellIconFrame = CreateFrame("Frame", "$parent_SpellIconFrame", attributePanel)
+            attributePanel.SpellIconFrame:SetSize(75, 75)
+            attributePanel.SpellIconFrame:SetPoint("TOPLEFT", attributePanel, "TOPLEFT", 5, -5)
+            attributePanel.SpellIcon = attributePanel.SpellIconFrame:CreateTexture("$parent_SpellIcon")
+            attributePanel.SpellIcon:SetAllPoints(true)
+
+            attributePanel.SpellName = attributePanel:CreateFontString("$parent_SpellName", "OVERLAY", "GameFontGreenLarge")
+            attributePanel.SpellName:SetPoint("LEFT", attributePanel.SpellIcon, "RIGHT", 15, 0)
+
+            attributePanel.isWhitelisted = CreateCheckButton("Whitelisted", attributePanel)
+            attributePanel.isWhitelisted:SetScript("OnClick", ButtonCheckFunction(auraType, "whiteList", "isWhitelisted"))
+
+            attributePanel.isBlacklisted = CreateCheckButton("Blacklisted", attributePanel)
+            attributePanel.isBlacklisted:SetScript("OnClick", ButtonCheckFunction(auraType, "blackList", "isBlacklisted"))
+
+            if auraType == "buffs" then
+                attributePanel.isDefensive = CreateCheckButton("is Defensive effect", attributePanel)
+                attributePanel.isDefensive:SetPoint("TOPLEFT", attributePanel.SpellIcon, "BOTTOMLEFT", 5, -5)
+                attributePanel.isDefensive:SetScript("OnClick", ButtonCheckFunction(auraType, "defensives", "isDefensive"))
+                AddTooltip(attributePanel.isDefensive, "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations.\n\nNote: stacking effects may show their last seen, stacked values")
+
+                attributePanel.isAbsorb = CreateCheckButton("is Absorb effect", attributePanel)
+                attributePanel.isAbsorb:SetPoint("TOPLEFT", attributePanel.isDefensive, "BOTTOMLEFT")
+                attributePanel.isAbsorb:SetScript("OnClick", ButtonCheckFunction(auraType, "absorbs", "isAbsorb"))
+                AddTooltip(attributePanel.isAbsorb, "Does this buff provide damage absorption?\nDisabling this will stop the effect from being displayed as an absorb segment.\n\nNote: will cause errors if spell is not actually an absorb effect.")
+
+                attributePanel.isWhitelisted:SetPoint("TOPLEFT", attributePanel.isAbsorb, "BOTTOMLEFT")
+                AddTooltip(attributePanel.isWhitelisted, "Whitelisted buffs will always be displayed as buff frames.")
+
+                attributePanel.isBlacklisted:SetPoint("TOPLEFT", attributePanel.isWhitelisted, "BOTTOMLEFT")
+                AddTooltip(attributePanel.isBlacklisted, "Blacklisted buffs won't be displayed as buffs.\n\nNote: [SHIFT]-[RIGHTCLICK]ing a buff (or debuff) will automatically blacklist it.")
+            elseif auraType == "debuffs" then
+
+            end
+        end
+
+        local auraType = parentTab:GetAttribute("auraType")
+        local spellList = parentTab:GetAttribute("spellList")
+        local attributePanel = parentTab:GetParent().AttributePanel
+
+        if attributePanel == nil then
+            if spellId == nil then return end
+            CreatePanel(parentTab, auraType)
+            attributePanel = parentTab:GetParent().AttributePanel 
+        end
+
+        attributePanel:SetParent(parentTab)
+        attributePanel:SetPoint("TOPLEFT", parentTab.borderFrame,"TOPRIGHT")
+        attributePanel:SetPoint("BOTTOMRIGHT", parentTab,"BOTTOMRIGHT", -5, 5)
+        attributePanel:SetAttribute("spellId", spellId)
+
+        if spellId == nil then return end
+        
+
+        attributePanel.SpellIcon:SetTexture(select(3, GetSpellInfo(spellId)))
+        AddSpellTooltip(attributePanel.SpellIconFrame, spellId)
+        attributePanel.SpellName:SetText(select(1, GetSpellInfo(spellId)))
+
+        local isBlacklisted = srslylawlUI[auraType].known.isBlacklisted or srslylawlUI[auraType].blackList[spellId] ~= nil or false
+        local isWhitelisted = srslylawlUI[auraType].known.isWhitelisted or srslylawlUI[auraType].whiteList[spellId] ~= nil or false
+
+        attributePanel.isBlacklisted:SetChecked(isBlacklisted)
+        attributePanel.isWhitelisted:SetChecked(isWhitelisted)
+        if auraType == "buffs" then
+            attributePanel.isDefensive:SetChecked(srslylawlUI.buffs.known[spellId].isDefensive)
+            attributePanel.isAbsorb:SetChecked(srslylawlUI.buffs.known[spellId].isAbsorb)
+        elseif auraType == "debuffs" then
+
+        end
+        print("open", auraType, spellList, spellId)
     end
     local function CreateFauxScrollFrame(parent, spellList)
         --fauxscrollframe doesnt actually create a button for every item, it just creates max amount of buttons once and then updates them during scrolling
@@ -2861,11 +3025,15 @@ local function CreateConfigWindow()
             function Button_OnClick(self)
                 local id = self:GetID()
                 --local parent = self:GetParent()
-                local tabcontent = parent:GetParent():GetParent():GetParent()
+                local tabcontent = parent:GetParent():GetParent()
+                local spellId = self:GetAttribute("spellId")
                 for _, button in pairs(parent.Buttons) do
                     button:SetChecked(button:GetID() == id)
                 end
                 tabcontent.activeButton = self
+                tabcontent.lastSelectedSpellId = spellId
+                local auraType = tabcontent:GetAttribute("auraType")
+                OpenSpellAttributePanel(tabcontent, spellId)
             end
             local anchorParent = parent
             local iconSize = 25
@@ -2925,8 +3093,12 @@ local function CreateConfigWindow()
         CreateButtons(ScrollFrame, 11, parent)
         ScrollFrame:SetScript("OnVerticalScroll", function(self, offset) FauxScrollFrame_OnVerticalScroll(self, offset, self.ButtonHeight, ScrollFrame_Update) end)
         ScrollFrame:SetScript("OnShow", function(self)
-            GenerateSpellList(spellList, "", self:GetParent():GetParent():GetAttribute("auraType"))
-            ScrollFrame_Update(self) end)
+            local tab = self:GetParent():GetParent()
+            local filterText = tab.FilterFrame.EditBox:GetText()
+            GenerateSpellList(spellList, filterText or "", tab:GetAttribute("auraType"))
+            ScrollFrame_Update(self)
+            OpenSpellAttributePanel(tab)
+         end)
         return ScrollFrame
     end
     local function CreateScrollFrameWithBGAndChild(parent)
@@ -2954,6 +3126,7 @@ local function CreateConfigWindow()
         parent.ScrollFrame.child:SetPoint("RIGHT", parent.ScrollFrame, "RIGHT")
         parent.ScrollFrame.child:SetSize(parent.borderFrame:GetWidth() - 30, 100)
         parent.ScrollFrame:SetScrollChild(parent.ScrollFrame.child)
+        --Filtering the list by name or ID
         parent.FilterFrame = CreateFrameWBG("FilterFrame", parent)
         parent.FilterFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -20)
         parent.FilterFrame:SetPoint("BOTTOMRIGHT", parent.borderFrame, "TOPRIGHT", 0, 2)
@@ -2967,137 +3140,22 @@ local function CreateConfigWindow()
             end, "CENTER", 0, 0, false)
         parent.FilterFrame.EditBox:SetMaxLetters(20)
         parent.FilterFrame.EditBox:SetAllPoints(true)
+        --Allowing to add a new spell
+        parent.AddNewSpellFrame = CreateFrame("Button", "$parent_AddNewSpell", parent.FilterFrame, "UIPanelButtonTemplate")
+        parent.AddNewSpellFrame:SetSize(115, 25)
+        parent.AddNewSpellFrame:SetText("Add New Spell")
+        parent.AddNewSpellFrame:SetPoint("LEFT", parent.FilterFrame.EditBox, "RIGHT")
+
+
+
         return parent.ScrollFrame, parent.ScrollFrame.child
-    end
-    local function OpenSpellAttributePanel(parentTab)
-        local function AddSpell_OnEnterPressed(self)
-            local text = self:GetText()
-            local spellId = tonumber(text)
-            local tabcontent = self:GetParent():GetParent()
-
-            local listString = tabcontent:GetAttribute("spellList")
-
-            if listString and spellId then
-                srslylawlUI.Auras_ManuallyAddSpell(spellId, listString)
-                tabcontent:Hide()
-                tabcontent:Show()
-            end
-
-            self:SetText("")
-        end
-        local function RemoveSpell_OnClick(self)
-            local tabcontent = self:GetParent():GetParent()
-            local spellId = tabcontent.activeButton:GetAttribute("spellId")
-            local spellList = tabcontent:GetAttribute("spellList")
-            srslylawlUI.Auras_ManuallyRemoveSpell(spellId, spellList)
-            tabcontent:Hide()
-            tabcontent:Show()
-        end
-        local function MoveSpellToList(self)
-            local listKey = self:GetAttribute("spellList")
-            if listKey == nil then
-                error("no spellList found for this button")
-            end
-            local tabcontent = self:GetParent():GetParent()
-            local spellId = tabcontent.activeButton:GetAttribute("spellId")
-            srslylawlUI.Auras_ManuallyAddSpell(spellId, listKey)
-            tabcontent:Hide()
-            tabcontent:Show()
-        end
-        local function CreatePanel(parentTab)
-            parentTab.AttributePanel = CreateFrame("Frame","$parent_AttributePanel",parentTab, "BackdropTemplate")
-            parentTab.AttributePanel:SetBackdrop(
-                {
-                    bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-                    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-                    edgeSize = 10,
-                    insets = {left = 4, right = 4, top = 4, bottom = 4}
-                })
-            parentTab.AttributePanel:SetBackdropColor(1, 1, 1, .4)
-            parentTab.AttributePanel.NewSpellEditBox =
-                CreateFrame("EditBox", "$parent_AddSpellBox",parentTab.AttributePanel, "InputBoxTemplate")
-            parentTab.AttributePanel.NewSpellEditBox:SetAutoFocus(false)
-            parentTab.AttributePanel.NewSpellEditBox:SetPoint("TOPLEFT",parentTab.AttributePanel,"TOPLEFT", 15, -10)
-            parentTab.AttributePanel.NewSpellEditBox:SetPoint("BOTTOMRIGHT",parentTab.AttributePanel,"TOPRIGHT", -15,-60)
-            parentTab.AttributePanel.NewSpellEditBox.Title =
-                parentTab.AttributePanel.NewSpellEditBox:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-            parentTab.AttributePanel.NewSpellEditBox.Title:SetText("Add new spell")
-            parentTab.AttributePanel.NewSpellEditBox.Title:SetPoint("BOTTOM",parentTab.AttributePanel.NewSpellEditBox,"TOP", 0,-10)
-            parentTab.AttributePanel.NewSpellEditBox:SetText("enter spellID...")
-            parentTab.AttributePanel.NewSpellEditBox:SetScript("OnEnterPressed",AddSpell_OnEnterPressed)
-
-            parentTab.AttributePanel.RemoveSpellButton =
-                CreateFrame("Button", "$parent_RemoveSpellButton",
-                            parentTab.AttributePanel, "UIPanelButtonTemplate")
-            parentTab.AttributePanel.RemoveSpellButton:SetText(
-                "Remove spell from this list")
-            parentTab.AttributePanel.RemoveSpellButton:SetPoint("BOTTOMRIGHT",parentTab.AttributePanel,"BOTTOMRIGHT",-5, 5)
-            parentTab.AttributePanel.RemoveSpellButton:SetPoint("TOPLEFT",parentTab.AttributePanel,"BOTTOMLEFT", 5,30)
-            parentTab.AttributePanel.RemoveSpellButton:SetScript("OnClick",RemoveSpell_OnClick)
-
-            parentTab.AttributePanel.AddSpellToWhiteListButton =
-                CreateFrame("Button", "$AddSpellToWhiteListButton",
-                            parentTab.AttributePanel, "UIPanelButtonTemplate")
-            parentTab.AttributePanel.AddSpellToWhiteListButton:SetText(
-                "Add spell to whitelist")
-            parentTab.AttributePanel.AddSpellToWhiteListButton:SetPoint(
-                "BOTTOMRIGHT", parentTab.AttributePanel.RemoveSpellButton,
-                "TOPRIGHT", 0, 0)
-            parentTab.AttributePanel.AddSpellToWhiteListButton:SetPoint(
-                "TOPLEFT", parentTab.AttributePanel.RemoveSpellButton,
-                "TOPLEFT", 0, 25)
-            parentTab.AttributePanel.AddSpellToWhiteListButton:SetScript(
-                "OnClick", MoveSpellToList)
-            parentTab.AttributePanel.AddSpellToWhiteListButton:SetAttribute(
-                "spellList", "whiteList")
-
-            parentTab.AttributePanel.AddSpellToDefensivesButton =
-                CreateFrame("Button", "$AddSpellToDefensivesButton",
-                            parentTab.AttributePanel, "UIPanelButtonTemplate")
-            parentTab.AttributePanel.AddSpellToDefensivesButton:SetText(
-                "Add spell to defensives")
-            parentTab.AttributePanel.AddSpellToDefensivesButton:SetPoint(
-                "BOTTOMRIGHT",
-                parentTab.AttributePanel.AddSpellToWhiteListButton, "TOPRIGHT",
-                0, 0)
-            parentTab.AttributePanel.AddSpellToDefensivesButton:SetPoint(
-                "TOPLEFT", parentTab.AttributePanel.AddSpellToWhiteListButton,
-                "TOPLEFT", 0, 25)
-            parentTab.AttributePanel.AddSpellToDefensivesButton:SetScript(
-                "OnClick", MoveSpellToList)
-            parentTab.AttributePanel.AddSpellToDefensivesButton:SetAttribute(
-                "spellList", "defensives")
-
-            parentTab.AttributePanel.AddSpellToAbsorbsButton =
-                CreateFrame("Button", "$AddSpellToAbsorbsButton",
-                            parentTab.AttributePanel, "UIPanelButtonTemplate")
-            parentTab.AttributePanel.AddSpellToAbsorbsButton:SetText(
-                "Add spell to absorbs")
-            parentTab.AttributePanel.AddSpellToAbsorbsButton:SetPoint(
-                "BOTTOMRIGHT",
-                parentTab.AttributePanel.AddSpellToDefensivesButton, "TOPRIGHT",
-                0, 0)
-            parentTab.AttributePanel.AddSpellToAbsorbsButton:SetPoint("TOPLEFT",parentTab.AttributePanel.AddSpellToDefensivesButton,"TOPLEFT",0, 25)
-            parentTab.AttributePanel.AddSpellToAbsorbsButton:SetScript(
-                "OnClick", MoveSpellToList)
-            parentTab.AttributePanel.AddSpellToAbsorbsButton:SetAttribute(
-                "spellList", "absorbs")
-        end
-
-        if parentTab.AttributePanel == nil then CreatePanel(parentTab) end
-
-        local buttons = {}
-
-        parentTab.AttributePanel:SetParent(parentTab)
-        parentTab.AttributePanel:SetPoint("TOPLEFT", parentTab.borderFrame,"TOPRIGHT")
-        parentTab.AttributePanel:SetPoint("BOTTOMRIGHT", parentTab,"BOTTOMRIGHT", -5, 5)
     end
     local function CreateBuffTabs(knownSpells, absorbSpells, defensives, whiteList, blackList)
         local function Menu_OnShow(parentTab, list)
             return function()
-                OpenSpellAttributePanel(parentTab)
-                local mainButton = nil
-                if mainButton then mainButton:Click() end
+                --OpenSpellAttributePanel(parentTab, "buffs")
+                --local mainButton = parentTab.Buttons[1]
+                --if mainButton then mainButton:Click() end
             end
         end
         local function CreateFrames(tab, key)
@@ -3115,9 +3173,9 @@ local function CreateConfigWindow()
     local function CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots)
         local function Menu_OnShow(parentTab, list)
             return function()
-                OpenSpellAttributePanel(parentTab)
-                local mainButton = nil
-                if mainButton then mainButton:Click() end
+                --OpenSpellAttributePanel(parentTab, "debuffs")
+                --local mainButton = parentTab.Buttons[1]
+                --if mainButton then mainButton:Click() end
             end
         end
         local function CreateFrames(tab, key)
@@ -3360,7 +3418,7 @@ local function Initialize()
             --CCDurationBar:SetPoint("BOTTOMLEFT", unitFrame.unit.auraAnchor, "BOTTOMRIGHT", 17, 0)
             unitFrame.unit.CCDurBar.icon = unitFrame.unit.CCDurBar:CreateTexture("icon", "OVERLAY", nil, 2)
             --unitFrame.unit.CCDurBar.icon:SetPoint("LEFT", CCDurationBar, "RIGHT")
-            unitFrame.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", unitFrame.unit.auraAnchor, "BOTTOMRIGHT", petW+2, 0)
+            unitFrame.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", unitFrame.unit, "BOTTOMRIGHT", petW+4, 0)
             CCDurationBar:SetPoint("LEFT", unitFrame.unit.CCDurBar.icon, "RIGHT", 1, 0)
             unitFrame.unit.CCDurBar.icon:SetSize(iconSize, iconSize)
             unitFrame.unit.CCDurBar.icon:SetTexCoord(.08, .92, .08, .92)
