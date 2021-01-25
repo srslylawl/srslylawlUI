@@ -384,8 +384,8 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
     --     select(4, buttonFrame.pet:GetPoint()), 
     --     select(5, buttonFrame.pet:GetPoint())
     -- )
-    buttonFrame.pet:SetPoint("TOPLEFT", buttonFrame.unit, "TOPRIGHT", 3, 0)
-    buttonFrame.pet:SetPoint("BOTTOMRIGHT", buttonFrame.unit, "BOTTOMRIGHT", 18, 0)
+    buttonFrame.pet:SetPoint("TOPLEFT", buttonFrame.unit, "TOPRIGHT", 2, 0)
+    buttonFrame.pet:SetPoint("BOTTOMRIGHT", buttonFrame.unit, "BOTTOMRIGHT", 17, 0)
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
 
     srslylawlUI.CreateBackground(buttonFrame.pet)
@@ -419,6 +419,7 @@ function srslylawlUI.Frame_ResetDimensions(button)
     local h = srslylawlUI.settings.hp.height
     local w = srslylawlUI.settings.hp.width
     if unitHealthBars ~= nil then
+
         if unitHealthBars[unitType] ~= nil then
             if unitHealthBars[unitType]["width"] ~= nil then
                 w = unitHealthBars[unitType]["width"]
@@ -445,7 +446,7 @@ function srslylawlUI.Frame_ResetDimensions(button)
             --button.unit:SetHeight(h)
             --button:SetWidth(w + 2)
             --button:SetHeight(h + 2)
-            button:SetSize(srslylawlUI.settings.hp.width+2, srslylawlUI.settings.hp.height+2)
+            button:SetSize(srslylawlUI.settings.hp.width+1, srslylawlUI.settings.hp.height+1)
             button.unit:SetSize(srslylawlUI.settings.hp.width, srslylawlUI.settings.hp.height)
             button.pet:Execute([[
                 local h = self:GetFrameRef("unit"):GetHeight()
@@ -2306,10 +2307,10 @@ function srslylawlUI.CreateBackground(frame)
     local t = background:CreateTexture(nil, "BACKGROUND")
     t:SetColorTexture(0, 0, 0, .5)
     t:SetAllPoints(background)
-    background:SetPoint("TOPLEFT", frame, "TOPLEFT", -2, 2)
-    background:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 2, -2)
-    background:SetWidth(frame:GetWidth() + 2)
-    background:SetHeight(srslylawlUI.settings.hp.height + 2)
+    background:SetPoint("TOPLEFT", frame, "TOPLEFT", -1, 1)
+    background:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 1, -1)
+    --background:SetWidth(frame:GetWidth() + 2)
+    --background:SetHeight(srslylawlUI.settings.hp.height + 2)
     background.texture = t
     background:Show()
     background:SetFrameStrata("BACKGROUND")
