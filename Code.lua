@@ -2154,50 +2154,58 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
     ProcessID(spellId, debuffIndex, unit, arg1)
     --end
 end
-function srslylawlUI.Auras_ManuallyAddSpell(spellId, list)
+function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
     -- we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it
     -- it should get added/updated though once we ever see it on any party members
 
-    local isKnown = srslylawlUI.buffs.known[spellId] ~= nil
+    local name, rank, icon, castTime, minRange, maxRange, spellId = GetSpellInfo(IDorName)
 
-    if isKnown then
-        local spell = srslylawlUI.buffs.known[spellId]
-
-        if srslylawlUI.buffs[list][spellId] ~= nil then
-            srslylawlUI.Log(spell.name .. " is already part of list " .. list .. ", I refuse to work under these conditions.")
-            return
-        end
-
-        -- we already know the spell, just move it to list and remove from other lists
-        srslylawlUI.buffs[list][spellId] = spell
-        srslylawl_saved.buffs[list][spellId] = spell
-        srslylawlUI.buffs.blackList[spellId] = nil
-        srslylawl_saved.buffs.blackList[spellId] = nil
-        srslylawlUI.Log(spell.name .. " added to " .. list .. "!")
-    else
-        local n = GetSpellInfo(spellId)
-        if n == nil then
-            srslylawlUI.Log("Spell with ID: " .. spellId ..
-                                " not found. Make sure you typed it correctly.")
-            return
-        end
-        local spell = {name = n}
-
-        srslylawlUI.buffs.known[spellId] = spell
-        srslylawl_saved.buffs.known[spellId] = spell
-        srslylawlUI.Log("New spell approved: " .. n .. "!")
-    end
-end
-function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, list)
-    local spell = srslylawlUI.buffs[list][spellId]
-    if list == "known" then
-        srslylawlUI.Log(
-            "I never forget spells! Unless.. you delete my savefile.")
+    if name == nil then
+        srslylawlUI.Log("Spell " .. IDorName .. " not found. Make sure you typed the name/spell ID correctly.")
         return
     end
-    srslylawlUI.buffs[list][spellId] = nil
-    srslylawl_saved.buffs[list][spellId] = nil
-    srslylawlUI.Log(spell.name .. " removed from " .. list .. "!")
+
+    local link = GetSpellLink(spellId)
+
+    local isKnown = srslylawlUI[auraType].known[spellId] ~= nil
+
+    if isKnown then
+        srslylawlUI.Log(link .. " is already known.")
+    else
+        local spell = {}
+        spell.name = name
+        spell.text = ""
+
+
+        if auraType == "buffs" then
+            spell.isAbsorb = false
+            spell.isDefensive = false
+        elseif auraType == "debuffs" then
+            spell.crowdControlType = "none"
+        end
+
+
+        srslylawlUI[auraType].known[spellId] = spell
+        srslylawl_saved[auraType].known[spellId] = spell
+        srslylawlUI.Log("New spell added: " .. link .. "!")
+    end
+end
+function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
+
+    srslylawlUI[auraType].known[spellId] = nil
+    srslylawl_saved[auraType].known[spellId] = nil
+    local link = GetSpellLink(spellId)
+
+    for k, category in pairs(srslylawlUI[auraType]) do
+        if category[spellId] ~= nil then
+            category[spellId] = nil
+            srslylawl_saved[auraType][k][spellId] = nil
+            srslylawlUI.Log(link .. " removed from "..k.."!")
+        end
+    end
+
+    srslylawlUI.Log(link .. " removed from " .. auraType .. "!")
+
 
     -- see if the spell is somewhere else, if not then put it to unapproved spells
     -- no longer needed since unapproved is now just a blacklist
@@ -2895,15 +2903,22 @@ local function CreateConfigWindow()
         if spellList == nil then error("spelllist nil "..spellListKey.. " "..auratype) end
         -- sort list
         local sortedSpellList = {}
+        local exactMatch = nil
         for spellId, _ in pairs(spellList) do
             local name, _, icon = GetSpellInfo(spellId)
             local spell = {name = name, spellId = spellId, icon = icon}
-            if startsWith(name, filter) or startsWith(spellId, filter) then
+            if tostring(spellId) == tostring(filter) then
+                exactMatch = spell
+            elseif startsWith(name, filter) or startsWith(spellId, filter) then
                 table.insert(sortedSpellList, spell)
             end
         end
 
         table.sort(sortedSpellList, function(a, b) return b.name > a.name end)
+
+        if exactMatch ~= nil then
+            table.insert(sortedSpellList, 1, exactMatch)
+        end
 
         --print("SpellList", spellListKey, "Generated with filter ", filter, "and len", #sortedSpellList)
 
@@ -2927,8 +2942,6 @@ local function CreateConfigWindow()
                 return function(self)
                     local id = self:GetParent():GetAttribute("spellId")
                     local checked = self:GetChecked()
-
-                    print(auraType, id, attribute, checked)
 
                     srslylawlUI[auraType].known[id][attribute] = checked
                     srslylawl_saved[auraType].known[id][attribute] = checked
@@ -3003,6 +3016,19 @@ local function CreateConfigWindow()
                 UIDropDownMenu_SetWidth(attributePanel.CCType, 200)
                 UIDropDownMenu_SetText(attributePanel.CCType, "Crowd Control Type")
             end
+
+            attributePanel.RemoveSpell = CreateFrame("Button", "$parent_RemoveSpell", attributePanel, "UIPanelButtonTemplate")
+            attributePanel.RemoveSpell:SetSize(200, 25)
+            attributePanel.RemoveSpell:SetPoint("BOTTOMRIGHT", attributePanel, "BOTTOMRIGHT", -5, 5)
+            attributePanel.RemoveSpell:SetScript("OnClick", function(self)
+                local spellId = attributePanel:GetAttribute("spellId")
+                local auraType = parentTab:GetAttribute("auraType")
+                srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
+
+                parentTab:GetParent():Hide()
+                parentTab:GetParent():Show()
+                attributePanel:Hide()
+            end)
         end
 
         local auraType = parentTab:GetAttribute("auraType")
@@ -3015,6 +3041,7 @@ local function CreateConfigWindow()
             attributePanel = parentTab:GetParent().AttributePanel 
         end
 
+        attributePanel:Show()
         attributePanel:SetParent(parentTab)
         attributePanel:SetPoint("TOPLEFT", parentTab.borderFrame,"TOPRIGHT")
         attributePanel:SetPoint("BOTTOMRIGHT", parentTab,"BOTTOMRIGHT", -5, 5)
@@ -3030,6 +3057,8 @@ local function CreateConfigWindow()
         attributePanel.SpellIcon:SetTexture(select(3, GetSpellInfo(spellId)))
         AddSpellTooltip(attributePanel.SpellIconFrame, spellId)
         attributePanel.SpellName:SetText(select(1, GetSpellInfo(spellId)))
+        attributePanel.RemoveSpell:SetText("Remove Spell from "..auraType)
+        AddTooltip(attributePanel.RemoveSpell, "WARNING: this will remove the spell from every >\""..auraType.."\"< category, including \"Encountered\".\nIf you just want to change its sub-category, use the appropriate checkbox/dropdown.")
 
         local isBlacklisted = srslylawlUI[auraType].known.isBlacklisted or srslylawlUI[auraType].blackList[spellId] ~= nil or false
         local isWhitelisted = srslylawlUI[auraType].known.isWhitelisted or srslylawlUI[auraType].whiteList[spellId] ~= nil or false
@@ -3214,6 +3243,13 @@ local function CreateConfigWindow()
         parent.AddNewSpellFrame:SetSize(115, 25)
         parent.AddNewSpellFrame:SetText("Add New Spell")
         parent.AddNewSpellFrame:SetPoint("LEFT", parent.FilterFrame.EditBox, "RIGHT")
+        parent.AddNewSpellFrame:SetScript("OnClick", function(self)
+            local input = parent.FilterFrame.EditBox:GetText()
+            local auraType = parent:GetAttribute("auraType")
+            srslylawlUI.Auras_ManuallyAddSpell(input, auraType)
+            parent:GetParent():GetParent():Hide()
+            parent:GetParent():GetParent():Show()
+        end)
 
 
 
