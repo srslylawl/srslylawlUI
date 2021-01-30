@@ -5,9 +5,9 @@ srslylawlUI.settings = {
     hp = {width = 100, height = 50, minWidthPercent = 0.45},
     pet = {width = 15},
     buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT",
-            showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true},
+            showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
     debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true,
-            maxDebuffs = 15, maxDuration = 180},
+            maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
     maxAbsorbFrames = 20,
     autoApproveKeywords = true,
     showArena = false,
@@ -80,10 +80,9 @@ local debugString = ""
 
 -- TODO:
 --      config window: 
---          show buffs/debuffs default settings
+--          show buffs/debuffs visibility settings
 --          faux frames absorb auras
 --          power/petbar width
---          add new spell
 --      readycheck
 --      necrotic/healabsorb
 --      phase/shard
@@ -356,6 +355,10 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
         buttonFrame:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
         buttonFrame:RegisterEvent("UNIT_HEAL_PREDICTION")
         buttonFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+        buttonFrame.pet:SetScript("OnShow", function(self)
+            local unit = self:GetParent():GetAttribute("unit")
+            srslylawlUI.Frame_ResetPetButton(self, unit.."pet")
+        end)
 
         buttonFrame.unit:SetScript("OnEnter", function(self)
             local unit = self:GetParent():GetAttribute("unit")
@@ -371,17 +374,19 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
         buttonFrame.TimeSinceLastUpdate = 0
         buttonFrame.wasInRange = true
 
+        --update range/online/alive
         if buttonFrame:GetAttribute("unit") ~= "player" then
             buttonFrame:SetScript("OnUpdate", function(self, deltaTime)
                 self.TimeSinceLastUpdate = self.TimeSinceLastUpdate + deltaTime;
                 if (self.TimeSinceLastUpdate > srslylawlUI.settings.frameOnUpdateInterval) then
                     --check for unit range
                     local unit = self:GetAttribute("unit")
-                    local inRange = UnitInRange(unit)
-                    if self.wasInRange ~= inRange then
+                    local range = UnitInRange(unit) ~= self.wasInRange
+                    local online = UnitIsConnected(unit) ~= self.online
+                    local alive = not UnitIsDeadOrGhost(unit) ~= self.alive
+                    if range or online or alive then
                         srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
                     end
-                    self.wasInRange = inRange
                     self.TimeSinceLastUpdate = 0;
                 end
             end)
@@ -398,7 +403,7 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
         srslylawlUI.CreateBackground(buttonFrame.unit.healthBar)
     end
     buttonFrame.unit.healthBar.name:SetPoint("BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
-    buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 2, 2)
+    buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 0, 2)
     buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY", 7)
     buttonFrame.unit.auras = {}
     srslylawlUI.Frame_ResetDimensions(buttonFrame)
@@ -638,6 +643,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local healthMax = UnitHealthMax(unit)
     local healthPercent = ceil(health / healthMax * 100)
     local online = UnitIsConnected(unit)
+    local inRange = UnitInRange(unit)
     local SBColor = { r = classColor.r, g = classColor.g, b =classColor.b, a = classColor.a}
     -- button.healthBar.text:SetText(health .. "/" .. healthMax .. " " ..
     --                                 healthPercent .. "%")
@@ -646,18 +652,17 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     if not alive or not online then
         -- If dead, set bar color to grey and fill bar
         SBColor.r, SBColor.g, SBColor.b = 0.3, 0.3, 0.3
-        button.healthBar:SetMinMaxValues(0, 1)
-        button.healthBar:SetValue(1)
-        button.dead = true
+
         if not alive then button.healthBar.text:SetText("DEAD") end
         if not online then button.healthBar.text:SetText("offline") end
-    else
-        button.healthBar:SetMinMaxValues(0, healthMax)
-        button.healthBar:SetValue(health)
-        button.dead = false
     end
+    button.dead = (not alive)
+    button.online = online
+    button.wasInRange = inRange
+    button.healthBar:SetMinMaxValues(0, healthMax)
+    button.healthBar:SetValue(health)
 
-    if unit == "player" or UnitInRange(unit) then SBColor.a = 1
+    if unit == "player" or inRange then SBColor.a = 1
     else SBColor.a = 0.4
     end
 
@@ -1276,10 +1281,6 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         end
     end
 
-    if not UnitExists(unit) then
-        error(unit.. "does not exist")
-    end
-
     if unitbutton["buffFrames"] == nil and srslylawlUI.settings.buffs.maxBuffs > 0 then -- this unit doesnt own the frames yet
         unitbutton.buffFrames = {}
         unitbutton.buffFrames = units[unit].buffFrames
@@ -1312,12 +1313,12 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(spellId, i, unit, absorb)
-            if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and i <= srslylawlUI.settings.buffs.maxBuffs then
+            if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.settings.buffs.maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
                 f:Show()
                 currentBuffFrame = currentBuffFrame + 1
-            else
+            elseif f then
                 f:Hide()
             end
             -- track auras, check if we care to track it
@@ -1346,7 +1347,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                     UntrackAura(i)
                 end
             end
-        else -- no more buffs, hide frames
+        elseif f then -- no more buffs, hide frames
             f:Hide()
         end
     end
@@ -1377,7 +1378,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                 table.insert(appliedCC, cc)
             end
 
-            if srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and i <= srslylawlUI.settings.debuffs.maxDebuffs then
+            if srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= srslylawlUI.settings.debuffs.maxDebuffs then
                 f.icon:SetTexture(icon)
                 if ( count > 1 ) then
 		            local countText = count;
@@ -1386,7 +1387,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
 		            end
 		            f.count:Show();
 		            f.count:SetText(countText);
-	            else
+	            elseif f then
 		            f.count:Hide();
 	            end
                 f:SetID(i)
@@ -1862,6 +1863,15 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         -- make sure that our first absorb anchor moves with the bar fill amount
     srslylawlUI.Frame_MoveAbsorbAnchorWithHealth(unit)
 end
+function srslylawlUI_Frame_HandleAuras_ALL()
+    for k, v in pairs(unitTable) do
+        local f = srslylawlUI.Frame_GetByUnitType(v)
+
+        if f.unit then
+            srslylawlUI.Frame_HandleAuras(f.unit, v)
+        end
+    end
+end
 function srslylawlUI.Frame_ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, isHealPrediction)
     frame:SetAttribute("absorbAmount", absorbAmount)
     frame:SetHeight(height)
@@ -1913,6 +1923,9 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
+    local function NotDefault(bool)
+        return bool ~= srslylawlUI.settings.buffs.showDefault
+    end
     if srslylawlUI.buffs.whiteList[spellId] ~= nil then
         --always show whitelisted spells
         return true
@@ -1928,30 +1941,38 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
         return false
     end
 
-    if srslylawlUI.settings.buffs.showDefensives and srslylawlUI.buffs.defensives[spellId] ~= nil then
-        --if we want to show defensives, do so
-        return true
+    if srslylawlUI.buffs.defensives[spellId] ~= nil then
+        --its a defensive spell 
+        return srslylawlUI.settings.buffs.showDefensives
     end
 
-    if duration == 0 or duration > srslylawlUI.settings.buffs.maxDuration then
-        --dont show infinite duration spells or long duration spells
-        return false
+    if duration == 0 then
+        return srslylawlUI.settings.buffs.showInfiniteDuration
     end
-
-    if source == "player" and srslylawlUI.settings.buffs.showCastByPlayer then
-        --show cast by player if wanted
-        return true
+    
+    if duration > srslylawlUI.settings.buffs.maxDuration then
+        if NotDefault(srslylawlUI.buffs.showLongDuration) then
+            return srslylawlUI.buffs.showLongDuration
+        end
     end
+    
+    if source == "player" and castByPlayer then
+        if NotDefault(srslylawlUI.settings.buffs.showCastByPlayer) then
+            return srslylawlUI.settings.buffs.showCastByPlayer
+        end
+    end
+    
 
-
-
-    return true
+    return srslylawlUI.settings.buffs.showDefault
 end
 function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
+    local function NotDefault(bool)
+        return bool ~= srslylawlUI.settings.debuffs.showDefault
+    end
     if srslylawlUI.debuffs.whiteList[spellId] ~= nil then
         --always show whitelisted spells
         return true
@@ -1961,18 +1982,27 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
         --never show blacklisted spells
         return false
     end
-
-    if source == "player" and srslylawlUI.settings.debuffs.showCastByPlayer then
-        --show cast by player if wanted
-        return true
+    
+    if source == "player" and castByPlayer then
+        if NotDefault(srslylawlUI.settings.debuffs.showCastByPlayer) then
+            return srslylawlUI.settings.debuffs.showCastByPlayer
+        end
+    end
+    
+    if duration == 0 then
+        if NotDefault(srslylawlUI.settings.debuffs.showInfiniteDuration) then
+            return srslylawlUI.settings.debuffs.showInfiniteDuration
+        end
+    end
+    
+    if duration > srslylawlUI.settings.debuffs.maxDuration then
+        if NotDefault(srslylawlUI.settings.debuffs.showLongDuration) then
+            return srslylawlUI.settings.debuffs.showLongDuration 
+        end
     end
 
-    if duration == 0 or duration > srslylawlUI.settings.buffs.maxDuration then
-        --dont show infinite duration spells or long duration spells
-        return false
-    end
 
-    return true
+    return srslylawlUI.settings.debuffs.showDefault
 end
 function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
     local function SpellIsKnown(spellId)
@@ -2239,6 +2269,9 @@ end
 --Config
 function srslylawlUI.ToggleConfigVisible(visible)
     if visible then
+        if not srslylawlUI_ConfigFrame then
+            srslylawlUI.CreateConfigWindow()
+        end
         srslylawlUI_ConfigFrame:Show()
     else
         srslylawlUI_ConfigFrame:Hide()
@@ -2336,7 +2369,7 @@ function srslylawlUI.RemoveDirtyFlag()
     unsaved.flag = false
     for _, v in ipairs(unsaved.buttons) do v:Disable() end
 end
-local function CreateConfigWindow()
+function srslylawlUI.CreateConfigWindow()
     local function CreateEditBox(name, parent, defaultValue, funcOnTextChanged,
                                  point, xOffset, yOffset, isNumeric)
         local editBox = CreateFrame("EditBox", name, parent, "BackdropTemplate")
@@ -2610,72 +2643,188 @@ local function CreateConfigWindow()
         c:SetPoint("TOPRIGHT", 0, 0)
     end
     local function FillGeneralTab(tab)
-        -- local lockFrames = CreateCheckButton("Make frames moveable", tab)
-        -- lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
-        -- lockFrames:SetScript("OnClick", function(self)
-        --     srslylawlUI_PartyHeader:SetMovable(self:GetChecked())
-        --     srslylawlUI_Frame_ToggleFauxFrames(self:GetChecked())
-        -- end
-        -- )
+        local function CreateVisibilityFrame(tab)
+            local visibility = CreateFrameWBG("Party Frame Visibility", tab)
+            visibility:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -25)
+            visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -55)
+            tab.visibility = visibility
 
-        local visibility = CreateFrameWBG("Party Frame Visibility", tab)
-        visibility:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -25)
-        visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -55)
+            local showParty = CreateCheckButton("Party", visibility)
+            showParty:SetScript("OnClick", function(self)
+                srslylawlUI.settings.showParty = self:GetChecked()
+                srslylawlUI.Frame_UpdateVisibility()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showParty, "Show Frames while in a Party")
+            showParty:SetPoint("TOPLEFT", visibility, "TOPLEFT")
+            showParty:SetChecked(srslylawlUI.settings.showParty)
+            showParty:SetAttribute("defaultValue", srslylawlUI.settings.showParty)
 
-        local showParty = CreateCheckButton("Party", visibility)
-        showParty:SetScript("OnClick", function(self)
-            srslylawlUI.settings.showParty = self:GetChecked()
-            srslylawlUI.Frame_UpdateVisibility()
-            srslylawlUI.SetDirtyFlag()
-        end)
-        AddTooltip(showParty, "Show Frames while in a Party")
-        showParty:SetPoint("TOPLEFT", visibility, "TOPLEFT")
-        showParty:SetChecked(srslylawlUI.settings.showParty)
-        showParty:SetAttribute("defaultValue", srslylawlUI.settings.showParty)
+            local showRaid = CreateCheckButton("Raid", visibility)
+            showRaid:SetScript("OnClick", function(self)
+                srslylawlUI.settings.showRaid = self:GetChecked()
+                srslylawlUI.Frame_UpdateVisibility()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            showRaid:SetPoint("LEFT", showParty.text, "RIGHT")
+            AddTooltip(showRaid, "Show Frames while in a Raid (not recommended)")
+            showRaid:SetChecked(srslylawlUI.settings.showRaid)
+            showRaid:SetAttribute("defaultValue", srslylawlUI.settings.showRaid)
 
-        local showRaid = CreateCheckButton("Raid", visibility)
-        showRaid:SetScript("OnClick", function(self)
-            srslylawlUI.settings.showRaid = self:GetChecked()
-            srslylawlUI.Frame_UpdateVisibility()
-            srslylawlUI.SetDirtyFlag()
-        end)
-        showRaid:SetPoint("LEFT", showParty.text, "RIGHT")
-        AddTooltip(showRaid, "Show Frames while in a Raid (not recommended)")
-        showRaid:SetChecked(srslylawlUI.settings.showRaid)
-        showRaid:SetAttribute("defaultValue", srslylawlUI.settings.showRaid)
+            local showPlayer = CreateCheckButton("Show Player", visibility)
+            showPlayer:SetScript("OnClick", function(self)
+                srslylawlUI.settings.showPlayer = self:GetChecked()
+                srslylawlUI.Frame_UpdateVisibility()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            showPlayer:SetPoint("LEFT", showRaid.text, "RIGHT")
+            AddTooltip(showPlayer, "Show Player in Party Frames (recommended)")
+            showPlayer:SetChecked(srslylawlUI.settings.showPlayer)
+            showPlayer:SetAttribute("defaultValue", srslylawlUI.settings.showPlayer)
 
-        local showPlayer = CreateCheckButton("Show Player", visibility)
-        showPlayer:SetScript("OnClick", function(self)
-            srslylawlUI.settings.showPlayer = self:GetChecked()
-            srslylawlUI.Frame_UpdateVisibility()
-            srslylawlUI.SetDirtyFlag()
-        end)
-        showPlayer:SetPoint("LEFT", showRaid.text, "RIGHT")
-        AddTooltip(showPlayer, "Show Player in Party Frames (recommended)")
-        showPlayer:SetChecked(srslylawlUI.settings.showPlayer)
-        showPlayer:SetAttribute("defaultValue", srslylawlUI.settings.showPlayer)
+            local showSolo = CreateCheckButton("Solo", visibility)
+            showSolo:SetScript("OnClick", function(self)
+                srslylawlUI.settings.showSolo = self:GetChecked()
+                srslylawlUI.Frame_UpdateVisibility()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            showSolo:SetPoint("LEFT", showPlayer.text, "RIGHT")
+            AddTooltip(showSolo, "Show Frames while not in a group (will assume Show Player)")
+            showSolo:SetChecked(srslylawlUI.settings.showSolo)
+            showSolo:SetAttribute("defaultValue", srslylawlUI.settings.showSolo)
 
-        local showSolo = CreateCheckButton("Solo", visibility)
-        showSolo:SetScript("OnClick", function(self)
-            srslylawlUI.settings.showSolo = self:GetChecked()
-            srslylawlUI.Frame_UpdateVisibility()
-            srslylawlUI.SetDirtyFlag()
-        end)
-        showSolo:SetPoint("LEFT", showPlayer.text, "RIGHT")
-        AddTooltip(showSolo, "Show Frames while not in a group (will assume Show Player)")
-        showSolo:SetChecked(srslylawlUI.settings.showSolo)
-        showSolo:SetAttribute("defaultValue", srslylawlUI.settings.showSolo)
+            local showArena = CreateCheckButton("Arena", visibility)
+            showArena:SetScript("OnClicK", function(self)
+                srslylawlUI.settings.showArena = self:GetChecked()
+                srslylawlUI.Frame_UpdateVisibility()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            showArena:SetPoint("LEFT", showSolo.text, "RIGHT")
+            showArena:SetChecked(srslylawlUI.settings.showArena)
+            showArena:SetAttribute("defaultValue", srslylawlUI.settings.showArena)
+            AddTooltip(showArena, "Show Frames in Arena")
 
-        local showArena = CreateCheckButton("Arena", visibility)
-        showArena:SetScript("OnClicK", function(self)
-            srslylawlUI.settings.showArena = self:GetChecked()
-            srslylawlUI.Frame_UpdateVisibility()
-            srslylawlUI.SetDirtyFlag()
-        end)
-        showArena:SetPoint("LEFT", showSolo.text, "RIGHT")
-        showArena:SetChecked(srslylawlUI.settings.showArena)
-        showArena:SetAttribute("defaultValue", srslylawlUI.settings.showArena)
-        AddTooltip(showArena, "Show Frames in Arena")
+        end
+
+        local function CreateBuffConfigFrame(tab)
+            local buffSettings = CreateFrameWBG("Buffs", tab)
+            buffSettings:SetPoint("TOPLEFT", tab.visibility, "BOTTOMLEFT", 0, -15)
+            buffSettings:SetPoint("BOTTOMRIGHT", tab.visibility, "BOTTOMRIGHT", 0, -45)
+            tab.buffSettings = buffSettings
+
+            local showDefault = CreateCheckButton("Show per Default", buffSettings)
+            showDefault:SetScript("OnClick", function(self)
+                srslylawlUI.settings.buffs.showDefault = self:GetChecked()
+                srslylawlUI_Frame_HandleAuras_ALL()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showDefault, "Show/hide all buffs per default, except if they are in/excluded by another setting.\n\nRecommended: Hiding all per default, while showing defensives and whitelisted Auras.")
+            showDefault:SetPoint("TOPLEFT", buffSettings, "TOPLEFT")
+            showDefault:SetChecked(srslylawlUI.settings.buffs.showDefault)
+            showDefault:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showDefault)
+
+            local showDefensives = CreateCheckButton("Show Defensives", buffSettings)
+            showDefensives:SetScript("OnClick", function(self)
+                srslylawlUI.settings.buffs.showDefensives = self:GetChecked()
+                srslylawlUI_Frame_HandleAuras_ALL()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showDefensives, "Show/hide buffs categorized as Defensives.")
+            showDefensives:SetPoint("LEFT", showDefault.text, "RIGHT")
+            showDefensives:SetChecked(srslylawlUI.settings.buffs.showDefensives)
+            showDefensives:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showDefensives)
+
+            local showCastByPlayer = CreateCheckButton("Show cast by Player", buffSettings)
+            showCastByPlayer:SetScript("OnClick", function(self)
+                srslylawlUI.settings.buffs.showCastByPlayer = self:GetChecked()
+                srslylawlUI_Frame_HandleAuras_ALL()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showCastByPlayer, "Show/hide buffs that have been applied by the Player.")
+            showCastByPlayer:SetPoint("LEFT", showDefensives.text, "RIGHT")
+            showCastByPlayer:SetChecked(srslylawlUI.settings.buffs.showCastByPlayer)
+            showCastByPlayer:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showCastByPlayer)
+
+            local showInfiniteDuration = CreateCheckButton("Show infinite duration", buffSettings)
+            showInfiniteDuration:SetScript("OnClick", function(self)
+                srslylawlUI.settings.buffs.showInfiniteDuration = self:GetChecked()
+                srslylawlUI_Frame_HandleAuras_ALL()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showInfiniteDuration, "Show/hide buffs with no expiration time.")
+            showInfiniteDuration:SetPoint("LEFT", showCastByPlayer.text, "RIGHT")
+            showInfiniteDuration:SetChecked(srslylawlUI.settings.buffs.showInfiniteDuration)
+            showInfiniteDuration:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showInfiniteDuration)
+
+            local showLongDuration = CreateCheckButton("Show long duration", buffSettings)
+            showLongDuration:SetScript("OnClick", function(self)
+                srslylawlUI.settings.buffs.showLongDuration = self:GetChecked()
+                srslylawlUI_Frame_HandleAuras_ALL()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showLongDuration, "Show/hide buffs with a base duration longer than the specified threshold.")
+            showLongDuration:SetPoint("LEFT", showInfiniteDuration.text, "RIGHT")
+            showLongDuration:SetChecked(srslylawlUI.settings.buffs.showLongDuration)
+            showLongDuration:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showLongDuration)
+        end
+
+        local function CreateDebuffConfigFrame(tab)
+            local debuffSettings = CreateFrameWBG("Debuffs", tab)
+            debuffSettings:SetPoint("TOPLEFT", tab.buffSettings, "BOTTOMLEFT", 0, -15)
+            debuffSettings:SetPoint("BOTTOMRIGHT", tab.buffSettings, "BOTTOMRIGHT", 0, -45)
+            tab.debuffSettings = debuffSettings
+
+            local showDefault = CreateCheckButton("Show per Default", debuffSettings)
+            showDefault:SetScript("OnClick", function(self)
+                srslylawlUI.settings.debuffs.showDefault = self:GetChecked()
+                srslylawlUI_Frame_HandleAuras_ALL()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showDefault, "Show/hide all debuffs per default, except if they are in/excluded by another setting.\n\nRecommended: Showing all per default, while hiding infinite duration auras.")
+            showDefault:SetPoint("TOPLEFT", debuffSettings, "TOPLEFT")
+            showDefault:SetChecked(srslylawlUI.settings.debuffs.showDefault)
+            showDefault:SetAttribute("defaultValue", srslylawlUI.settings.debuffs.showDefault)
+
+            local showCastByPlayer = CreateCheckButton("Show cast by Player", debuffSettings)
+            showCastByPlayer:SetScript("OnClick", function(self)
+                srslylawlUI.settings.debuffs.showCastByPlayer = self:GetChecked()
+                srslylawlUI_Frame_HandleAuras_ALL()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showCastByPlayer, "Show/hide debuffs that have been applied by the Player.")
+            showCastByPlayer:SetPoint("LEFT", showDefault.text, "RIGHT")
+            showCastByPlayer:SetChecked(srslylawlUI.settings.debuffs.showCastByPlayer)
+            showCastByPlayer:SetAttribute("defaultValue", srslylawlUI.settings.debuffs.showCastByPlayer)
+
+            local showInfiniteDuration = CreateCheckButton("Show infinite duration", debuffSettings)
+            showInfiniteDuration:SetScript("OnClick", function(self)
+                srslylawlUI.settings.debuffs.showInfiniteDuration = self:GetChecked()
+                srslylawlUI_Frame_HandleAuras_ALL()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showInfiniteDuration, "Show/hide debuffs with no expiration time.")
+            showInfiniteDuration:SetPoint("LEFT", showCastByPlayer.text, "RIGHT")
+            showInfiniteDuration:SetChecked(srslylawlUI.settings.debuffs.showInfiniteDuration)
+            showInfiniteDuration:SetAttribute("defaultValue", srslylawlUI.settings.debuffs.showInfiniteDuration)
+
+            local showLongDuration = CreateCheckButton("Show long duration", debuffSettings)
+            showLongDuration:SetScript("OnClick", function(self)
+                srslylawlUI.settings.debuffs.showLongDuration = self:GetChecked()
+                srslylawlUI_Frame_HandleAuras_ALL()
+                srslylawlUI.SetDirtyFlag()
+            end)
+            AddTooltip(showLongDuration, "Show/hide debuffs with a base duration longer than the specified threshold.")
+            showLongDuration:SetPoint("LEFT", showInfiniteDuration.text, "RIGHT")
+            showLongDuration:SetChecked(srslylawlUI.settings.debuffs.showLongDuration)
+            showLongDuration:SetAttribute("defaultValue", srslylawlUI.settings.debuffs.showLongDuration)
+        end
+
+        CreateVisibilityFrame(tab)
+        CreateBuffConfigFrame(tab)
+        CreateDebuffConfigFrame(tab)
+        
+
+
     end
     local function FillFramesTab(tab)
         -- HP Bar Sliders
@@ -2898,6 +3047,11 @@ local function CreateConfigWindow()
             start = string.lower(start)
             return str:sub(1, #start) == start
         end
+        local function contains(str, pattern)
+            str = string.lower(str)
+            pattern = string.lower(pattern)
+            return string.match(str, pattern)
+        end
         local filter = (filter ~= nil and filter) or ""
         spellList = srslylawlUI[auratype][spellListKey]
         if spellList == nil then error("spelllist nil "..spellListKey.. " "..auratype) end
@@ -2909,7 +3063,7 @@ local function CreateConfigWindow()
             local spell = {name = name, spellId = spellId, icon = icon}
             if tostring(spellId) == tostring(filter) then
                 exactMatch = spell
-            elseif startsWith(name, filter) or startsWith(spellId, filter) then
+            elseif startsWith(name, filter) or startsWith(spellId, filter) or contains(name, filter) then
                 table.insert(sortedSpellList, spell)
             end
         end
@@ -3048,6 +3202,9 @@ local function CreateConfigWindow()
         
         if spellId == nil then
             --only adjusting parenting (switched/opened tabs)
+            if not srslylawlUI[auraType].known[attributePanel:GetAttribute("spellId")] then
+                attributePanel:Hide()
+            end
             return 
         end
 
@@ -3463,6 +3620,7 @@ local function Initialize()
                         local id = self:GetID()
                         local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HELPFUL"))
                         srslylawlUI.Auras_BlacklistSpell(spellID, "buffs")
+                        srslylawlUI_Frame_HandleAuras_ALL()
                     end
                 end)
                 units[unitName].buffFrames[i] = f
@@ -3498,6 +3656,7 @@ local function Initialize()
                         local id = self:GetID()
                         local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HARMFUL"))
                         srslylawlUI.Auras_BlacklistSpell(spellID, "debuffs")
+                        srslylawlUI_Frame_HandleAuras_ALL()
                     end
                 end)
                 f:SetScript("OnUpdate", function(self)
@@ -3571,7 +3730,6 @@ local function Initialize()
     srslylawlUI.LoadSettings()
     FrameSetup()
     CreateSlashCommands()
-    CreateConfigWindow()
     CreateBuffFrames()
     CreateDebuffFrames()
 end

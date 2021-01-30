@@ -13,9 +13,9 @@ srslylawl_saved = {
         pet = {
             width = 15
         },
-        buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true, maxBuffs = 40, maxDuration = 60, showDefensives = true},
+        buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true, maxBuffs = 40, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true},
         debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true,
-            maxDebuffs = 15, maxDuration = 180},
+            maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true},
         maxBuffs = 15,
         maxAbsorbFrames = 20,
         autoApproveKeywords = true,
