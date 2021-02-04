@@ -79,6 +79,8 @@ local anchorTable = {
 local debugString = ""
 
 -- TODO:
+--      leaving raid doesnt update visibility of frames
+--      defensive spells with stacks
 --      config window: 
 --          show buffs/debuffs visibility settings
 --          faux frames absorb auras
@@ -187,6 +189,28 @@ function srslylawlUI.Utils_CCTableTranslation(string)
     elseif string == "stun" then return "stuns"
     else return "none"
     end
+end
+function srslylawlUI.Utils_GetVirtualPixelSize(size, ...)
+   local perPixelScale = 768.0 / GetScreenHeight()
+   local curUiScale = GetCVar("uiscale") or 1
+   local virtPixelScale = perPixelScale / curUiScale
+   if select('#', ...) > 0 then
+        local t = {}
+        for i=1, select('#', ...) do
+           table.insert(t, select(i, ...)/virtPixelScale)
+        end
+        return size/virtPixelScale, unpack(t)
+    end
+    return size/virtPixelScale
+end
+function srslylawlUI.Utils_SetWidthPixelPerfect(frame, width)
+    frame:SetWidth(srslylawlUI.Utils_GetVirtualPixelSize(width))
+end
+function srslylawlUI.Utils_SetHeightPixelPerfect(frame, height)
+    frame:SetHeight(srslylawlUI.Utils_GetVirtualPixelSize(height))
+end
+function srslylawlUI.Utils_SetSizePixelPerfect(frame, width, height)
+    frame:SetSize(srslylawlUI.Utils_GetVirtualPixelSize(width, height))
 end
 function srslylawlUI.Debug()
     if srslylawlUI.DebugWindow == nil then
@@ -335,8 +359,8 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
     --buttonFrame = _G[buttonFrame]
     -- local frameLevel = buttonFrame.unit:GetFrameLevel()
     -- buttonFrame.unit:SetFrameLevel(2)
-    buttonFrame.unit.healthBar:SetFrameLevel(2)
-    buttonFrame.unit.powerBar:SetFrameLevel(2)
+    buttonFrame.unit.healthBar:SetFrameLevel(4)
+    buttonFrame.unit.powerBar:SetFrameLevel(4)
     buttonFrame.pet:SetFrameLevel(2)
     buttonFrame.pet.healthBar:SetFrameLevel(1)
     buttonFrame.unit:RegisterForDrag("LeftButton")
@@ -440,8 +464,8 @@ function srslylawlUI.Frame_ResetDimensions(button)
     local needsResize = abs(button.unit.healthBar:GetWidth() - w) > 1 or abs(button.unit.healthBar:GetHeight() - h) > 1
     if needsResize then
         -- print("sizing req, cur:", button.unit.healthBar:GetWidth(), "tar", w)
-        button.unit.auraAnchor:SetSize(w, h)
-        button.unit.healthBar:SetSize(w, h)
+        button.unit.auraAnchor:SetSize(srslylawlUI.Utils_GetVirtualPixelSize(w, h))
+        button.unit.healthBar:SetSize(srslylawlUI.Utils_GetVirtualPixelSize(w, h))
         if button.unit.healthBar["bg"] == nil then
             srslylawlUI.CreateBackground(button.unit.healthBar)
         end
@@ -546,6 +570,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
         --for new units joining that already have an absorb (usually warlocks)
         srslylawlUI.Frame_HandleAuras(self.unit, unit)
+        srslylawlUI.Frame_UpdateVisibility()
     elseif event == "PLAYER_TARGET_CHANGED" then
         if UnitIsUnit(unit, "target") then
             self.unit.selected:Show()
@@ -1312,7 +1337,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
-            srslylawlUI.Auras_RememberBuff(spellId, i, unit, absorb)
+            srslylawlUI.Auras_RememberBuff(spellId, i, unit)
             if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.settings.buffs.maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
@@ -1479,7 +1504,6 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     end
     
     -- we checked all frames, untrack any that are gone
-    -- print("untrack all that are gone")
     for k, v in pairs(units[unit].trackedAurasByIndex) do
         if (v["checkedThisEvent"] == false) then
             UntrackAura(k)
@@ -1500,9 +1524,9 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     ---create frames if needed
     local function CreateAbsorbFrame(parent, i, height, parentTable)
         local isOverlapFrame = parentTable == units[unit]["absorbFramesOverlap"]
-        local n = unit .. (isOverlapFrame and "AbsorbFrameOverlap" or "AbsorbFrame") .. i
-        local f = CreateFrame("Frame", "srslylawlUI_"..n, parent)
-        f.texture = f:CreateTexture("n".."texture", "ARTWORK")
+        local n = "srslylawlUI_"..unit .. (isOverlapFrame and "AbsorbFrameOverlap" or "AbsorbFrame") .. i
+        local f = CreateFrame("Frame", n, parent)
+        f.texture = f:CreateTexture("$parent_texture", "ARTWORK")
         f.texture:SetAllPoints()
         f.texture:SetTexture(srslylawlUI.AbsorbFrameTexture)
         if isOverlapFrame then
@@ -1510,16 +1534,20 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         else
             f:SetPoint("TOPLEFT", parent, "TOPRIGHT", 1, 0)
         end
+        f:SetFrameLevel(5)
         f:SetHeight(height)
         f:SetWidth(40)
-        local t = f:CreateTexture("$parent_background", "BACKGROUND")
-        t:SetColorTexture(0, 0, 0, .5)
-        t:SetPoint("CENTER", f, "CENTER")
-        t:SetHeight(height + 2)
-        t:SetWidth(42)
-        f.background = t
+        f.background = CreateFrame("Frame", "$parent_background", f)
+        f.background.texture = f.background:CreateTexture("$parent_texture", "BACKGROUND")
+        f.background.texture:SetColorTexture(1, 0, 0, 1)
+        f.background.texture:SetAllPoints(true)
+        f.background.texture:Show()
+        f.background:SetPoint("TOPLEFT", f, "TOPLEFT", -1, 0)
+        f.background:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
+        f.background:SetSize(42, height + 2)
+        f.background:SetFrameLevel(4)
         f:Hide()
-        f["icon"] = f:CreateTexture("icon", "OVERLAY", nil, 2)
+        f["icon"] = f:CreateTexture("$parent_icon", "OVERLAY", nil, 2)
         f["icon"]:SetPoint("CENTER")
         f["icon"]:SetHeight(15)
         f["icon"]:SetWidth(15)
@@ -1527,7 +1555,6 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         f["icon"]:Hide()
         f["cooldown"] = CreateFrame("Cooldown", n .. "CD", f, "CooldownFrameTemplate")
         f["cooldown"]:SetReverse(true)
-        --f:SetFrameLevel(1)
         f["cooldown"]:Show()
         f:SetAttribute("unit", unit)
         f:SetScript("OnEnter", function(self)
@@ -1619,6 +1646,8 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
             f.texture.bg:SetVertexColor(1, 1, 1, 1)
             f.texture.bg:SetBlendMode("MOD")
 
+            f:SetFrameLevel(3)
+
 
             units[unit]["effectiveHealthFrames"][i] = f
             end
@@ -1655,10 +1684,11 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     local stackMultiplier = 1
     local reducAmount
     if #units[unit].effectiveHealthSegments > 0 then
-        for k, v in ipairs(units[unit].effectiveHealthSegments) do
-            --tooltip gets updated with stacks anyway so we might want to ignore it until we config a per stack amount
-            stackMultiplier = 1 --v.stacks > 1 and v.stacks or 1 TODO:check if this works out fine
+        for _, v in ipairs(units[unit].effectiveHealthSegments) do
+            stackMultiplier = v.stacks > 1 and v.stacks or 1
             reducAmount = srslylawlUI.buffs.known[v.spellId].reductionAmount / 100
+
+            print(stackMultiplier, reducAmount)
 
             effectiveHealthMod = effectiveHealthMod * (1 - (reducAmount * stackMultiplier))
         end
@@ -1811,6 +1841,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                 bar.wasHealthPrediction = true
                 srslylawlUI.Frame_ChangeAbsorbSegment(bar, segment.width, segment.amount, height, true)
                 bar:Show()
+                print("heal:", bar:GetFrameLevel())
             elseif segment.sType == "various" then
                 if bar.wasHealthPrediction then
                     bar.texture:SetTexture(srslylawlUI.AbsorbFrameTexture)
@@ -1874,10 +1905,7 @@ function srslylawlUI_Frame_HandleAuras_ALL()
 end
 function srslylawlUI.Frame_ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, isHealPrediction)
     frame:SetAttribute("absorbAmount", absorbAmount)
-    frame:SetHeight(height)
-    frame:SetWidth(srslylawlUI.Utils_ScuffedRound(barWidth))
-    frame.background:SetHeight(height + 2)
-    frame.background:SetWidth(ceil(barWidth + 2))
+    frame:SetWidth(srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.Utils_ScuffedRound(barWidth)), srslylawlUI.Utils_GetVirtualPixelSize(height))
     -- resize icon
     if isHealPrediction then
         frame.icon:Hide()
@@ -1908,14 +1936,15 @@ function srslylawlUI.Frame_MoveAbsorbAnchorWithHealth(unit)
     local maxHP = UnitHealthMax(unit)
     local pixelPerHp = width / (maxHP ~= 0 and maxHP or 1)
     local playerCurrentHP = UnitHealth(unit)
-    local baseAnchorOffset = srslylawlUI.Utils_ScuffedRound(playerCurrentHP * pixelPerHp)
+    local rounded = floor(playerCurrentHP * pixelPerHp)
+    local baseAnchorOffset = rounded
     local mergeOffset = 0
     if units[unit]["absorbFramesOverlap"][1].isMerged then
         --offset by mergeamount
         mergeOffset = units[unit]["absorbFramesOverlap"][1].mergeAmount
     end
     units[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
-    units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
+    units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPRIGHT", 0+mergeOffset,0)
     units[unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
 end
 function srslylawlUI.Auras_ShouldDisplayBuff(...)
@@ -2004,7 +2033,7 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
 
     return srslylawlUI.settings.debuffs.showDefault
 end
-function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
+function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
     local function SpellIsKnown(spellId)
         return srslylawlUI.buffs.known[spellId] ~= nil
     end
@@ -2044,15 +2073,16 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
 
         return false
     end
-    local function ProcessID(spellId, buffIndex, unit, arg1)
-        local spellName = GetSpellInfo(spellId)
+    local function ProcessID(buffIndex, unit)
+        local spellName, icon, stacks, debuffType, duration, expirationTime, source,
+              isStealable, nameplateShowPersonal, spellId, canApplyAura,
+              isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1 =
+            UnitAura(unit, buffIndex, "HELPFUL")
         local buffText = srslylawlUI.Auras_GetBuffText(buffIndex, unit)
         local buffLower = buffText ~= nil and string.lower(buffText) or ""
         local autoApprove = srslylawlUI.settings.autoApproveKeywords
-        local keyWordAbsorb = HasAbsorbKeyword(buffLower) and
-                                  autoApprove and ((arg1 ~= nil) and (arg1 > 1))
-        local keyWordDefensive = HasDefensiveKeyword(buffLower) and
-                                     autoApprove
+        local keyWordAbsorb = HasAbsorbKeyword(buffLower) and autoApprove and ((arg1 ~= nil) and (arg1 > 1))
+        local keyWordDefensive = HasDefensiveKeyword(buffLower) and autoApprove
         local isKnown = srslylawlUI.buffs.known[spellId] ~= nil
 
         local spell = {
@@ -2066,8 +2096,7 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
         if keyWordAbsorb then
             if (srslylawlUI.buffs.absorbs[spellId] == nil) then
                 -- first time entry
-                srslylawlUI.Log("new absorb spell " .. link ..
-                                    " encountered!")
+                srslylawlUI.Log("new absorb spell " .. link .. " encountered!")
             else
                 -- srslylawlUI.Log("spell updated " .. spellName .. "!")
             end
@@ -2076,19 +2105,26 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
             srslylawl_saved.buffs.absorbs[spellId] = spell
         elseif keyWordDefensive then
             local amount = GetPercentValue(buffLower)
+            local log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "%!"
+
+
+
+            if stacks ~= 0 then
+                amount = amount / stacks
+                log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "% per stack!"
+            end
 
             if abs(amount) ~= 0 then spell.reductionAmount = amount
             else
                 error("reduction amount is 0 " .. spellName .. " " .. buffText)
             end
 
-            
+            print(spellName, amount, stacks)
+
 
             if (srslylawlUI.buffs.defensives[spellId] == nil) then
                 -- first time entry
-                srslylawlUI.Log("new defensive spell " .. link ..
-                                    " encountered with a reduction of " ..
-                                    amount .. "%!")
+                srslylawlUI.Log(log)
             else
                 -- srslylawlUI.Log("spell updated " .. spellName .. "!")
             end
@@ -2111,7 +2147,7 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit, arg1)
     end
 
     --if not SpellIsKnown(spellId) then
-    ProcessID(spellId, buffIndex, unit, arg1)
+    ProcessID(buffIndex, unit)
     --end
 end
 function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
@@ -2180,9 +2216,9 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
         end
     end
 
-    --if not SpellIsKnown(spellId) then
-    ProcessID(spellId, debuffIndex, unit, arg1)
-    --end
+    if not SpellIsKnown(spellId) then
+        ProcessID(spellId, debuffIndex, unit, arg1)
+    end
 end
 function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
     -- we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it
