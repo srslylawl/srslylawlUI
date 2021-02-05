@@ -91,8 +91,7 @@ local debugString = ""
 --      phase/shard
 --      UnitHasIncomingResurrection(unit)
 --      more sort methods?
-
-
+-- max(0.4, min(1.15, 768 / AS.ScreenHeight)) AddOn.ScreenWidth, AddOn.ScreenHeight = GetPhysicalScreenSize()
 --Utils
 function srslylawlUI.Log(text, ...)
     str = ""
@@ -1047,7 +1046,6 @@ function srslylawlUI.SortPartyFrames()
 
     if hasUnknownMember then
         -- all units arent properly loaded yet, lets check again in a few secs
-        -- print("has unknown, checking again soon")
         if not srslylawlUI.sortTimerActive then
             srslylawlUI.sortTimerActive = true
             C_Timer.After(1, function()
@@ -1060,7 +1058,6 @@ function srslylawlUI.SortPartyFrames()
 
     for i = 1, #list do
         local buttonFrame = srslylawlUI.Frame_GetByUnitType(list[i].unit)
-        --print(i, ".", list[i].unit, list[i].name, list[i].maxHealth)
 
         if (buttonFrame) then
             buttonFrame:ClearAllPoints()
@@ -1227,9 +1224,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         --No more auras being tracked for that unit, untrack source
         if t == 0 then units[unit][byAura][src] = nil end
     end
-    local function ChangeTrackingIndex(name, source, count, spellId,
-                                       currentIndex, absorb, icon, duration,
-                                       expirationTime, auraType)
+    local function ChangeTrackingIndex(name, source, count, spellId, currentIndex, absorb, icon, duration, expirationTime, auraType)
         -- srslylawlUI.Log("index changed " .. name)
         local byAura = auraType .. "Auras"
         local byIndex = "trackedAurasByIndex"
@@ -1240,8 +1235,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
 
         -- flag for timer refresh
         local diff = 0
-        if units[unit][byIndex][oldIndex] ~= nil and
-            units[unit][byIndex][oldIndex].expiration ~= nil then
+        if units[unit][byIndex][oldIndex] ~= nil and units[unit][byIndex][oldIndex].expiration ~= nil then
             diff = expirationTime - units[unit][byIndex][oldIndex].expiration
         end
 
@@ -1263,6 +1257,11 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         t["index"] = currentIndex
         t["stacks"] = count
         t["auraType"] = auraType
+        
+        local tat = units[unit][byIndex][oldIndex].trackedApplyTime
+        if tat then 
+            t["trackedApplyTime"] = tat
+        end
 
         units[unit][byIndex][oldIndex] = nil
     end
@@ -1278,13 +1277,10 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     local function AuraIsBeingTrackedAtIndex(index)
         return units[unit].trackedAurasByIndex[index] ~= nil
     end
-    local function ProcessAuraTracking(name, source, count, spellId, i, absorb,
-                                       icon, duration, expirationTime, auraType)
+    local function ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
         if IsAuraBeingTrackedAtOtherIndex(source, spellId, auraType) then
             -- aura is being tracked but at another index, change that
-
-            ChangeTrackingIndex(name, source, count, spellId, i, absorb, icon,
-                                duration, expirationTime, auraType)
+            ChangeTrackingIndex(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
         else
             -- aura is not tracked at all, track it!
             TrackAura(source, spellId, count, name, i, absorb, icon, duration,
@@ -1340,18 +1336,14 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                     if units[unit].trackedAurasByIndex[i]["spellId"] ~= spellId then
                         -- different spell is being tracked
                         UntrackAura(i)
-                        ProcessAuraTracking(name, source, count, spellId, i,
-                                            absorb, icon, duration,
-                                            expirationTime, auraType)
+                        ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
                     else
                         -- aura is tracked and at same index, update that we verified that this frame
-                        TrackAura(source, spellId, count, name, i, absorb, icon,
-                                  duration, expirationTime, auraType, true)
+                        TrackAura(source, spellId, count, name, i, absorb, icon, duration, expirationTime, auraType, true)
                     end
                 else
                     -- no aura is currently tracked for that index
-                    ProcessAuraTracking(name, source, count, spellId, i, absorb,
-                                        icon, duration, expirationTime, auraType)
+                    ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
                 end
             else
                 if AuraIsBeingTrackedAtIndex(i) then
@@ -1628,7 +1620,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
             f.texture.bg:SetVertexColor(1, 1, 1, 1)
             f.texture.bg:SetBlendMode("MOD")
 
-            f:SetFrameLevel(3)
+            f:SetFrameLevel(4)
 
 
             units[unit]["effectiveHealthFrames"][i] = f
@@ -1917,10 +1909,10 @@ function srslylawlUI.Frame_MoveAbsorbAnchorWithHealth(unit)
     local mergeOffset = 0
     if units[unit]["absorbFramesOverlap"][1].isMerged then
         --offset by mergeamount
-        mergeOffset = units[unit]["absorbFramesOverlap"][1].mergeAmount
+        mergeOffset = srslylawlUI.Utils_GetVirtualPixelSize(units[unit]["absorbFramesOverlap"][1].mergeAmount+1)
     end
     units[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
-    units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPRIGHT", 0+mergeOffset,0)
+    units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
     units[unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
 end
 function srslylawlUI.Auras_ShouldDisplayBuff(...)
@@ -2597,12 +2589,12 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
             -- since it takes a while for everything to load, we just wait until all our frames are visible before we do anything else
             srslylawlUI.SortPartyFrames()
         elseif arg2 then
-            -- print("reload ui")
+            -- reload ui
             srslylawlUI.Frame_ResizeHealthBarScale()
             srslylawlUI.SortPartyFrames()
         end
     elseif event == "PLAYER_REGEN_ENABLED" then
-        -- print("regen enabled sort")
+        -- regen enabled sort
         srslylawlUI.UpdateEverything()
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     end
