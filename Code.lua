@@ -87,6 +87,7 @@ local debugString = ""
 --      necrotic/healabsorb
 --      phase/shard
 --      UnitHasIncomingResurrection(unit)
+--      immunities
 --      more sort methods?
 
 
@@ -201,6 +202,20 @@ function srslylawlUI.Utils_GetVirtualPixelSize(size, ...)
         return size/virtPixelScale, unpack(t)
     end
     return size/virtPixelScale
+end
+function srslylawlUI.Utils_GetPhysicalPixelSize(size, ...)
+   local perPixelScale = 768.0 / GetScreenHeight()
+   local curUiScale = GetCVar("uiscale") or 1
+   local virtPixelScale = perPixelScale / curUiScale
+   if select('#', ...) > 0 then
+      local t = {}
+      for i=1, select('#', ...) do
+         local value = select(i, ...)
+         table.insert(t, value*virtPixelScale)
+      end
+      return size*virtPixelScale, unpack(t)
+   end
+   return size*virtPixelScale
 end
 function srslylawlUI.Utils_SetWidthPixelPerfect(frame, width)
     frame:SetWidth(srslylawlUI.Utils_GetVirtualPixelSize(width))
@@ -1646,7 +1661,7 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
         local s = string.lower(tooltipText)
         local keyPhrases = {
         "reduces damage taken", "damage taken reduced", "reducing damage taken",
-        "reducing all damage taken", "reduces all damage taken"
+        "reducing all damage taken", "reduces all damage taken", "damage taken is redirected", "damage taken is transferred"
         }
 
         for _, phrase in pairs(keyPhrases) do
@@ -2107,16 +2122,24 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit)
     end
     if effectiveHealthMod ~= 1 then
         assert(#units[unit].effectiveHealthSegments > 0)
-        local width = srslylawlUI.settings.hp.width
+        local width = srslylawlUI.Utils_GetPhysicalPixelSize(srslylawlUI.Frame_GetByUnitType(unit).unit.healthBar:GetWidth()) --need to convert here since we will later reapply the pixel scaling
         local playerHealthMax = UnitHealthMax(unit)
         local playerCurrentHP = UnitHealth(unit)
         local pixelPerHp = width / playerHealthMax
         local playerMissingHP = playerHealthMax - playerCurrentHP
-        local eHealth = playerCurrentHP / effectiveHealthMod
-        local additionalHealth = eHealth - playerCurrentHP
+        local eHealth, barWidth
         local maxWidth = playerMissingHP*pixelPerHp - 1
-        local barWidth = additionalHealth * pixelPerHp
-        local barWidth = barWidth < maxWidth and barWidth or maxWidth
+
+        if effectiveHealthMod > 0 then
+            eHealth = playerCurrentHP / effectiveHealthMod
+            local additionalHealth = eHealth - playerCurrentHP
+            barWidth = additionalHealth * pixelPerHp
+            barWidth = barWidth < maxWidth and barWidth or maxWidth
+        else
+            eHealth = 0
+            barWidth = maxWidth > 0 and maxWidth or 1
+            --this means a 100% absorb has been used, target is immune
+        end
         srslylawlUI.Frame_ChangeAbsorbSegment(units[unit]["effectiveHealthFrames"][1], barWidth, eHealth, srslylawlUI.settings.hp.height)
         units[unit]["effectiveHealthFrames"][1]:Show()
     else
