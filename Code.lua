@@ -79,9 +79,7 @@ srslylawlUI.anchorTable = {
 local debugString = ""
 
 -- TODO:
---      absorb frame maxduration gets reset when other buff expires
---      leaving raid doesnt update visibility of frames
---      defensive spells with stacks
+--      code cleanup (mostly handleauras)
 --      config window: 
 --          show buffs/debuffs visibility settings
 --          faux frames absorb auras
@@ -91,7 +89,8 @@ local debugString = ""
 --      phase/shard
 --      UnitHasIncomingResurrection(unit)
 --      more sort methods?
--- max(0.4, min(1.15, 768 / AS.ScreenHeight)) AddOn.ScreenWidth, AddOn.ScreenHeight = GetPhysicalScreenSize()
+
+
 --Utils
 function srslylawlUI.Log(text, ...)
     str = ""
