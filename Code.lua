@@ -382,21 +382,23 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
     buttonFrame.unit.powerBar:SetFrameLevel(4)
     --buttonFrame.pet.healthBar:SetFrameLevel(1)
     buttonFrame.unit:RegisterForDrag("LeftButton")
+    local unit = buttonFrame:GetAttribute("unit")
 
     if not faux then
-        buttonFrame:RegisterEvent("UNIT_HEALTH")
-        buttonFrame:RegisterEvent("UNIT_MAXHEALTH")
+        buttonFrame:RegisterUnitEvent("UNIT_HEALTH", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_MAXHEALTH", unit)
         buttonFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-        buttonFrame:RegisterEvent(powerUpdateType)
-        buttonFrame:RegisterEvent("UNIT_DISPLAYPOWER")
-        buttonFrame:RegisterEvent("UNIT_NAME_UPDATE")
+        buttonFrame:RegisterUnitEvent(powerUpdateType, unit)
+        buttonFrame:RegisterUnitEvent("UNIT_DISPLAYPOWER", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_NAME_UPDATE", unit)
         buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
-        buttonFrame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE")
-        buttonFrame:RegisterEvent("UNIT_CONNECTION")
-        buttonFrame:RegisterEvent("UNIT_AURA")
-        buttonFrame:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
-        buttonFrame:RegisterEvent("UNIT_HEAL_PREDICTION")
-        buttonFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+        buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_CONNECTION", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_AURA", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_HEAL_PREDICTION", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", unit)
+        -- buttonFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
         buttonFrame.pet:SetScript("OnShow", function(self)
             local unit = self:GetParent():GetAttribute("unit")
             srslylawlUI.Frame_ResetPetButton(self, unit.."pet")
@@ -568,11 +570,11 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
     -- Handle any events that don’t accept a unit argument
     if event == "PLAYER_ENTERING_WORLD" then
         srslylawlUI.Frame_HandleAuras(self.unit, unit)
-    elseif event == "GROUP_ROSTER_UPDATE" then
-        srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
-        --for new units joining that already have an absorb (usually warlocks)
-        srslylawlUI.Frame_HandleAuras(self.unit, unit)
-        srslylawlUI.Frame_UpdateVisibility()
+    -- elseif event == "GROUP_ROSTER_UPDATE" then
+    --     srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
+    --     --for new units joining that already have an absorb (usually warlocks)
+    --     srslylawlUI.Frame_HandleAuras(self.unit, unit)
+    --     srslylawlUI.Frame_UpdateVisibility()
     elseif event == "PLAYER_TARGET_CHANGED" then
         if UnitIsUnit(unit, "target") then
             self.unit.selected:Show()
@@ -607,12 +609,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         elseif event == "UNIT_CONNECTION" then
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
-            srslylawlUI.Log(UnitName(unit) .. (UnitIsConnected(unit) and " came online." or " disconnected."))
-        elseif event == "UNIT_AURA" then
-            srslylawlUI.Frame_HandleAuras(self.unit, unit)
-        elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
-            srslylawlUI.Frame_HandleAuras(self.unit, unit)
-        elseif event == "UNIT_HEAL_PREDICTION" then
+            srslylawlUI.Log(UnitName(unit) .. (UnitIsConnected(unit) and " is now online." or " is now offline."))
+        elseif event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_PREDICTION" then
             srslylawlUI.Frame_HandleAuras(self.unit, unit)
         end
     elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
@@ -1508,7 +1506,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     srslylawlUI.Auras_HandleEffectiveHealth(units[unit].trackedAurasByIndex, unit)
     srslylawlUI.Auras_HandleAbsorbFrames(units[unit].trackedAurasByIndex, unit)
 end
-function srslylawlUI_Frame_HandleAuras_ALL()
+function srslylawlUI.Frame_HandleAuras_ALL()
     for k, v in pairs(unitTable) do
         local f = srslylawlUI.Frame_GetByUnitType(v)
 
@@ -2328,7 +2326,7 @@ local function Initialize()
                         local id = self:GetID()
                         local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HELPFUL"))
                         srslylawlUI.Auras_BlacklistSpell(spellID, "buffs")
-                        srslylawlUI_Frame_HandleAuras_ALL()
+                        srslylawlUI.Frame_HandleAuras_ALL()
                     end
                 end)
                 units[unit].buffFrames[i] = f
@@ -2363,7 +2361,7 @@ local function Initialize()
                         local id = self:GetID()
                         local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HARMFUL"))
                         srslylawlUI.Auras_BlacklistSpell(spellID, "debuffs")
-                        srslylawlUI_Frame_HandleAuras_ALL()
+                        srslylawlUI.Frame_HandleAuras_ALL()
                     end
                 end)
                 f:SetScript("OnUpdate", function(self)
@@ -2583,6 +2581,111 @@ local function Initialize()
     CreateSlashCommands()
     CreateBuffFrames()
     CreateDebuffFrames()
+
+    -- --castbartest
+    -- srslylawlUI.TestCastBar = CreateFrame("StatusBar", "srslylawl_TESTCASTBAR", UIParent)
+    -- srslylawlUI.TestCastBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
+    -- local h = srslylawlUI.settings.party.hp.height/2
+    -- local w = 100
+    -- local iconSize = h
+    -- srslylawlUI.Utils_SetSizePixelPerfect(srslylawlUI.TestCastBar, w, h)
+    -- srslylawlUI.TestCastBar:SetMinMaxValues(0, 1)
+    -- srslylawlUI.TestCastBar.icon = srslylawlUI.TestCastBar:CreateTexture("icon", "OVERLAY", nil, 2)
+    -- --unitFrame.unit.CCDurBar.icon:SetPoint("LEFT", CCDurationBar, "RIGHT")
+    -- srslylawlUI.TestCastBar.icon:SetPoint("CENTER", UIPARENT, "CENTER", 0, 0)
+    -- srslylawlUI.TestCastBar:SetPoint("LEFT", srslylawlUI.TestCastBar.icon, "RIGHT", 1, 0)
+    -- srslylawlUI.Utils_SetSizePixelPerfect(srslylawlUI.TestCastBar.icon, iconSize, iconSize)
+    -- srslylawlUI.TestCastBar.icon:SetTexCoord(.08, .92, .08, .92)
+    -- srslylawlUI.TestCastBar.icon:SetTexture(408)
+    -- srslylawlUI.TestCastBar.timer = srslylawlUI.TestCastBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
+    -- srslylawlUI.TestCastBar.timer:SetText("5")
+    -- srslylawlUI.TestCastBar.timer:SetPoint("LEFT")
+    -- Mixin(srslylawlUI.TestCastBar, BackdropTemplateMixin)
+    -- srslylawlUI.TestCastBar:SetBackdrop({
+    --     bgFile = "Interface/Tooltips/UI-Tooltip-Background"
+    --     -- edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+    --     -- edgeSize = 10,
+    --     -- insets = {left = 4, right = 4, top = 4, bottom = 4}
+    -- })
+    -- srslylawlUI.TestCastBar:SetBackdropColor(0, 0, 0, .4)
+
+    -- local unit = "player"
+    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_START", unit)
+    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", unit)
+    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
+    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", unit)
+    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
+    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
+    -- -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
+    -- srslylawlUI.TestCastBar:Hide()
+    -- srslylawlUI.TestCastBar.icon:Hide()
+
+    -- local function UpdateTimer(self, endTime, duration, timerstring, channel)
+    --     remaining = endTime-GetTime()
+    --     self:SetValue(channel and remaining/duration or 1-remaining/duration)
+    --     timerstring = tostring(remaining)
+    --     timerstring = timerstring:match("%d+%p?%d")
+    --     self.timer:SetText(timerstring)
+    -- end
+    -- local function FadeOut(self, success)
+    --     local timer = 0
+    --     local color = success and {r = .09, g = .96, b = .14, a = 1} or {r = .72, g = 0, b = .12, a = 1}
+    --     self:SetStatusBarColor(color.r, color.g, color.b, color.a)
+    --     self:SetValue(1)
+    --     self.timer:SetText((success and "Success" or "Interrupted"))
+    --     UIFrameFadeOut(self, .2, 1, 0)
+    --     UIFrameFadeOut(self.icon, .2, 1, 0)
+    --     self:SetScript("OnUpdate", nil)
+    -- end
+
+    -- srslylawlUI.TestCastBar:SetScript("OnEvent", function(self, event, arg1, ...)
+    --     local unit = arg1
+    --     local name, text, texture, startTimeMS, endTimeMS, isTradeSkill, castID, notInterruptible, spellId, endTime, remaining, duration, timerstring, timer
+    --     local display = false
+    --     local channel = false
+    --     local updateInterval = 0.01
+
+    --     if event == "UNIT_SPELLCAST_START" then
+    --         name, text, texture, startTimeMS, endTimeMS, isTradeSkill, castID, notInterruptible, spellId = UnitCastingInfo(unit)
+    --         display = true
+    --     elseif event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE" then
+    --         name, text, texture, startTimeMS, endTimeMS, isTradeSkill, notInterruptible, spellId = UnitChannelInfo(unit)
+    --         display = true
+    --         channel = true
+    --     elseif event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "UNIT_SPELLCAST_STOP" then
+    --         FadeOut(self, false)
+    --         -- self.icon:Hide()
+    --         -- self:Hide()
+    --     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+    --         FadeOut(self, true)
+    --     end
+
+    --     if display then
+    --         self.icon:SetTexture(texture)
+    --         duration = (endTimeMS-startTimeMS)/1000
+    --         endTime = endTimeMS/1000
+    --         UpdateTimer(self, endTime, duration, timerstring, channel)
+    --         UIFrameFadeIn(self.icon, 0, 0, 1)
+    --         UIFrameFadeIn(self, 0, 0, 1)
+    --         self.icon:Show()
+    --         self:Show()
+    --         timer = 0
+    --         self:SetScript("OnUpdate",
+    --             function(self, elapsed)
+    --                 timer = timer + elapsed
+    --                 if endTime == nil then return end
+    --                 if timer >= updateInterval then
+    --                     if duration == 0 then
+    --                         self:SetValue(1)
+    --                         self.timer:SetText("")
+    --                     else
+    --                         UpdateTimer(self, endTime, duration, timerstring, channel)
+    --                     end
+    --                     timer = timer - updateInterval
+    --                 end
+    --         end)
+    --     end
+    -- end)
 end
 
 srslylawlUI_EventFrame = CreateFrame("Frame")
@@ -2606,6 +2709,7 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
 
         if event == "GROUP_ROSTER_UPDATE" then
             srslylawlUI.Frame_UpdateVisibility()
+            srslylawlUI.Frame_HandleAuras_ALL()
         end
     elseif event == "PLAYER_ENTERING_WORLD" then
         if not (arg1 or arg2) then
