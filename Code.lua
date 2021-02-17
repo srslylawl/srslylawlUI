@@ -1691,6 +1691,8 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
         local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect == false
 
         if autoDetectDisabled then
+            srslylawlUI.buffs.known[spellId].text = buffText
+            srslylawl_saved.buffs.known[spellId].text = buffText
             return
         end
 
@@ -1778,19 +1780,14 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
         local debuffText = srslylawlUI.Auras_GetDebuffText(debuffIndex, unit)
         local debuffLower = debuffText ~= nil and string.lower(debuffText) or ""
 
-        local autoApprove = srslylawlUI.settings.autoApproveKeywords
         local CCType = GetCrowdControlType(debuffLower)
-        
-        if spellId == 116095 then
-            --disable for monk has "root" in tooltip of the slow spell, exception for that here.
-            --will need a different implementation, should more spells have the same properties
-            CCType = "none"
-        end
-
         local isKnown = srslylawlUI.debuffs.known[spellId] ~= nil
         local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect == false
 
         if autoDetectDisabled then
+            --only update last parsed text
+            srslylawlUI.debuffs.known[spellId].text = debuffText
+            srslylawl_saved.debuffs.known[spellId].text = debuffText
             return
         end
 
@@ -2519,6 +2516,14 @@ local function Initialize()
             unitFrame.unit.CCDurBar.timer = unitFrame.unit.CCDurBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
             unitFrame.unit.CCDurBar.timer:SetText("5")
             unitFrame.unit.CCDurBar.timer:SetPoint("LEFT")
+            Mixin(CCDurationBar, BackdropTemplateMixin)
+            CCDurationBar:SetBackdrop({
+                bgFile = "Interface/Tooltips/UI-Tooltip-Background"
+                -- edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+                -- edgeSize = 10,
+                -- insets = {left = 4, right = 4, top = 4, bottom = 4}
+            })
+            CCDurationBar:SetBackdropColor(0, 0, 0, .4)
         end
         local function CreateUnitFrame(header, unit, faux)
             local unitFrame = CreateFrame("Frame", "$parent_"..unit, header, "srslylawlUI_UnitTemplate")

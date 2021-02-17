@@ -332,7 +332,7 @@ function srslylawlUI.CreateConfigWindow()
         end
 
         local function CreateBuffConfigFrame(tab)
-            local buffSettings = CreateFrameWBG("Buffs", tab)
+            local buffSettings = CreateFrameWBG("Party Buffs", tab)
             buffSettings:SetPoint("TOPLEFT", tab.visibility, "BOTTOMLEFT", 0, -15)
             buffSettings:SetPoint("BOTTOMRIGHT", tab.visibility, "BOTTOMRIGHT", 0, -45)
             tab.buffSettings = buffSettings
@@ -394,7 +394,7 @@ function srslylawlUI.CreateConfigWindow()
         end
 
         local function CreateDebuffConfigFrame(tab)
-            local debuffSettings = CreateFrameWBG("Debuffs", tab)
+            local debuffSettings = CreateFrameWBG("Party Debuffs", tab)
             debuffSettings:SetPoint("TOPLEFT", tab.buffSettings, "BOTTOMLEFT", 0, -15)
             debuffSettings:SetPoint("BOTTOMRIGHT", tab.buffSettings, "BOTTOMRIGHT", 0, -45)
             tab.debuffSettings = debuffSettings
@@ -709,6 +709,7 @@ function srslylawlUI.CreateConfigWindow()
             if auraType == "buffs" then
                     attributePanel.isDefensive:SetEnabled(not checked)
                     attributePanel.isAbsorb:SetEnabled(not checked)
+                    attributePanel.DefensiveAmount:SetShown(attributePanel.isDefensive:GetChecked() and not checked)
             elseif auraType == "debuffs" then
                 if (checked) then
                     UIDropDownMenu_DisableDropDown(attributePanel.CCType)
@@ -788,7 +789,7 @@ function srslylawlUI.CreateConfigWindow()
             attributePanel.AutoDetect = CreateCheckButton("Auto-Detect settings", attributePanel)
             attributePanel.AutoDetect:SetPoint("TOPLEFT", attributePanel.isBlacklisted, "BOTTOMLEFT")
 
-            AddTooltip(attributePanel.AutoDetect, "Automatically detect settings based on spell tooltip. Disable this to stop updating the settings when spell is encountered.\nUse this if auto settings don't work for this spell, recommended for non-english language clients.")
+            AddTooltip(attributePanel.AutoDetect, "Automatically detect settings based on spell tooltip. Disable this to stop updating the settings when spell is encountered.\nUse this if auto settings aren't accurate for this spell, recommended for non-english language clients.")
             attributePanel.AutoDetect:SetScript("OnClick", function(self)
                 local id = self:GetParent():GetAttribute("spellId")
                 local checked = self:GetChecked()
@@ -799,11 +800,39 @@ function srslylawlUI.CreateConfigWindow()
                 SetEnableButtons(attributePanel, auraType, checked)
             end)
 
+            attributePanel.LastParsedText = CreateFrame("Frame", "$parent_LastParsedText", attributePanel)
+            attributePanel.LastParsedText.title = attributePanel.LastParsedText:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+            attributePanel.LastParsedText.title:SetText("<last seen tooltip>")
+            
+            attributePanel.LastParsedText:SetPoint("TOPRIGHT", attributePanel, "TOPRIGHT")
+            attributePanel.LastParsedText:SetPoint("BOTTOMLEFT", attributePanel, "TOPRIGHT", -attributePanel.LastParsedText.title:GetStringWidth()-5, -attributePanel.LastParsedText.title:GetStringHeight()-5)
+            attributePanel.LastParsedText.title:ClearAllPoints(true)
+            attributePanel.LastParsedText.title:SetPoint("CENTER")
+
             if auraType == "buffs" then
                 attributePanel.isDefensive = CreateCheckButton("is Defensive effect", attributePanel)
                 attributePanel.isDefensive:SetPoint("TOPLEFT", attributePanel.AutoDetect, "BOTTOMRIGHT", -5, 0)
                 attributePanel.isDefensive:SetScript("OnClick", ButtonCheckFunction(auraType, "defensives", "isDefensive"))
                 AddTooltip(attributePanel.isDefensive, "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations.\n\nNote: stacking effects may show their last seen, stacked values")
+
+                attributePanel.DefensiveAmount = CreateEditBox("Reduction Amount", attributePanel, 0,
+                    nil, "LEFT", 0, 0, true)
+                attributePanel.DefensiveAmount:ClearAllPoints(true)
+                attributePanel.DefensiveAmount:SetPoint("LEFT", attributePanel.isDefensive.text, "RIGHT")
+                attributePanel.DefensiveAmount:SetScript("OnEnterPressed", function (self)
+                        local amount = self:GetNumber();
+                        local id = self:GetParent():GetAttribute("spellId")
+                        local old = srslylawlUI.buffs.known[id].reductionAmount
+                        print(amount, old)
+                        srslylawlUI.buffs.known[id].reductionAmount = amount
+                        srslylawlUI.buffs.defensives[id] = srslylawlUI.buffs.known[id]
+
+                        srslylawl_saved.buffs.known[id].reductionAmount = amount
+                        srslylawl_saved.buffs.defensives[id] = srslylawlUI.buffs.known[id]
+
+                        srslylawlUI.Log("Damage reduction amount for spell " .. GetSpellInfo(id) .. " set from " .. old .. "% to " .. amount .. "%!")
+                    end)
+                AddTooltip(attributePanel.DefensiveAmount, "Set custom damage reduction effect (per stack) in % and confirm with [ENTER]-Key.\n(For example: Enter 15 for 15% damage reduction)")
 
                 attributePanel.isAbsorb = CreateCheckButton("is Absorb effect", attributePanel)
                 attributePanel.isAbsorb:SetPoint("TOPLEFT", attributePanel.isDefensive, "BOTTOMLEFT")
@@ -867,16 +896,20 @@ function srslylawlUI.CreateConfigWindow()
         attributePanel.RemoveSpell:SetText("Remove Spell from "..auraType)
         AddTooltip(attributePanel.RemoveSpell, "WARNING: this will remove the spell from every >\""..auraType.."\"< category, including \"Encountered\".\nIf you just want to change its sub-category, use the appropriate checkbox/dropdown.")
 
+
+
         local isBlacklisted = srslylawlUI[auraType].known.isBlacklisted or srslylawlUI[auraType].blackList[spellId] ~= nil or false
         local isWhitelisted = srslylawlUI[auraType].known.isWhitelisted or srslylawlUI[auraType].whiteList[spellId] ~= nil or false
         local autoDetect = srslylawlUI[auraType].known[spellId].autoDetect == nil or srslylawlUI[auraType].known[spellId].autoDetect
-
+        AddTooltip(attributePanel.LastParsedText, srslylawlUI[auraType].known[spellId].text or "<Aura either has no tooltip or was never encountered>")
         attributePanel.AutoDetect:SetChecked(autoDetect)
         attributePanel.isBlacklisted:SetChecked(isBlacklisted)
         attributePanel.isWhitelisted:SetChecked(isWhitelisted)
         if auraType == "buffs" then
             attributePanel.isDefensive:SetChecked(srslylawlUI.buffs.known[spellId].isDefensive)
             attributePanel.isAbsorb:SetChecked(srslylawlUI.buffs.known[spellId].isAbsorb)
+            attributePanel.DefensiveAmount:SetNumber(srslylawlUI[auraType].known[spellId].reductionAmount or 0)
+            -- attributePanel.DefensiveAmount:SetShown(srslylawlUI.buffs.known[spellId].isDefensive and not autoDetect)
         elseif auraType == "debuffs" then
             --dropdown cctype
             local dropDown = attributePanel.CCType
@@ -1137,7 +1170,7 @@ function srslylawlUI.CreateConfigWindow()
     generalTab:SetBackdropColor(0, 0, 0, .4)
     FillGeneralTab(generalTab)
 
-    -- Create Bars Tab
+    -- Create Frames Tab
     Mixin(framesTab, BackdropTemplateMixin)
     framesTab:SetBackdrop({
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
