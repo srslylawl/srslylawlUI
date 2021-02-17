@@ -1693,7 +1693,7 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
         local keyWordAbsorb = HasAbsorbKeyword(buffLower) and ((arg1 ~= nil) and (arg1 > 1))
         local keyWordDefensive = HasDefensiveKeyword(buffLower)
         local isKnown = srslylawlUI.buffs.known[spellId] ~= nil
-        local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect == false
+        local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect ~= nil and srslylawlUI.buffs.known[spellId].autoDetect == false
 
         if autoDetectDisabled then
             srslylawlUI.buffs.known[spellId].text = buffText
@@ -1787,7 +1787,7 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
 
         local CCType = GetCrowdControlType(debuffLower)
         local isKnown = srslylawlUI.debuffs.known[spellId] ~= nil
-        local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect == false
+        local autoDetectDisabled = isKnown and srslylawlUI.debuffs.known[spellId].autoDetect ~= nil and srslylawlUI.debuffs.known[spellId].autoDetect == false
 
         if autoDetectDisabled then
             --only update last parsed text
@@ -2475,7 +2475,7 @@ local function Initialize()
             f.texture.bg:SetVertexColor(1, 1, 1, 1)
             f.texture.bg:SetBlendMode("MOD")
 
-            f:SetFrameLevel(4)
+            f:SetFrameLevel(5)
 
             units[unit]["effectiveHealthFrames"][i] = f
         end
