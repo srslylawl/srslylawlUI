@@ -1641,9 +1641,6 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     return srslylawlUI.settings.debuffs.showDefault
 end
 function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
-    local function SpellIsKnown(spellId)
-        return srslylawlUI.buffs.known[spellId] ~= nil
-    end
     local function GetPercentValue(tooltipText)
             -- %d+ = multiple numbers in a row
             -- %% = the % sign
@@ -1691,6 +1688,11 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
         local keyWordAbsorb = HasAbsorbKeyword(buffLower) and autoApprove and ((arg1 ~= nil) and (arg1 > 1))
         local keyWordDefensive = HasDefensiveKeyword(buffLower) and autoApprove
         local isKnown = srslylawlUI.buffs.known[spellId] ~= nil
+        local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect == false
+
+        if autoDetectDisabled then
+            return
+        end
 
         local spell = {
             name = spellName,
@@ -1749,14 +1751,9 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
         end
     end
 
-    --if not SpellIsKnown(spellId) then
     ProcessID(buffIndex, unit)
-    --end
 end
 function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
-    local function SpellIsKnown(spellId)
-        return srslylawlUI.debuffs.known[spellId] ~= nil
-    end
     local function GetCrowdControlType(tooltipText)
         local s = string.lower(tooltipText)
 
@@ -1783,8 +1780,19 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
 
         local autoApprove = srslylawlUI.settings.autoApproveKeywords
         local CCType = GetCrowdControlType(debuffLower)
+        
+        if spellId == 116095 then
+            --disable for monk has "root" in tooltip of the slow spell, exception for that here.
+            --will need a different implementation, should more spells have the same properties
+            CCType = "none"
+        end
 
-        local isKnown = SpellIsKnown(spellId)
+        local isKnown = srslylawlUI.debuffs.known[spellId] ~= nil
+        local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect == false
+
+        if autoDetectDisabled then
+            return
+        end
 
         local spell = {
             name = spellName,
@@ -1819,9 +1827,7 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
         end
     end
 
-    if not SpellIsKnown(spellId) then
-        ProcessID(spellId, debuffIndex, unit, arg1)
-    end
+    ProcessID(spellId, debuffIndex, unit, arg1)
 end
 function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
     -- we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it

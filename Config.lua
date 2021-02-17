@@ -14,8 +14,7 @@ function srslylawlUI.CreateConfigWindow()
         editBox:SetPoint(point or "RIGHT", xOffset or 55, yOffset or 0)
         editBox:SetAutoFocus(false)
         editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
-        editBox:SetNumeric(isNumeric or false)
-    
+        editBox:SetNumeric(isNumeric or false)    
         if isNumeric then
         editBox:SetNumber(defaultValue)
         else
@@ -272,7 +271,7 @@ function srslylawlUI.CreateConfigWindow()
         local function CreateVisibilityFrame(tab)
             local visibility = CreateFrameWBG("Party Frame Visibility", tab)
             visibility:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -25)
-            visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -80, -55)
+            visibility:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -70, -55)
             tab.visibility = visibility
 
             local showParty = CreateCheckButton("Party", visibility)
@@ -388,7 +387,7 @@ function srslylawlUI.CreateConfigWindow()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
-            AddTooltip(showLongDuration, "Show/hide buffs with a base duration longer than the specified threshold.")
+            AddTooltip(showLongDuration, "Show/hide buffs with a base duration longer than 60 seconds.")
             showLongDuration:SetPoint("LEFT", showInfiniteDuration.text, "RIGHT")
             showLongDuration:SetChecked(srslylawlUI.settings.buffs.showLongDuration)
             showLongDuration:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showLongDuration)
@@ -439,7 +438,7 @@ function srslylawlUI.CreateConfigWindow()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
-            AddTooltip(showLongDuration, "Show/hide debuffs with a base duration longer than the specified threshold.")
+            AddTooltip(showLongDuration, "Show/hide debuffs with a base duration longer than 180 seconds.")
             showLongDuration:SetPoint("LEFT", showInfiniteDuration.text, "RIGHT")
             showLongDuration:SetChecked(srslylawlUI.settings.debuffs.showLongDuration)
             showLongDuration:SetAttribute("defaultValue", srslylawlUI.settings.debuffs.showLongDuration)
@@ -706,6 +705,18 @@ function srslylawlUI.CreateConfigWindow()
     end
     local function OpenSpellAttributePanel(parentTab, spellId)
         --auraType "buffs" or "debuffs"
+        local function SetEnableButtons(attributePanel, auraType, checked)
+            if auraType == "buffs" then
+                    attributePanel.isDefensive:SetEnabled(not checked)
+                    attributePanel.isAbsorb:SetEnabled(not checked)
+            elseif auraType == "debuffs" then
+                if (checked) then
+                    UIDropDownMenu_DisableDropDown(attributePanel.CCType)
+                else
+                    UIDropDownMenu_EnableDropDown(attributePanel.CCType)
+                end
+            end
+        end
         local function CreatePanel(parentTab, auraType)
             local attributePanel = CreateFrame("Frame","$parent_AttributePanel",parentTab, "BackdropTemplate")
             parentTab:GetParent().AttributePanel = attributePanel --make the attribute panel unique to the auratype buff
@@ -753,24 +764,44 @@ function srslylawlUI.CreateConfigWindow()
                 end
             end
 
+            -- local disableOnAutodetect = {}
+
             attributePanel.SpellIconFrame = CreateFrame("Frame", "$parent_SpellIconFrame", attributePanel)
             attributePanel.SpellIconFrame:SetSize(75, 75)
             attributePanel.SpellIconFrame:SetPoint("TOPLEFT", attributePanel, "TOPLEFT", 5, -5)
             attributePanel.SpellIcon = attributePanel.SpellIconFrame:CreateTexture("$parent_SpellIcon")
             attributePanel.SpellIcon:SetAllPoints(true)
 
+            
             attributePanel.SpellName = attributePanel:CreateFontString("$parent_SpellName", "OVERLAY", "GameFontGreenLarge")
             attributePanel.SpellName:SetPoint("LEFT", attributePanel.SpellIcon, "RIGHT", 15, 0)
-
+            
+            
             attributePanel.isWhitelisted = CreateCheckButton("Whitelisted", attributePanel)
             attributePanel.isWhitelisted:SetScript("OnClick", ButtonCheckFunction(auraType, "whiteList", "isWhitelisted"))
-
+            attributePanel.isWhitelisted:SetPoint("TOPLEFT", attributePanel.SpellIcon, "BOTTOMLEFT", 5, -5)
+            
             attributePanel.isBlacklisted = CreateCheckButton("Blacklisted", attributePanel)
             attributePanel.isBlacklisted:SetScript("OnClick", ButtonCheckFunction(auraType, "blackList", "isBlacklisted"))
+            attributePanel.isBlacklisted:SetPoint("TOPLEFT", attributePanel.isWhitelisted, "BOTTOMLEFT")
+
+            attributePanel.AutoDetect = CreateCheckButton("Auto-Detect settings", attributePanel)
+            attributePanel.AutoDetect:SetPoint("TOPLEFT", attributePanel.isBlacklisted, "BOTTOMLEFT")
+
+            AddTooltip(attributePanel.AutoDetect, "Automatically detect settings based on spell tooltip. Disable this to stop updating the settings when spell is encountered.\nUse this if auto settings don't work for this spell, recommended for non-english language clients.")
+            attributePanel.AutoDetect:SetScript("OnClick", function(self)
+                local id = self:GetParent():GetAttribute("spellId")
+                local checked = self:GetChecked()
+
+                srslylawlUI[auraType].known[id].autoDetect = checked
+                srslylawl_saved[auraType].known[id].autoDetect = checked
+
+                SetEnableButtons(attributePanel, auraType, checked)
+            end)
 
             if auraType == "buffs" then
                 attributePanel.isDefensive = CreateCheckButton("is Defensive effect", attributePanel)
-                attributePanel.isDefensive:SetPoint("TOPLEFT", attributePanel.SpellIcon, "BOTTOMLEFT", 5, -5)
+                attributePanel.isDefensive:SetPoint("TOPLEFT", attributePanel.AutoDetect, "BOTTOMRIGHT", -5, 0)
                 attributePanel.isDefensive:SetScript("OnClick", ButtonCheckFunction(auraType, "defensives", "isDefensive"))
                 AddTooltip(attributePanel.isDefensive, "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations.\n\nNote: stacking effects may show their last seen, stacked values")
 
@@ -778,21 +809,14 @@ function srslylawlUI.CreateConfigWindow()
                 attributePanel.isAbsorb:SetPoint("TOPLEFT", attributePanel.isDefensive, "BOTTOMLEFT")
                 attributePanel.isAbsorb:SetScript("OnClick", ButtonCheckFunction(auraType, "absorbs", "isAbsorb"))
                 AddTooltip(attributePanel.isAbsorb, "Does this buff provide damage absorption?\nDisabling this will stop the effect from being displayed as an absorb segment.\n\nNote: will cause errors if spell is not actually an absorb effect.")
-
-                attributePanel.isWhitelisted:SetPoint("TOPLEFT", attributePanel.isAbsorb, "BOTTOMLEFT")
                 AddTooltip(attributePanel.isWhitelisted, "Whitelisted buffs will always be displayed as buff frames.")
-
-                attributePanel.isBlacklisted:SetPoint("TOPLEFT", attributePanel.isWhitelisted, "BOTTOMLEFT")
                 AddTooltip(attributePanel.isBlacklisted, "Blacklisted buffs won't be displayed as buffs.\n\nNote: [SHIFT]-[RIGHTCLICK]ing an active buff (or debuff) will automatically blacklist it.")
             elseif auraType == "debuffs" then
-                attributePanel.isWhitelisted:SetPoint("TOPLEFT", attributePanel.SpellIcon, "BOTTOMLEFT")
                 AddTooltip(attributePanel.isWhitelisted, "Whitelisted debuffs will always be displayed.")
-
-                attributePanel.isBlacklisted:SetPoint("TOPLEFT", attributePanel.isWhitelisted, "BOTTOMLEFT")
                 AddTooltip(attributePanel.isBlacklisted, "Blacklisted debuffs won't be displayed.\n\nNote: [SHIFT]-[RIGHTCLICK]ing an active debuff (or buff) will automatically blacklist it.")
 
                 attributePanel.CCType = CreateFrame("FRAME", "$parent_CCType", attributePanel, "UIDropDownMenuTemplate")
-                attributePanel.CCType:SetPoint("TOPLEFT", attributePanel.isBlacklisted, "BOTTOMLEFT", -15, 0)
+                attributePanel.CCType:SetPoint("TOPLEFT", attributePanel.AutoDetect, "BOTTOMLEFT", -15, 0)
                 UIDropDownMenu_SetWidth(attributePanel.CCType, 200)
                 UIDropDownMenu_SetText(attributePanel.CCType, "Crowd Control Type")
             end
@@ -818,7 +842,7 @@ function srslylawlUI.CreateConfigWindow()
         if attributePanel == nil then
             if spellId == nil then return end
             CreatePanel(parentTab, auraType)
-            attributePanel = parentTab:GetParent().AttributePanel 
+            attributePanel = parentTab:GetParent().AttributePanel
         end
 
         attributePanel:Show()
@@ -845,7 +869,9 @@ function srslylawlUI.CreateConfigWindow()
 
         local isBlacklisted = srslylawlUI[auraType].known.isBlacklisted or srslylawlUI[auraType].blackList[spellId] ~= nil or false
         local isWhitelisted = srslylawlUI[auraType].known.isWhitelisted or srslylawlUI[auraType].whiteList[spellId] ~= nil or false
+        local autoDetect = srslylawlUI[auraType].known[spellId].autoDetect == nil or srslylawlUI[auraType].known[spellId].autoDetect
 
+        attributePanel.AutoDetect:SetChecked(autoDetect)
         attributePanel.isBlacklisted:SetChecked(isBlacklisted)
         attributePanel.isWhitelisted:SetChecked(isWhitelisted)
         if auraType == "buffs" then
@@ -898,6 +924,7 @@ function srslylawlUI.CreateConfigWindow()
             end
             
         end
+        SetEnableButtons(attributePanel, auraType, autoDetect)
         --print("open", auraType, spellList, spellId)
     end
     local function CreateFauxScrollFrame(parent, spellList)
