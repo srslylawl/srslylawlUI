@@ -226,7 +226,7 @@ function srslylawlUI.CreateConfigWindow()
         f.title = f:CreateFontString(
                     "$parent_Title", "OVERLAY", "GameFontNormal")
         f.title:SetText(name)
-        f.title:SetPoint("BOTTOMLEFT", f, "TOPLEFT")
+        f.title:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 10, 0)
         return f
     end
     local function CreateCheckButton(name, parent)
@@ -276,57 +276,57 @@ function srslylawlUI.CreateConfigWindow()
 
             local showParty = CreateCheckButton("Party", visibility)
             showParty:SetScript("OnClick", function(self)
-                srslylawlUI.settings.showParty = self:GetChecked()
+                srslylawlUI.settings.party.showParty = self:GetChecked()
                 srslylawlUI.Frame_UpdateVisibility()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showParty, "Show Frames while in a Party")
             showParty:SetPoint("TOPLEFT", visibility, "TOPLEFT")
-            showParty:SetChecked(srslylawlUI.settings.showParty)
-            showParty:SetAttribute("defaultValue", srslylawlUI.settings.showParty)
+            showParty:SetChecked(srslylawlUI.settings.party.showParty)
+            showParty:SetAttribute("defaultValue", srslylawlUI.settings.party.showParty)
 
             local showRaid = CreateCheckButton("Raid", visibility)
             showRaid:SetScript("OnClick", function(self)
-                srslylawlUI.settings.showRaid = self:GetChecked()
+                srslylawlUI.settings.party.showRaid = self:GetChecked()
                 srslylawlUI.Frame_UpdateVisibility()
                 srslylawlUI.SetDirtyFlag()
             end)
             showRaid:SetPoint("LEFT", showParty.text, "RIGHT")
             AddTooltip(showRaid, "Show Frames while in a Raid (not recommended)")
-            showRaid:SetChecked(srslylawlUI.settings.showRaid)
-            showRaid:SetAttribute("defaultValue", srslylawlUI.settings.showRaid)
+            showRaid:SetChecked(srslylawlUI.settings.party.showRaid)
+            showRaid:SetAttribute("defaultValue", srslylawlUI.settings.party.showRaid)
 
             local showPlayer = CreateCheckButton("Show Player", visibility)
             showPlayer:SetScript("OnClick", function(self)
-                srslylawlUI.settings.showPlayer = self:GetChecked()
+                srslylawlUI.settings.party.showPlayer = self:GetChecked()
                 srslylawlUI.Frame_UpdateVisibility()
                 srslylawlUI.SetDirtyFlag()
             end)
             showPlayer:SetPoint("LEFT", showRaid.text, "RIGHT")
             AddTooltip(showPlayer, "Show Player in Party Frames (recommended)")
-            showPlayer:SetChecked(srslylawlUI.settings.showPlayer)
-            showPlayer:SetAttribute("defaultValue", srslylawlUI.settings.showPlayer)
+            showPlayer:SetChecked(srslylawlUI.settings.party.showPlayer)
+            showPlayer:SetAttribute("defaultValue", srslylawlUI.settings.party.showPlayer)
 
             local showSolo = CreateCheckButton("Solo", visibility)
             showSolo:SetScript("OnClick", function(self)
-                srslylawlUI.settings.showSolo = self:GetChecked()
+                srslylawlUI.settings.party.showSolo = self:GetChecked()
                 srslylawlUI.Frame_UpdateVisibility()
                 srslylawlUI.SetDirtyFlag()
             end)
             showSolo:SetPoint("LEFT", showPlayer.text, "RIGHT")
             AddTooltip(showSolo, "Show Frames while not in a group (will assume Show Player)")
-            showSolo:SetChecked(srslylawlUI.settings.showSolo)
-            showSolo:SetAttribute("defaultValue", srslylawlUI.settings.showSolo)
+            showSolo:SetChecked(srslylawlUI.settings.party.showSolo)
+            showSolo:SetAttribute("defaultValue", srslylawlUI.settings.party.showSolo)
 
             local showArena = CreateCheckButton("Arena", visibility)
             showArena:SetScript("OnClicK", function(self)
-                srslylawlUI.settings.showArena = self:GetChecked()
+                srslylawlUI.settings.party.showArena = self:GetChecked()
                 srslylawlUI.Frame_UpdateVisibility()
                 srslylawlUI.SetDirtyFlag()
             end)
             showArena:SetPoint("LEFT", showSolo.text, "RIGHT")
-            showArena:SetChecked(srslylawlUI.settings.showArena)
-            showArena:SetAttribute("defaultValue", srslylawlUI.settings.showArena)
+            showArena:SetChecked(srslylawlUI.settings.party.showArena)
+            showArena:SetAttribute("defaultValue", srslylawlUI.settings.party.showArena)
             AddTooltip(showArena, "Show Frames in Arena")
 
         end
@@ -339,58 +339,58 @@ function srslylawlUI.CreateConfigWindow()
 
             local showDefault = CreateCheckButton("Show per Default", buffSettings)
             showDefault:SetScript("OnClick", function(self)
-                srslylawlUI.settings.buffs.showDefault = self:GetChecked()
+                srslylawlUI.settings.party.buffs.showDefault = self:GetChecked()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showDefault, "Show/hide all buffs per default, except if they are in/excluded by another setting.\n\nRecommended: Hiding all per default, while showing defensives and whitelisted Auras.")
             showDefault:SetPoint("TOPLEFT", buffSettings, "TOPLEFT")
-            showDefault:SetChecked(srslylawlUI.settings.buffs.showDefault)
-            showDefault:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showDefault)
+            showDefault:SetChecked(srslylawlUI.settings.party.buffs.showDefault)
+            showDefault:SetAttribute("defaultValue", srslylawlUI.settings.party.buffs.showDefault)
 
             local showDefensives = CreateCheckButton("Show Defensives", buffSettings)
             showDefensives:SetScript("OnClick", function(self)
-                srslylawlUI.settings.buffs.showDefensives = self:GetChecked()
+                srslylawlUI.settings.party.buffs.showDefensives = self:GetChecked()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showDefensives, "Show/hide buffs categorized as Defensives.")
             showDefensives:SetPoint("LEFT", showDefault.text, "RIGHT")
-            showDefensives:SetChecked(srslylawlUI.settings.buffs.showDefensives)
-            showDefensives:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showDefensives)
+            showDefensives:SetChecked(srslylawlUI.settings.party.buffs.showDefensives)
+            showDefensives:SetAttribute("defaultValue", srslylawlUI.settings.party.buffs.showDefensives)
 
             local showCastByPlayer = CreateCheckButton("Show cast by Player", buffSettings)
             showCastByPlayer:SetScript("OnClick", function(self)
-                srslylawlUI.settings.buffs.showCastByPlayer = self:GetChecked()
+                srslylawlUI.settings.party.buffs.showCastByPlayer = self:GetChecked()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showCastByPlayer, "Show/hide buffs that have been applied by the Player.")
             showCastByPlayer:SetPoint("LEFT", showDefensives.text, "RIGHT")
-            showCastByPlayer:SetChecked(srslylawlUI.settings.buffs.showCastByPlayer)
-            showCastByPlayer:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showCastByPlayer)
+            showCastByPlayer:SetChecked(srslylawlUI.settings.party.buffs.showCastByPlayer)
+            showCastByPlayer:SetAttribute("defaultValue", srslylawlUI.settings.party.buffs.showCastByPlayer)
 
             local showInfiniteDuration = CreateCheckButton("Show infinite duration", buffSettings)
             showInfiniteDuration:SetScript("OnClick", function(self)
-                srslylawlUI.settings.buffs.showInfiniteDuration = self:GetChecked()
+                srslylawlUI.settings.party.buffs.showInfiniteDuration = self:GetChecked()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showInfiniteDuration, "Show/hide buffs with no expiration time.")
             showInfiniteDuration:SetPoint("LEFT", showCastByPlayer.text, "RIGHT")
-            showInfiniteDuration:SetChecked(srslylawlUI.settings.buffs.showInfiniteDuration)
-            showInfiniteDuration:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showInfiniteDuration)
+            showInfiniteDuration:SetChecked(srslylawlUI.settings.party.buffs.showInfiniteDuration)
+            showInfiniteDuration:SetAttribute("defaultValue", srslylawlUI.settings.party.buffs.showInfiniteDuration)
 
             local showLongDuration = CreateCheckButton("Show long duration", buffSettings)
             showLongDuration:SetScript("OnClick", function(self)
-                srslylawlUI.settings.buffs.showLongDuration = self:GetChecked()
+                srslylawlUI.settings.party.buffs.showLongDuration = self:GetChecked()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showLongDuration, "Show/hide buffs with a base duration longer than 60 seconds.")
             showLongDuration:SetPoint("LEFT", showInfiniteDuration.text, "RIGHT")
-            showLongDuration:SetChecked(srslylawlUI.settings.buffs.showLongDuration)
-            showLongDuration:SetAttribute("defaultValue", srslylawlUI.settings.buffs.showLongDuration)
+            showLongDuration:SetChecked(srslylawlUI.settings.party.buffs.showLongDuration)
+            showLongDuration:SetAttribute("defaultValue", srslylawlUI.settings.party.buffs.showLongDuration)
         end
 
         local function CreateDebuffConfigFrame(tab)
@@ -401,47 +401,47 @@ function srslylawlUI.CreateConfigWindow()
 
             local showDefault = CreateCheckButton("Show per Default", debuffSettings)
             showDefault:SetScript("OnClick", function(self)
-                srslylawlUI.settings.debuffs.showDefault = self:GetChecked()
+                srslylawlUI.settings.party.debuffs.showDefault = self:GetChecked()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showDefault, "Show/hide all debuffs per default, except if they are in/excluded by another setting.\n\nRecommended: Showing all per default, while hiding infinite duration auras.")
             showDefault:SetPoint("TOPLEFT", debuffSettings, "TOPLEFT")
-            showDefault:SetChecked(srslylawlUI.settings.debuffs.showDefault)
-            showDefault:SetAttribute("defaultValue", srslylawlUI.settings.debuffs.showDefault)
+            showDefault:SetChecked(srslylawlUI.settings.party.debuffs.showDefault)
+            showDefault:SetAttribute("defaultValue", srslylawlUI.settings.party.debuffs.showDefault)
 
             local showCastByPlayer = CreateCheckButton("Show cast by Player", debuffSettings)
             showCastByPlayer:SetScript("OnClick", function(self)
-                srslylawlUI.settings.debuffs.showCastByPlayer = self:GetChecked()
+                srslylawlUI.settings.party.debuffs.showCastByPlayer = self:GetChecked()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showCastByPlayer, "Show/hide debuffs that have been applied by the Player.")
             showCastByPlayer:SetPoint("LEFT", showDefault.text, "RIGHT")
-            showCastByPlayer:SetChecked(srslylawlUI.settings.debuffs.showCastByPlayer)
-            showCastByPlayer:SetAttribute("defaultValue", srslylawlUI.settings.debuffs.showCastByPlayer)
+            showCastByPlayer:SetChecked(srslylawlUI.settings.party.debuffs.showCastByPlayer)
+            showCastByPlayer:SetAttribute("defaultValue", srslylawlUI.settings.party.debuffs.showCastByPlayer)
 
             local showInfiniteDuration = CreateCheckButton("Show infinite duration", debuffSettings)
             showInfiniteDuration:SetScript("OnClick", function(self)
-                srslylawlUI.settings.debuffs.showInfiniteDuration = self:GetChecked()
+                srslylawlUI.settings.party.debuffs.showInfiniteDuration = self:GetChecked()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showInfiniteDuration, "Show/hide debuffs with no expiration time.")
             showInfiniteDuration:SetPoint("LEFT", showCastByPlayer.text, "RIGHT")
-            showInfiniteDuration:SetChecked(srslylawlUI.settings.debuffs.showInfiniteDuration)
-            showInfiniteDuration:SetAttribute("defaultValue", srslylawlUI.settings.debuffs.showInfiniteDuration)
+            showInfiniteDuration:SetChecked(srslylawlUI.settings.party.debuffs.showInfiniteDuration)
+            showInfiniteDuration:SetAttribute("defaultValue", srslylawlUI.settings.party.debuffs.showInfiniteDuration)
 
             local showLongDuration = CreateCheckButton("Show long duration", debuffSettings)
             showLongDuration:SetScript("OnClick", function(self)
-                srslylawlUI.settings.debuffs.showLongDuration = self:GetChecked()
+                srslylawlUI.settings.party.debuffs.showLongDuration = self:GetChecked()
                 srslylawlUI_Frame_HandleAuras_ALL()
                 srslylawlUI.SetDirtyFlag()
             end)
             AddTooltip(showLongDuration, "Show/hide debuffs with a base duration longer than 180 seconds.")
             showLongDuration:SetPoint("LEFT", showInfiniteDuration.text, "RIGHT")
-            showLongDuration:SetChecked(srslylawlUI.settings.debuffs.showLongDuration)
-            showLongDuration:SetAttribute("defaultValue", srslylawlUI.settings.debuffs.showLongDuration)
+            showLongDuration:SetChecked(srslylawlUI.settings.party.debuffs.showLongDuration)
+            showLongDuration:SetAttribute("defaultValue", srslylawlUI.settings.party.debuffs.showLongDuration)
         end
 
         CreateVisibilityFrame(tab)
@@ -465,17 +465,17 @@ function srslylawlUI.CreateConfigWindow()
         end
         )
 
-        local healthBarFrame = CreateFrameWBG("Health Bar", tab)
+        local healthBarFrame = CreateFrameWBG("Party Health Bar", tab)
         healthBarFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -55)
-        healthBarFrame:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -5, -155)
+        healthBarFrame:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -5, -115)
         
-        local width = floor(srslylawlUI.settings.hp.width)
-        local height = floor(srslylawlUI.settings.hp.height)
+        local width = floor(srslylawlUI.settings.party.hp.width)
+        local height = floor(srslylawlUI.settings.party.hp.height)
         cFrame.sliders.height = CreateCustomSlider("Height", 5, 500,
             height, healthBarFrame, -50, 1, true)
         cFrame.sliders.height:SetPoint("TOPLEFT", 10, -20)
         cFrame.sliders.height:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.settings.hp.height = value
+            srslylawlUI.settings.party.hp.height = value
             srslylawlUI.UpdateEverything()
             srslylawlUI.SetDirtyFlag() end)
         cFrame.sliders.hpwidth = CreateCustomSlider("Max Width", 25,
@@ -484,64 +484,68 @@ function srslylawlUI.CreateConfigWindow()
         cFrame.sliders.hpwidth:SetPoint("LEFT", cFrame.sliders.height.editbox,
             "RIGHT", 10, 0)
         cFrame.sliders.hpwidth:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.settings.hp.width = value
+            srslylawlUI.settings.party.hp.width = value
             srslylawlUI.UpdateEverything()
             srslylawlUI.SetDirtyFlag()
         end)
-        cFrame.sliders.minWidth = CreateCustomSlider("Min Width Percent", 0.1, 1, srslylawlUI.Utils_DecimalRound(srslylawlUI.settings.hp.minWidthPercent, 2), cFrame.sliders.height, -50, 0.01, false, 2)
+        cFrame.sliders.minWidth = CreateCustomSlider("Min Width Percent", 0.1, 1, srslylawlUI.Utils_DecimalRound(srslylawlUI.settings.party.hp.minWidthPercent, 2),
+        cFrame.sliders.height, -50, 0.01, false, 2)
         cFrame.sliders.minWidth:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.settings.hp.minWidthPercent = value
+            srslylawlUI.settings.party.hp.minWidthPercent = value
             srslylawlUI.UpdateEverything()
             srslylawlUI.SetDirtyFlag()
         end)
-        AddTooltip(cFrame.sliders.minWidth, "Minimum percent of Max Width a bar can be scaled to. Default: 0.45")
+        cFrame.sliders.minWidth:ClearAllPoints(true);
+        cFrame.sliders.minWidth:SetPoint("LEFT", cFrame.sliders.hpwidth.editbox,
+            "RIGHT", 10, 0)
+        AddTooltip(cFrame.sliders.minWidth, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
 
         -- Buff Frames
-        local buffFrame = CreateFrameWBG("Buffs", healthBarFrame)
+        local buffFrame = CreateFrameWBG("Party Buffs", healthBarFrame)
         buffFrame:SetPoint("TOPLEFT", healthBarFrame, "BOTTOMLEFT", 0, -15)
         buffFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", 0, -120)
         local buffAnchor = CreateCustomDropDown("Anchor", 75, buffFrame, "TOPLEFT",
-            "TOPLEFT", -10, -20, srslylawlUI.settings.buffs.anchor, srslylawlUI.anchorTable, function(newValue)
-                srslylawlUI.settings.buffs.anchor = newValue
+            "TOPLEFT", -10, -20, srslylawlUI.settings.party.buffs.anchor, srslylawlUI.anchorTable, function(newValue)
+                srslylawlUI.settings.party.buffs.anchor = newValue
                 srslylawlUI.SetBuffFrames()
-        end, function(self) return self.value == srslylawlUI.settings.buffs.anchor end)
+        end, function(self) return self.value == srslylawlUI.settings.party.buffs.anchor end)
         local buffGrowthDir = CreateCustomDropDown("Growth Direction", 125, buffAnchor, "TOPLEFT",
-            "TOPRIGHT", -25, 0, srslylawlUI.settings.buffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
-                srslylawlUI.settings.buffs.growthDir = newValue
+            "TOPRIGHT", -25, 0, srslylawlUI.settings.party.buffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
+                srslylawlUI.settings.party.buffs.growthDir = newValue
                 srslylawlUI.SetBuffFrames()
-        end, function(self) return self.value == srslylawlUI.settings.buffs.growthDir end)
-        local buffAnchorXOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffGrowthDir, srslylawlUI.settings.buffs.xOffset,
+        end, function(self) return self.value == srslylawlUI.settings.party.buffs.growthDir end)
+        local buffAnchorXOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffGrowthDir, srslylawlUI.settings.party.buffs.xOffset,
         function(self)
             local n = self:GetNumber()
-            if srslylawlUI.settings.buffs.xOffset == n then return end
-            srslylawlUI.settings.buffs.xOffset = n
+            if srslylawlUI.settings.party.buffs.xOffset == n then return end
+            srslylawlUI.settings.party.buffs.xOffset = n
             srslylawlUI.SetBuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         buffAnchorXOffset.title = buffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
         buffAnchorXOffset.title:SetPoint("TOP", 0, 12)
-        buffAnchorXOffset.title:SetText("X Offset")
+        buffAnchorXOffset.title:SetText("X-Offset")
         buffAnchorXOffset:ClearAllPoints()
         buffAnchorXOffset:SetPoint("TOPLEFT", buffGrowthDir, "TOPRIGHT", -10, 0)
-        local buffAnchorYOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffAnchorXOffset, srslylawlUI.settings.buffs.xOffset,
+        local buffAnchorYOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffAnchorXOffset, srslylawlUI.settings.party.buffs.xOffset,
         function(self)
             local n = self:GetNumber()
-            if srslylawlUI.settings.buffs.yOffset == n then return end
-            srslylawlUI.settings.buffs.yOffset = n
+            if srslylawlUI.settings.party.buffs.yOffset == n then return end
+            srslylawlUI.settings.party.buffs.yOffset = n
             srslylawlUI.SetBuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         buffAnchorYOffset.title = buffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
         buffAnchorYOffset.title:SetPoint("TOP", 0, 12)
-        buffAnchorYOffset.title:SetText("Y Offset")
+        buffAnchorYOffset.title:SetText("Y-Offset")
 
         cFrame.editBoxes.buffAnchorXOffset = buffAnchorXOffset
         cFrame.editBoxes.buffAnchorYOffset = buffAnchorYOffset
-        local buffIconSize = CreateEditBox("$parent_Icon Size", buffAnchorYOffset, srslylawlUI.settings.buffs.size,
+        local buffIconSize = CreateEditBox("$parent_Icon Size", buffAnchorYOffset, srslylawlUI.settings.party.buffs.size,
         function(self)
             local n = self:GetNumber()
-            if srslylawlUI.settings.buffs.size == n then return end
-            srslylawlUI.settings.buffs.size = n
+            if srslylawlUI.settings.party.buffs.size == n then return end
+            srslylawlUI.settings.party.buffs.size = n
             srslylawlUI.SetBuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
@@ -550,59 +554,59 @@ function srslylawlUI.CreateConfigWindow()
         buffIconSize.title:SetPoint("TOP", 0, 12)
         buffIconSize.title:SetText("Size")
 
-        cFrame.sliders.maxBuffs = CreateCustomSlider("Max Visible Buffs", 0, 40, srslylawlUI.settings.buffs.maxBuffs, buffAnchor, -50, 1, true, 0)
+        cFrame.sliders.maxBuffs = CreateCustomSlider("Max Visible Buffs", 0, 40, srslylawlUI.settings.party.buffs.maxBuffs, buffAnchor, -50, 1, true, 0)
         cFrame.sliders.maxBuffs:SetPoint("TOPLEFT", buffAnchor, "BOTTOMLEFT", 20, -15)
         cFrame.sliders.maxBuffs:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.settings.buffs.maxBuffs = value
+            srslylawlUI.settings.party.buffs.maxBuffs = value
             srslylawlUI.SetDirtyFlag() end)
         AddTooltip(cFrame.sliders.maxBuffs, "Requires UI Reload")
 
         --Debuff Frames
-        local debuffFrame = CreateFrameWBG("Debuffs", buffFrame)
+        local debuffFrame = CreateFrameWBG("Party Debuffs", buffFrame)
         debuffFrame:SetPoint("TOPLEFT", buffFrame, "BOTTOMLEFT", 0, -15)
         debuffFrame:SetPoint("BOTTOMRIGHT", buffFrame, "BOTTOMRIGHT", 0, -120)
         local debuffAnchor = CreateCustomDropDown("Anchor", 75, debuffFrame, "TOPLEFT",
-            "TOPLEFT", -10, -20, srslylawlUI.settings.debuffs.anchor, srslylawlUI.anchorTable, function(newValue)
-                srslylawlUI.settings.debuffs.anchor = newValue
+            "TOPLEFT", -10, -20, srslylawlUI.settings.party.debuffs.anchor, srslylawlUI.anchorTable, function(newValue)
+                srslylawlUI.settings.party.debuffs.anchor = newValue
                 srslylawlUI.SetDebuffFrames()
-        end, function(self) return self.value == srslylawlUI.settings.debuffs.anchor end)
+        end, function(self) return self.value == srslylawlUI.settings.party.debuffs.anchor end)
         local debuffGrowthDir = CreateCustomDropDown("Growth Direction", 125, debuffAnchor, "TOPLEFT",
-            "TOPRIGHT", -25, 0, srslylawlUI.settings.debuffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
-                srslylawlUI.settings.debuffs.growthDir = newValue
+            "TOPRIGHT", -25, 0, srslylawlUI.settings.party.debuffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
+                srslylawlUI.settings.party.debuffs.growthDir = newValue
                 srslylawlUI.SetDebuffFrames()
-        end, function(self) return self.value == srslylawlUI.settings.debuffs.growthDir end)
-        local debuffAnchorXOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffGrowthDir, srslylawlUI.settings.debuffs.xOffset,
+        end, function(self) return self.value == srslylawlUI.settings.party.debuffs.growthDir end)
+        local debuffAnchorXOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffGrowthDir, srslylawlUI.settings.party.debuffs.xOffset,
         function(self)
             local n = self:GetNumber()
-            if srslylawlUI.settings.debuffs.xOffset == n then return end
-            srslylawlUI.settings.debuffs.xOffset = n
+            if srslylawlUI.settings.party.debuffs.xOffset == n then return end
+            srslylawlUI.settings.party.debuffs.xOffset = n
             srslylawlUI.SetDebuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         debuffAnchorXOffset.title = debuffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
         debuffAnchorXOffset.title:SetPoint("TOP", 0, 12)
-        debuffAnchorXOffset.title:SetText("X Offset")
+        debuffAnchorXOffset.title:SetText("X-Offset")
         debuffAnchorXOffset:ClearAllPoints()
         debuffAnchorXOffset:SetPoint("TOPLEFT", debuffGrowthDir, "TOPRIGHT", -10, 0)
-        local debuffAnchorYOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffAnchorXOffset, srslylawlUI.settings.debuffs.yOffset,
+        local debuffAnchorYOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffAnchorXOffset, srslylawlUI.settings.party.debuffs.yOffset,
         function(self)
             local n = self:GetNumber()
-            if srslylawlUI.settings.debuffs.yOffset == n then return end
-            srslylawlUI.settings.debuffs.yOffset = n
+            if srslylawlUI.settings.party.debuffs.yOffset == n then return end
+            srslylawlUI.settings.party.debuffs.yOffset = n
             srslylawlUI.SetDebuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         debuffAnchorYOffset.title = debuffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
         debuffAnchorYOffset.title:SetPoint("TOP", 0, 12)
-        debuffAnchorYOffset.title:SetText("Y Offset")
+        debuffAnchorYOffset.title:SetText("Y-Offset")
 
         cFrame.editBoxes.debuffAnchorXOffset = debuffAnchorXOffset
         cFrame.editBoxes.debuffAnchorYOffset = debuffAnchorYOffset
-        local debuffIconSize = CreateEditBox("$parent_Icon Size", debuffAnchorYOffset, srslylawlUI.settings.debuffs.size,
+        local debuffIconSize = CreateEditBox("$parent_Icon Size", debuffAnchorYOffset, srslylawlUI.settings.party.debuffs.size,
         function(self)
             local n = self:GetNumber()
-            if srslylawlUI.settings.debuffs.size == n then return end
-            srslylawlUI.settings.debuffs.size = n
+            if srslylawlUI.settings.party.debuffs.size == n then return end
+            srslylawlUI.settings.party.debuffs.size = n
             srslylawlUI.SetDebuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
@@ -611,10 +615,10 @@ function srslylawlUI.CreateConfigWindow()
         debuffIconSize.title:SetPoint("TOP", 0, 12)
         debuffIconSize.title:SetText("Size")
 
-        cFrame.sliders.maxDebuffs = CreateCustomSlider("Max Visible Debuffs", 0, 40, srslylawlUI.settings.debuffs.maxDebuffs, debuffAnchor, -50, 1, true, 0)
+        cFrame.sliders.maxDebuffs = CreateCustomSlider("Max Visible Debuffs", 0, 40, srslylawlUI.settings.party.debuffs.maxDebuffs, debuffAnchor, -50, 1, true, 0)
         cFrame.sliders.maxDebuffs:SetPoint("TOPLEFT", debuffAnchor, "BOTTOMLEFT", 20, -15)
         cFrame.sliders.maxDebuffs:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.settings.debuffs.maxDebuffs = value
+            srslylawlUI.settings.party.debuffs.maxDebuffs = value
             srslylawlUI.SetDirtyFlag() end)
         AddTooltip(cFrame.sliders.maxDebuffs, "Requires UI Reload")
     end
@@ -898,8 +902,8 @@ function srslylawlUI.CreateConfigWindow()
 
 
 
-        local isBlacklisted = srslylawlUI[auraType].known.isBlacklisted or srslylawlUI[auraType].blackList[spellId] ~= nil or false
-        local isWhitelisted = srslylawlUI[auraType].known.isWhitelisted or srslylawlUI[auraType].whiteList[spellId] ~= nil or false
+        local isBlacklisted = srslylawlUI[auraType].blackList[spellId] ~= nil or false
+        local isWhitelisted = srslylawlUI[auraType].whiteList[spellId] ~= nil or false
         local autoDetect = srslylawlUI[auraType].known[spellId].autoDetect == nil or srslylawlUI[auraType].known[spellId].autoDetect
         AddTooltip(attributePanel.LastParsedText, srslylawlUI[auraType].known[spellId].text or "<Aura either has no tooltip or was never encountered>")
         attributePanel.AutoDetect:SetChecked(autoDetect)
@@ -1140,7 +1144,6 @@ function srslylawlUI.CreateConfigWindow()
         CreateFrames(disorients, "disorients")
         CreateFrames(silences, "silences")
         CreateFrames(roots, "roots")
-        
     end
     srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "UIPanelDialogTemplate")
     local cFrame = srslylawlUI_ConfigFrame
@@ -1178,7 +1181,26 @@ function srslylawlUI.CreateConfigWindow()
         edgeSize = 10,
         insets = {left = 4, right = 4, top = 4, bottom = 4}})
     framesTab:SetBackdropColor(0, 0, 0, .4)
-    FillFramesTab(framesTab)
+    local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", framesTab, "UIPanelScrollFrameTemplate")
+    ScrollFrame:SetClipsChildren(true)
+    ScrollFrame:SetAllPoints(true)
+    ScrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local newValue = self:GetVerticalScroll() - (delta * 20)
+        if newValue < 0 then
+            newValue = 0
+        elseif newValue > self:GetVerticalScrollRange() then
+            newValue = self:GetVerticalScrollRange()
+        end
+        self:SetVerticalScroll(newValue)
+    end)
+    ScrollFrame.ScrollBar:ClearAllPoints()
+    ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -22, -20)
+    ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 20)
+    ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", ScrollFrame)
+    ScrollFrame.child:SetAllPoints(true)
+    ScrollFrame.child:SetSize(framesTab:GetWidth()-30, 10000)
+    ScrollFrame:SetScrollChild(ScrollFrame.child)
+    FillFramesTab(ScrollFrame.child)
 
     -- Create Buffs Tab
     buffsTab:ClearAllPoints()

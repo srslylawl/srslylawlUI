@@ -1,20 +1,22 @@
 srslylawlUI = srslylawlUI or {}
 
 srslylawlUI.settings = {
-    header = {anchor = "CENTER", xOffset = 10, yOffset = 10},
-    hp = {width = 100, height = 50, minWidthPercent = 0.45},
-    pet = {width = 15},
-    buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT",
-            showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-    debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true,
-            maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-    maxAbsorbFrames = 20,
-    autoApproveKeywords = true,
-    showArena = false,
-    showParty = true,
-    showSolo = true,
-    showRaid = false,
-    showPlayer = true,
+    party = {
+        header = {anchor = "CENTER", xOffset = 10, yOffset = 10},
+        hp = {width = 100, height = 50, minWidthPercent = 0.55},
+        power = {width = 15},
+        pet = {width = 15},
+        buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT",
+                showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
+        debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true,
+                maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
+        maxAbsorbFrames = 20,
+        showArena = false,
+        showParty = true,
+        showSolo = true,
+        showRaid = false,
+        showPlayer = true,
+    },
     frameOnUpdateInterval = 0.1
 }
 srslylawlUI.buffs = {
@@ -49,8 +51,12 @@ srslylawlUI.sortedSpellLists = {
     }
 }
 local powerUpdateType = "UNIT_POWER_UPDATE" -- "UNIT_POWER_UPDATE" or "UNIT_POWER_FRQUENT"
-srslylawlUI.AbsorbFrameTexture = "Interface/RAIDFRAME/Shield-Fill"
-srslylawlUI.HealthBarTexture = "Interface/Addons/srslylawlUI/media/healthBar"
+srslylawlUI.textures = {
+    AbsorbFrame = "Interface/RAIDFRAME/Shield-Fill",
+    HealthBar = "Interface/Addons/srslylawlUI/media/healthBar",
+    EffectiveHealth = "Interface/AddOns/srslylawlUI/media/eHealthBar",
+    CCHighlight = "Interface/AddOns/srslylawlUI/media/ccHighlight"
+}
 srslylawlUI.unsaved = {flag = false, buttons = {}}
 
 -- "units" tracks auras and frames
@@ -296,14 +302,14 @@ end
 function srslylawlUI.SetBuffFrames()
     for k, v in pairs(units) do
         if units[k] ~= nil and units[k].buffFrames ~= nil then
-            for i = 1, srslylawlUI.settings.buffs.maxBuffs do
-                local size = srslylawlUI.settings.buffs.size
+            for i = 1, srslylawlUI.settings.party.buffs.maxBuffs do
+                local size = srslylawlUI.settings.party.buffs.size
                 local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
                 local anchor = "CENTER"
                 if (i == 1) then
-                    anchor = srslylawlUI.settings.buffs.anchor
-                    xOffset = srslylawlUI.settings.buffs.xOffset
-                    yOffset = srslylawlUI.settings.buffs.yOffset
+                    anchor = srslylawlUI.settings.party.buffs.anchor
+                    xOffset = srslylawlUI.settings.party.buffs.xOffset
+                    yOffset = srslylawlUI.settings.party.buffs.yOffset
                     units[k].buffFrames[i]:SetParent(srslylawlUI.Frame_GetByUnitType(k).unit.auraAnchor)
                 end
 
@@ -320,14 +326,14 @@ end
 function srslylawlUI.SetDebuffFrames()
     for k, v in pairs(units) do
         if units[k] ~= nil and units[k].debuffFrames ~= nil then
-            for i = 1, srslylawlUI.settings.debuffs.maxDebuffs do
-                local size = srslylawlUI.settings.debuffs.size
+            for i = 1, srslylawlUI.settings.party.debuffs.maxDebuffs do
+                local size = srslylawlUI.settings.party.debuffs.size
                 local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
                 local anchor = "CENTER"
                 if (i == 1) then
-                    anchor = srslylawlUI.settings.debuffs.anchor
-                    xOffset = srslylawlUI.settings.debuffs.xOffset
-                    yOffset = srslylawlUI.settings.debuffs.yOffset
+                    anchor = srslylawlUI.settings.party.debuffs.anchor
+                    xOffset = srslylawlUI.settings.party.debuffs.xOffset
+                    yOffset = srslylawlUI.settings.party.debuffs.yOffset
                     units[k].debuffFrames[i]:SetParent(srslylawlUI.Frame_GetByUnitType(k).unit.auraAnchor)
                 end
 
@@ -344,9 +350,9 @@ function srslylawlUI.SetDebuffFrames()
 end
 function srslylawlUI.GetBuffOffsets()
     local xOffset, yOffset
-    local size = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.buffs.size)
+    local size = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.party.buffs.size)
      
-    local growthDir = srslylawlUI.settings.buffs.growthDir
+    local growthDir = srslylawlUI.settings.party.buffs.growthDir
     if growthDir == "LEFT" then
         xOffset = -size
         yOffset = 0
@@ -358,8 +364,8 @@ function srslylawlUI.GetBuffOffsets()
 end
 function srslylawlUI.GetDebuffOffsets()
     local xOffset, yOffset
-    local size = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.debuffs.size)
-    local growthDir = srslylawlUI.settings.debuffs.growthDir
+    local size = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.party.debuffs.size)
+    local growthDir = srslylawlUI.settings.party.debuffs.growthDir
     if growthDir == "LEFT" then
         xOffset = -size
         yOffset = 0
@@ -432,7 +438,7 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
     end
 
     buttonFrame.pet:SetPoint("TOPLEFT", buttonFrame.unit, "TOPRIGHT", 2, 0)
-    buttonFrame.pet:SetPoint("BOTTOMRIGHT", buttonFrame.unit, "BOTTOMRIGHT", 17, 0)
+    buttonFrame.pet:SetPoint("BOTTOMRIGHT", buttonFrame.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width+2, 0)
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
 
     buttonFrame.unit.healthBar.name:SetPoint("BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
@@ -459,8 +465,8 @@ function srslylawlUI.Frame_ResetDimensions_ALL()
 end
 function srslylawlUI.Frame_ResetDimensions(button)
     local unitType = button:GetAttribute("unit")
-    local h = srslylawlUI.settings.hp.height
-    local w = srslylawlUI.settings.hp.width
+    local h = srslylawlUI.settings.party.hp.height
+    local w = srslylawlUI.settings.party.hp.width
     if unitHealthBars ~= nil then
         if unitHealthBars[unitType] ~= nil then
             if unitHealthBars[unitType]["width"] ~= nil then
@@ -480,8 +486,8 @@ function srslylawlUI.Frame_ResetDimensions(button)
 
         if not InCombatLockdown() then
             -- stuff that taints in combat
-            srslylawlUI.Utils_SetSizePixelPerfect(button, srslylawlUI.settings.hp.width+1, srslylawlUI.settings.hp.height+1)
-            srslylawlUI.Utils_SetSizePixelPerfect(button.unit, srslylawlUI.settings.hp.width, srslylawlUI.settings.hp.height)
+            srslylawlUI.Utils_SetSizePixelPerfect(button, srslylawlUI.settings.party.hp.width+1, srslylawlUI.settings.party.hp.height+1)
+            srslylawlUI.Utils_SetSizePixelPerfect(button.unit, srslylawlUI.settings.party.hp.width, srslylawlUI.settings.party.hp.height)
         end
     end
 
@@ -512,14 +518,14 @@ function srslylawlUI.Frame_UpdateVisibility()
     local isInRaid = IsInRaid() and not C_PvP.IsArena()
 
     if isInGroup then
-        UpdateHeaderVisible(srslylawlUI.settings.showParty)
+        UpdateHeaderVisible(srslylawlUI.settings.party.showParty)
     elseif isInRaid then
-        UpdateHeaderVisible(srslylawlUI.settings.showRaid)
+        UpdateHeaderVisible(srslylawlUI.settings.party.showRaid)
     elseif isInArena then
-        UpdateHeaderVisible(srslylawlUI.settings.showArena)
+        UpdateHeaderVisible(srslylawlUI.settings.party.showArena)
     else
         local frame = srslylawlUI_PartyHeader.player
-        if srslylawlUI.settings.showSolo then
+        if srslylawlUI.settings.party.showSolo then
             if not frame:IsShown() then
                 RegisterUnitWatch(frame)
             end
@@ -528,7 +534,7 @@ function srslylawlUI.Frame_UpdateVisibility()
                 UnregisterUnitWatch(frame)
             end
         end
-        UpdateHeaderVisible(srslylawlUI.settings.showSolo)
+        UpdateHeaderVisible(srslylawlUI.settings.party.showSolo)
     end
 end
 function srslylawlUI.Frame_MakeFrameMoveable(frame)
@@ -632,7 +638,7 @@ end
 function srslylawlUI.Frame_ResetName(button, unit)
     local name = UnitName(unit) or UNKNOWN
     local substring
-    local maxLength = srslylawlUI.settings.hp.width
+    local maxLength = srslylawlUI.settings.party.hp.width
     for length = #name, 1, -1 do
         substring = srslylawlUI.Utils_ShortenString(name, 1, length)
         button.healthBar.name:SetText(substring)
@@ -718,8 +724,8 @@ function srslylawlUI.Frame_ResizeHealthBarScale()
 
     --only one sortmethod for now
     local scaleByHighest = true
-    local lowerCap = srslylawlUI.settings.hp.minWidthPercent -- bars can not get smaller than this percent of highest
-    local pixelPerHp = srslylawlUI.settings.hp.width / highestHP
+    local lowerCap = srslylawlUI.settings.party.hp.minWidthPercent -- bars can not get smaller than this percent of highest
+    local pixelPerHp = srslylawlUI.settings.party.hp.width / highestHP
     local minWidth = floor(highestHP * pixelPerHp * lowerCap)
 
     if scaleByHighest then
@@ -742,9 +748,9 @@ function srslylawlUI_Button_OnDragStop(self, button)
         srslylawlUI_PartyHeader:StopMovingOrSizing()
         local point, relativeTo, relativePoint, xOfs, yOfs =
             srslylawlUI_PartyHeader:GetPoint()
-        srslylawlUI.settings.header.anchor = point
-        srslylawlUI.settings.header.xOffset = xOfs
-        srslylawlUI.settings.header.yOffset = yOfs
+        srslylawlUI.settings.party.header.anchor = point
+        srslylawlUI.settings.party.header.xOffset = xOfs
+        srslylawlUI.settings.party.header.yOffset = yOfs
         srslylawlUI.SetDirtyFlag()
     end
 end
@@ -906,12 +912,12 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
             for i = 1, 40 do
                 local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
                 local parent = _G[frameName .. (i - 1)]
-                local anchor = srslylawlUI.settings.buffs.growthDir
+                local anchor = srslylawlUI.settings.party.buffs.growthDir
                 if (i == 1) then
                     parent = frame.unit
-                    anchor = srslylawlUI.settings.buffs.anchor
-                    xOffset = srslylawlUI.settings.buffs.xOffset
-                    yOffset = srslylawlUI.settings.buffs.yOffset
+                    anchor = srslylawlUI.settings.party.buffs.anchor
+                    xOffset = srslylawlUI.settings.party.buffs.xOffset
+                    yOffset = srslylawlUI.settings.party.buffs.yOffset
                 end
                 local f = CreateFrame("Button", frameName .. i, parent, "CompactBuffTemplate")
                 f:SetPoint(anchor, xOffset, yOffset)
@@ -925,12 +931,12 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
             for i = 1, 40 do
                 local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
                 local parent = _G[frameName .. (i - 1)]
-                local anchor = srslylawlUI.settings.debuffs.growthDir
+                local anchor = srslylawlUI.settings.party.debuffs.growthDir
                 if (i == 1) then
                     parent = frame.unit
-                    anchor = srslylawlUI.settings.debuffs.anchor
-                    xOffset = srslylawlUI.settings.debuffs.xOffset
-                    yOffset = srslylawlUI.settings.debuffs.yOffset
+                    anchor = srslylawlUI.settings.party.debuffs.anchor
+                    xOffset = srslylawlUI.settings.party.debuffs.xOffset
+                    yOffset = srslylawlUI.settings.party.debuffs.yOffset
                 end
                 local f = CreateFrame("Button", frameName .. i, parent, "CompactDebuffTemplate")
                 f:SetPoint(anchor, xOffset, yOffset)
@@ -946,20 +952,20 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                 function(self, elapsed)
                 timerFrame = timerFrame + elapsed
                 if timerFrame > 0.1 then
-                    local countChanged = self.shownBuffs ~= srslylawlUI.settings.buffs.maxBuffs
-                    local anchorChanged = self.buffs.anchor ~= srslylawlUI.settings.buffs.anchor or self.buffs.xOffset ~= srslylawlUI.settings.buffs.xOffset or self.buffs.yOffset ~= srslylawlUI.settings.buffs.yOffset
-                    local sizeChanged = self.buffs.size ~= srslylawlUI.settings.buffs.size
+                    local countChanged = self.shownBuffs ~= srslylawlUI.settings.party.buffs.maxBuffs
+                    local anchorChanged = self.buffs.anchor ~= srslylawlUI.settings.party.buffs.anchor or self.buffs.xOffset ~= srslylawlUI.settings.party.buffs.xOffset or self.buffs.yOffset ~= srslylawlUI.settings.party.buffs.yOffset
+                    local sizeChanged = self.buffs.size ~= srslylawlUI.settings.party.buffs.size
                     if countChanged or anchorChanged or sizeChanged then
-                        self.shownBuffs = srslylawlUI.settings.buffs.maxBuffs
+                        self.shownBuffs = srslylawlUI.settings.party.buffs.maxBuffs
                         for i=1,40 do
                             self.buffs[i]:SetShown(i <= self.shownBuffs)
-                            local size = srslylawlUI.settings.buffs.size
+                            local size = srslylawlUI.settings.party.buffs.size
                             local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
                             local anchor = "CENTER"
                             if (i == 1) then
-                                anchor = srslylawlUI.settings.buffs.anchor
-                                xOffset = srslylawlUI.settings.buffs.xOffset
-                                yOffset = srslylawlUI.settings.buffs.yOffset
+                                anchor = srslylawlUI.settings.party.buffs.anchor
+                                xOffset = srslylawlUI.settings.party.buffs.xOffset
+                                yOffset = srslylawlUI.settings.party.buffs.yOffset
                                 self.buffs[i]:SetParent(self.unit.auraAnchor)
 
                                 self.buffs.anchor = anchor
@@ -973,20 +979,20 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
 
                         end
                     end
-                    countChanged = self.shownDebuffs ~= srslylawlUI.settings.debuffs.maxDebuffs
-                    sizeChanged = self.debuffs.size ~= srslylawlUI.settings.debuffs.size
-                    anchorChanged = self.debuffs.anchor ~= srslylawlUI.settings.debuffs.anchor or self.debuffs.xOffset ~= srslylawlUI.settings.debuffs.xOffset or self.debuffs.yOffset ~= srslylawlUI.settings.debuffs.yOffset
+                    countChanged = self.shownDebuffs ~= srslylawlUI.settings.party.debuffs.maxDebuffs
+                    sizeChanged = self.debuffs.size ~= srslylawlUI.settings.party.debuffs.size
+                    anchorChanged = self.debuffs.anchor ~= srslylawlUI.settings.party.debuffs.anchor or self.debuffs.xOffset ~= srslylawlUI.settings.party.debuffs.xOffset or self.debuffs.yOffset ~= srslylawlUI.settings.party.debuffs.yOffset
                     if countChanged or anchorChanged or sizeChanged then
-                        self.shownDebuffs = srslylawlUI.settings.debuffs.maxDebuffs
+                        self.shownDebuffs = srslylawlUI.settings.party.debuffs.maxDebuffs
                         for i=1,40 do
                             self.debuffs[i]:SetShown(i <= self.shownDebuffs)
-                            local size = srslylawlUI.settings.debuffs.size
+                            local size = srslylawlUI.settings.party.debuffs.size
                             local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
                             local anchor = "CENTER"
                             if (i == 1) then
-                                anchor = srslylawlUI.settings.debuffs.anchor
-                                xOffset = srslylawlUI.settings.debuffs.xOffset
-                                yOffset = srslylawlUI.settings.debuffs.yOffset
+                                anchor = srslylawlUI.settings.party.debuffs.anchor
+                                xOffset = srslylawlUI.settings.party.debuffs.xOffset
+                                yOffset = srslylawlUI.settings.party.debuffs.yOffset
                                 self.debuffs[i]:SetParent(self.unit.auraAnchor)
 
                                 self.debuffs.anchor = anchor
@@ -1000,15 +1006,15 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                             self.debuffs.size = size
                         end
                     end
-                    local h = srslylawlUI.settings.hp.height
-                    local lowerCap = srslylawlUI.settings.hp.minWidthPercent
+                    local h = srslylawlUI.settings.party.hp.height
+                    local lowerCap = srslylawlUI.settings.party.hp.minWidthPercent
                     local health = UnitHealthMax("player")
-                    local pixelPerHp = srslylawlUI.settings.hp.width / health
+                    local pixelPerHp = srslylawlUI.settings.party.hp.width / health
                     local minWidth = floor(health * pixelPerHp * lowerCap)
                     local scaledWidth = (self:GetAttribute("hpMax") * pixelPerHp)
                     scaledWidth = scaledWidth < minWidth and minWidth or scaledWidth
-                    srslylawlUI.Utils_SetSizePixelPerfect(self, srslylawlUI.settings.hp.width+2, h+2)
-                    srslylawlUI.Utils_SetSizePixelPerfect(self.unit, srslylawlUI.settings.hp.width, h)
+                    srslylawlUI.Utils_SetSizePixelPerfect(self, srslylawlUI.settings.party.hp.width+2, h+2)
+                    srslylawlUI.Utils_SetSizePixelPerfect(self.unit, srslylawlUI.settings.party.hp.width, h)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.auraAnchor, scaledWidth, h)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.healthBar, scaledWidth, h)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.unit.powerBar, h)
@@ -1016,7 +1022,7 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.pet, h)
                     local h2 = h/2
                     local w = 100
-                    local petW = srslylawlUI.settings.pet.width + 2
+                    local petW = srslylawlUI.settings.party.pet.width + 2
                     local iconSize = (w > h2 and h2) or w
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar, w, h2)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar.icon, iconSize, iconSize)
@@ -1302,7 +1308,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         end
     end
 
-    if unitbutton["buffFrames"] == nil and srslylawlUI.settings.buffs.maxBuffs > 0 then -- this unit doesnt own the frames yet
+    if unitbutton["buffFrames"] == nil and srslylawlUI.settings.party.buffs.maxBuffs > 0 then -- this unit doesnt own the frames yet
         unitbutton.buffFrames = {}
         unitbutton.buffFrames = units[unit].buffFrames
         if unitbutton.buffFrames[1] == nil then
@@ -1310,7 +1316,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         end
         srslylawlUI.SetBuffFrames()
     end
-    if unitbutton["debuffFrames"] == nil and srslylawlUI.settings.debuffs.maxDebuffs > 0 then -- this unit doesnt own the frames yet
+    if unitbutton["debuffFrames"] == nil and srslylawlUI.settings.party.debuffs.maxDebuffs > 0 then -- this unit doesnt own the frames yet
         unitbutton.debuffFrames = {}
         unitbutton.debuffFrames = units[unit].debuffFrames
         if unitbutton.debuffFrames[1] == nil then
@@ -1334,7 +1340,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(spellId, i, unit)
-            if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.settings.buffs.maxBuffs then
+            if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.settings.party.buffs.maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
                 f:Show()
@@ -1395,7 +1401,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                 table.insert(appliedCC, cc)
             end
 
-            if srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= srslylawlUI.settings.debuffs.maxDebuffs then
+            if srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= srslylawlUI.settings.party.debuffs.maxDebuffs then
                 f.icon:SetTexture(icon)
                 if ( count > 1 ) then
 		            local countText = count;
@@ -1560,7 +1566,7 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
     local function NotDefault(bool)
-        return bool ~= srslylawlUI.settings.buffs.showDefault
+        return bool ~= srslylawlUI.settings.party.buffs.showDefault
     end
     if srslylawlUI.buffs.whiteList[spellId] ~= nil then
         --always show whitelisted spells
@@ -1579,27 +1585,27 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
 
     if srslylawlUI.buffs.defensives[spellId] ~= nil then
         --its a defensive spell 
-        return srslylawlUI.settings.buffs.showDefensives
+        return srslylawlUI.settings.party.buffs.showDefensives
     end
 
     if duration == 0 then
-        return srslylawlUI.settings.buffs.showInfiniteDuration
+        return srslylawlUI.settings.party.buffs.showInfiniteDuration
     end
     
-    if duration > srslylawlUI.settings.buffs.maxDuration then
+    if duration > srslylawlUI.settings.party.buffs.maxDuration then
         if NotDefault(srslylawlUI.buffs.showLongDuration) then
             return srslylawlUI.buffs.showLongDuration
         end
     end
     
     if source == "player" and castByPlayer then
-        if NotDefault(srslylawlUI.settings.buffs.showCastByPlayer) then
-            return srslylawlUI.settings.buffs.showCastByPlayer
+        if NotDefault(srslylawlUI.settings.party.buffs.showCastByPlayer) then
+            return srslylawlUI.settings.party.buffs.showCastByPlayer
         end
     end
     
 
-    return srslylawlUI.settings.buffs.showDefault
+    return srslylawlUI.settings.party.buffs.showDefault
 end
 function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
@@ -1607,7 +1613,7 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
     local function NotDefault(bool)
-        return bool ~= srslylawlUI.settings.debuffs.showDefault
+        return bool ~= srslylawlUI.settings.party.debuffs.showDefault
     end
     if srslylawlUI.debuffs.whiteList[spellId] ~= nil then
         --always show whitelisted spells
@@ -1620,25 +1626,25 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     end
     
     if source == "player" and castByPlayer then
-        if NotDefault(srslylawlUI.settings.debuffs.showCastByPlayer) then
-            return srslylawlUI.settings.debuffs.showCastByPlayer
+        if NotDefault(srslylawlUI.settings.party.debuffs.showCastByPlayer) then
+            return srslylawlUI.settings.party.debuffs.showCastByPlayer
         end
     end
     
     if duration == 0 then
-        if NotDefault(srslylawlUI.settings.debuffs.showInfiniteDuration) then
-            return srslylawlUI.settings.debuffs.showInfiniteDuration
+        if NotDefault(srslylawlUI.settings.party.debuffs.showInfiniteDuration) then
+            return srslylawlUI.settings.party.debuffs.showInfiniteDuration
         end
     end
     
-    if duration > srslylawlUI.settings.debuffs.maxDuration then
-        if NotDefault(srslylawlUI.settings.debuffs.showLongDuration) then
-            return srslylawlUI.settings.debuffs.showLongDuration 
+    if duration > srslylawlUI.settings.party.debuffs.maxDuration then
+        if NotDefault(srslylawlUI.settings.party.debuffs.showLongDuration) then
+            return srslylawlUI.settings.party.debuffs.showLongDuration 
         end
     end
 
 
-    return srslylawlUI.settings.debuffs.showDefault
+    return srslylawlUI.settings.party.debuffs.showDefault
 end
 function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
     local function GetPercentValue(tooltipText)
@@ -1684,9 +1690,8 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
             UnitAura(unit, buffIndex, "HELPFUL")
         local buffText = srslylawlUI.Auras_GetBuffText(buffIndex, unit)
         local buffLower = buffText ~= nil and string.lower(buffText) or ""
-        local autoApprove = srslylawlUI.settings.autoApproveKeywords
-        local keyWordAbsorb = HasAbsorbKeyword(buffLower) and autoApprove and ((arg1 ~= nil) and (arg1 > 1))
-        local keyWordDefensive = HasDefensiveKeyword(buffLower) and autoApprove
+        local keyWordAbsorb = HasAbsorbKeyword(buffLower) and ((arg1 ~= nil) and (arg1 > 1))
+        local keyWordDefensive = HasDefensiveKeyword(buffLower)
         local isKnown = srslylawlUI.buffs.known[spellId] ~= nil
         local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect == false
 
@@ -1908,8 +1913,8 @@ function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
     srslylawlUI.Log(str .. " blacklisted, will no longer be shown.")
 end
 function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
-    local height = srslylawlUI.settings.hp.height*0.7
-    local width = srslylawlUI.settings.hp.width
+    local height = srslylawlUI.settings.party.hp.height*0.7
+    local width = srslylawlUI.settings.party.hp.width
     local playerHealthMax = UnitHealthMax(unit)
     local pixelPerHp = width / playerHealthMax
     local playerCurrentHP = UnitHealth(unit)
@@ -1950,7 +1955,7 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
         while absorbAmount > 0 do
             overlapAmount = 0
             barWidth = pixelPerHp * absorbAmount
-            allowedWidth = srslylawlUI.settings.hp.width * overlapBarIndex
+            allowedWidth = srslylawlUI.settings.party.hp.width * overlapBarIndex
             --caching the index so we display the segment correctly
             local oIndex = overlapBarIndex
 
@@ -1995,7 +2000,7 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
         end
         CooldownFrame_Set(currentBar.cooldown, t, duration, true)
         if currentBar.wasHealthPrediction then
-            currentBar.texture:SetTexture(srslylawlUI.AbsorbFrameTexture)
+            currentBar.texture:SetTexture(srslylawlUI.textures.AbsorbFrame)
             currentBar.texture:SetVertexColor(1, 1, 1, 0.9)
             currentBar.wasHealthPrediction = false
         end
@@ -2021,14 +2026,14 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
             end
             
             if segment.sType == "incomingHeal" then
-                bar.texture:SetTexture(srslylawlUI.HealthBarTexture, ARTWORK)
+                bar.texture:SetTexture(srslylawlUI.textures.HealthBar, ARTWORK)
                 bar.texture:SetVertexColor(.2, .9, .1, 0.9)
                 bar.wasHealthPrediction = true
                 srslylawlUI.Frame_ChangeAbsorbSegment(bar, segment.width, segment.amount, height, true)
                 bar:Show()
             elseif segment.sType == "various" then
                 if bar.wasHealthPrediction then
-                    bar.texture:SetTexture(srslylawlUI.AbsorbFrameTexture)
+                    bar.texture:SetTexture(srslylawlUI.textures.AbsorbFrame)
                     bar.texture:SetVertexColor(1, 1, 1, 0.9)
                     bar.wasHealthPrediction = false
                 end
@@ -2143,7 +2148,7 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit)
             barWidth = maxWidth > 0 and maxWidth or 1
             --this means a 100% absorb has been used, target is immune
         end
-        srslylawlUI.Frame_ChangeAbsorbSegment(units[unit]["effectiveHealthFrames"][1], barWidth, eHealth, srslylawlUI.settings.hp.height)
+        srslylawlUI.Frame_ChangeAbsorbSegment(units[unit]["effectiveHealthFrames"][1], barWidth, eHealth, srslylawlUI.settings.party.hp.height)
         units[unit]["effectiveHealthFrames"][1]:Show()
     else
         units[unit]["effectiveHealthFrames"][1]:Hide()
@@ -2162,8 +2167,8 @@ function srslylawlUI.ToggleConfigVisible(visible)
 end
 function srslylawlUI.LoadSettings(reset, announce)
     if announce then srslylawlUI.Log("Settings Loaded") end
-    if srslylawl_saved.settings ~= nil then
-        srslylawlUI.settings = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings)
+    if srslylawl_saved.settings.party ~= nil then
+        srslylawlUI.settings.party = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings.party)
     end
     --buffs
     if srslylawl_saved.buffs == nil then
@@ -2180,7 +2185,7 @@ function srslylawlUI.LoadSettings(reset, announce)
 
     local c = srslylawlUI_ConfigFrame
     if c then
-        local s = srslylawlUI.settings
+        local s = srslylawlUI.settings.party
         for k, v in pairs(c.sliders) do
             local default = v:GetAttribute("defaultValue")
             if default then
@@ -2202,9 +2207,9 @@ function srslylawlUI.LoadSettings(reset, announce)
     end
     if not srslylawlUI_PartyHeader then return end
     srslylawlUI_PartyHeader:ClearAllPoints()
-    srslylawlUI_PartyHeader:SetPoint(srslylawlUI.settings.header.anchor,
-                                     srslylawlUI.settings.header.xOffset,
-                                     srslylawlUI.settings.header.yOffset)
+    srslylawlUI_PartyHeader:SetPoint(srslylawlUI.settings.party.header.anchor,
+                                     srslylawlUI.settings.party.header.xOffset,
+                                     srslylawlUI.settings.party.header.yOffset)
     srslylawlUI.SetBuffFrames()
     srslylawlUI.Frame_UpdateVisibility()
     srslylawlUI.RemoveDirtyFlag()
@@ -2212,7 +2217,7 @@ function srslylawlUI.LoadSettings(reset, announce)
 end
 function srslylawlUI.SaveSettings()
     srslylawlUI.Log("Settings Saved")
-    srslylawl_saved.settings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.settings)
+    srslylawl_saved.settings.party = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.settings.party)
     srslylawl_saved.buffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.buffs)
     srslylawl_saved.debuffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.debuffs)
 
@@ -2298,15 +2303,15 @@ local function Initialize()
                     parentName = "srslylawlUI_AuraHolderFrame"
                 }
             end
-            for i = 1, srslylawlUI.settings.buffs.maxBuffs do
+            for i = 1, srslylawlUI.settings.party.buffs.maxBuffs do
                 local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
                 local parent = _G[frameName .. (i - 1)]
-                local anchor = srslylawlUI.settings.buffs.growthDir
+                local anchor = srslylawlUI.settings.party.buffs.growthDir
                 if (i == 1) then
                     parent = srslylawlUI.AuraHolderFrame
-                    anchor = srslylawlUI.settings.buffs.anchor
-                    xOffset = srslylawlUI.settings.buffs.xOffset
-                    yOffset = srslylawlUI.settings.buffs.yOffset
+                    anchor = srslylawlUI.settings.party.buffs.anchor
+                    xOffset = srslylawlUI.settings.party.buffs.xOffset
+                    yOffset = srslylawlUI.settings.party.buffs.yOffset
                 end
                 local f = CreateFrame("Button", frameName .. i, parent, "CompactBuffTemplate")
                 f:SetPoint(anchor, xOffset, yOffset)
@@ -2340,15 +2345,15 @@ local function Initialize()
             local unitName = v
             local frameName = "srslylawlUI_"..unitName.."Debuff"
 
-            for i = 1, srslylawlUI.settings.debuffs.maxDebuffs do
+            for i = 1, srslylawlUI.settings.party.debuffs.maxDebuffs do
                 local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
                 local parent = _G[frameName .. (i - 1)]
-                local anchor = srslylawlUI.settings.debuffs.growthDir
+                local anchor = srslylawlUI.settings.party.debuffs.growthDir
                 if (i == 1) then
                     parent = srslylawlUI.AuraHolderFrame
-                    anchor = srslylawlUI.settings.debuffs.anchor
-                    xOffset = srslylawlUI.settings.debuffs.xOffset
-                    yOffset = srslylawlUI.settings.debuffs.yOffset
+                    anchor = srslylawlUI.settings.party.debuffs.anchor
+                    xOffset = srslylawlUI.settings.party.debuffs.xOffset
+                    yOffset = srslylawlUI.settings.party.debuffs.yOffset
                 end
                 local f = CreateFrame("Button", frameName .. i, parent, "CompactDebuffTemplate")
                 f:SetPoint(anchor, xOffset, yOffset)
@@ -2383,7 +2388,7 @@ local function Initialize()
             local f = CreateFrame("Frame", n, parent)
             f.texture = f:CreateTexture("$parent_texture", "ARTWORK")
             f.texture:SetAllPoints()
-            f.texture:SetTexture(srslylawlUI.AbsorbFrameTexture)
+            f.texture:SetTexture(srslylawlUI.textures.AbsorbFrame)
             if isOverlapFrame then
             f:SetPoint("TOPRIGHT", parent, "TOPLEFT", -1, 0)
             else
@@ -2456,9 +2461,9 @@ local function Initialize()
             end)
             f.texture = f:CreateTexture(nil, "BACKGROUND")
             f.texture:SetAllPoints()
-            f.texture:SetTexture(srslylawlUI.HealthBarTexture, true, "MIRROR")
+            f.texture:SetTexture(srslylawlUI.textures.HealthBar, true, "MIRROR")
             f.texture.bg = f:CreateTexture(nil, "BACKGROUND")
-            f.texture.bg:SetTexture("Interface/AddOns/srslylawlUI/media/eHealthBar2", true, "MIRROR")
+            f.texture.bg:SetTexture(srslylawlUI.textures.EffectiveHealth, true, "MIRROR")
             f.texture.bg:SetVertTile(true)
             f.texture.bg:SetHorizTile(true)
             f.texture.bg:SetAllPoints()
@@ -2478,14 +2483,14 @@ local function Initialize()
             buttonFrame = srslylawlUI.Frame_GetByUnitType(unit)
             --create absorb frames
             units[unit]["absorbFrames"] = {}
-            for i = 1, srslylawlUI.settings.maxAbsorbFrames do
+            for i = 1, srslylawlUI.settings.party.maxAbsorbFrames do
                 local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or units[unit]["absorbFrames"][i - 1]
                 CreateAbsorbFrame(parentFrame, i, height, units[unit]["absorbFrames"], unit)
             end
 
             --overlap frames (absorb/incoming heal that exceeds maximum health)
             units[unit]["absorbFramesOverlap"] = {}
-            for i = 1, srslylawlUI.settings.maxAbsorbFrames do
+            for i = 1, srslylawlUI.settings.party.maxAbsorbFrames do
                 local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or units[unit]["absorbFramesOverlap"][i - 1]
                 CreateAbsorbFrame(parentFrame, i, height, units[unit]["absorbFramesOverlap"], unit)
             end
@@ -2498,10 +2503,10 @@ local function Initialize()
         local function CreateCCBar(unitFrame, unit)
             local CCDurationBar = CreateFrame("StatusBar", "$parent_CCDurBar"..unit, unitFrame.unit.auraAnchor)
             unitFrame.unit.CCDurBar = CCDurationBar
-            CCDurationBar:SetStatusBarTexture(srslylawlUI.HealthBarTexture)
-            local h = srslylawlUI.settings.hp.height/2
+            CCDurationBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
+            local h = srslylawlUI.settings.party.hp.height/2
             local w = 100
-            local petW = srslylawlUI.settings.pet.width + 2
+            local petW = srslylawlUI.settings.party.pet.width + 2
             local iconSize = (w > h and h) or w
             srslylawlUI.Utils_SetSizePixelPerfect(CCDurationBar, w, h)
             CCDurationBar:SetMinMaxValues(0, 1)
@@ -2530,7 +2535,7 @@ local function Initialize()
             header[unit] = unitFrame
             unitFrame:SetAttribute("unit", unit)
             unitFrame.unit.CCTexture = unitFrame:CreateTexture("$parent_CCTexture", "OVERLAY")
-            unitFrame.unit.CCTexture:SetTexture("Interface/AddOns/srslylawlUI/media/ccHighlight", true, true)
+            unitFrame.unit.CCTexture:SetTexture(srslylawlUI.textures.CCHighlight, true, true)
             unitFrame.unit.CCTexture:SetBlendMode("ADD")
             unitFrame.unit.CCTexture:SetAllPoints(true)
             unitFrame.unit.CCTexture:Show()
@@ -2546,8 +2551,8 @@ local function Initialize()
             return unitFrame
         end
         local header = CreateFrame("Frame", "srslylawlUI_PartyHeader", UIParent)
-        header:SetSize(srslylawlUI.settings.hp.width, srslylawlUI.settings.hp.height)
-        header:SetPoint(srslylawlUI.settings.header.anchor, srslylawlUI.settings.header.xOffset, srslylawlUI.settings.header.yOffset)
+        header:SetSize(srslylawlUI.settings.party.hp.width, srslylawlUI.settings.party.hp.height)
+        header:SetPoint(srslylawlUI.settings.party.header.anchor, srslylawlUI.settings.party.header.xOffset, srslylawlUI.settings.party.header.yOffset)
         header:Show()
         --Create Unit Frames
         local fauxHeader = CreateFrame("Frame", "srslylawlUI_FAUX_PartyHeader", header)
