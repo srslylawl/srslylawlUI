@@ -90,7 +90,6 @@ local debugString = ""
 --          faux frames absorb auras
 --          power/petbar width
 --      readycheck
---      necrotic/healabsorb
 --      phase/shard
 --      UnitHasIncomingResurrection(unit)
 --      immunities
@@ -434,6 +433,7 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
                 end
             end)
         end
+        RegisterUnitWatch(buttonFrame)
         RegisterUnitWatch(buttonFrame.pet)
     end
 
@@ -738,12 +738,12 @@ function srslylawlUI.Frame_ResizeHealthBarScale()
     end
     srslylawlUI.Frame_ResetDimensions_ALL()
 end
-function srslylawlUI_Button_OnDragStart(self, button)
+function srslylawlUI_PartyFrame_OnDragStart()
     if not srslylawlUI_PartyHeader:IsMovable() then return end
     srslylawlUI_PartyHeader:StartMoving()
     srslylawlUI_PartyHeader.isMoving = true
 end
-function srslylawlUI_Button_OnDragStop(self, button)
+function srslylawlUI_PartyFrame_OnDragStop()
     if srslylawlUI_PartyHeader.isMoving then
         srslylawlUI_PartyHeader:StopMovingOrSizing()
         local point, relativeTo, relativePoint, xOfs, yOfs =
@@ -766,20 +766,9 @@ function srslylawlUI_Frame_OnShow(button)
 end
 function srslylawlUI_Frame_OnHide(button)
     local unit = button:GetAttribute("unit")
-
-    if unit == nil then
-        srslylawlUI.Log("error unit nil on frame hide")
-        return
-    end
-    if units[unit]["absorbFrames"] ~= nil then
-        units[unit]["absorbFrames"][1]:Hide()
-    end
-    if units[unit]["absorbFramesOverlap"] ~= nil then
-        units[unit]["absorbFramesOverlap"][1]:Hide()
-    end
-    if units[unit]["effectiveHealthFrames"] ~= nil then
-        units[unit]["effectiveHealthFrames"][1]:Hide()
-    end
+    units[unit].absorbFrames[1]:Hide()
+    units[unit].absorbFramesOverlap[1]:Hide()
+    units[unit].effectiveHealthFrames[1]:Hide()
 end
 function srslylawlUI_Frame_ToggleFauxFrames(visible)
     srslylawlUI_FAUX_PartyHeader:SetShown(visible)
@@ -945,10 +934,21 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                 frame.debuffs[i] = f
             end
 
+            -- local trackedAurasByIndex = {
+            --     ["spellId"] = spellId,
+            --     ["checkedThisEvent"] = true,
+            --     ["absorb"] = fauxUnit.hpmax/5,
+            --     ["icon"] = icon,
+            --     ["duration"] = duration,
+            --     ["expiration"] = expirationTime,
+            --     ["wasRefreshed"] = flagRefreshed,
+            --     ["source"] = source
+            -- }
+
             local timerFrame = 1
 
             --update frames to reflect current settings
-            frame:SetScript("OnUpdate", 
+            frame:SetScript("OnUpdate",
                 function(self, elapsed)
                 timerFrame = timerFrame + elapsed
                 if timerFrame > 0.1 then
@@ -1026,7 +1026,6 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                     local iconSize = (w > h2 and h2) or w
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar, w, h2)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar.icon, iconSize, iconSize)
-
 
 
                     timerFrame = 0
@@ -1308,16 +1307,14 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         end
     end
 
-    if unitbutton["buffFrames"] == nil and srslylawlUI.settings.party.buffs.maxBuffs > 0 then -- this unit doesnt own the frames yet
-        unitbutton.buffFrames = {}
+    if unitbutton.buffFrame == nil and srslylawlUI.settings.party.buffs.maxBuffs > 0 then -- this unit doesnt own the frames yet
         unitbutton.buffFrames = units[unit].buffFrames
         if unitbutton.buffFrames[1] == nil then
             error('Max visible buffs setting has been changed, please reload UI by typing "/reload" ')
         end
         srslylawlUI.SetBuffFrames()
     end
-    if unitbutton["debuffFrames"] == nil and srslylawlUI.settings.party.debuffs.maxDebuffs > 0 then -- this unit doesnt own the frames yet
-        unitbutton.debuffFrames = {}
+    if unitbutton.debuffFrames == nil and srslylawlUI.settings.party.debuffs.maxDebuffs > 0 then -- this unit doesnt own the frames yet
         unitbutton.debuffFrames = units[unit].debuffFrames
         if unitbutton.debuffFrames[1] == nil then
             error('Max visible debuffs setting has been changed, please reload UI by typing "/reload" ')
@@ -1543,8 +1540,6 @@ function srslylawlUI.Frame_ChangeAbsorbSegment(frame, barWidth, absorbAmount, he
     end
 end
 function srslylawlUI.Frame_MoveAbsorbAnchorWithHealth(unit)
-    if units[unit] == nil or units[unit]["absorbFrames"] == nil or
-        units[unit]["absorbFramesOverlap"] == nil then return end
     local buttonFrame = srslylawlUI.Frame_GetByUnitType(unit)
     local width = buttonFrame.unit.healthBar:GetWidth()
     local maxHP = UnitHealthMax(unit)
@@ -1923,7 +1918,8 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
     local variousAbsorbAmount = 0  -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
     local absorbSegments = {}
     local incomingHeal = UnitGetIncomingHeals(unit)
-    local sortedAbsorbAuras, incomingHealWidth, variousFrameWidth
+    local healAbsorb = UnitGetTotalHealAbsorbs(unit)
+    local sortedAbsorbAuras, incomingHealWidth, variousFrameWidth, healAbsorbWidth
 
     local function NewAbsorbSegment(amount, width, sType, oIndex, tAura)
         return {
@@ -1944,7 +1940,7 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
         table.sort(t, function(a, b) return b.spellId < a.spellId end)
         return t
     end
-    local function CalcSegment(amount, sType, tAura, unit)
+    local function CalcSegment(amount, sType, tAura)
         local absorbAmount = amount
         local allowedWidth, overlapAmount, barWidth
         if absorbAmount == nil then
@@ -1980,7 +1976,7 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
             currentBarLength = currentBarLength + barWidth
             absorbAmount = overlapAmount
         end
-    end  
+    end
     local function SetupSegment(tAura, bar, absorbAmount, barWidth, height)
         local iconID = tAura.icon
         local duration = tAura.duration
@@ -2027,9 +2023,15 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
             
             if segment.sType == "incomingHeal" then
                 bar.texture:SetTexture(srslylawlUI.textures.HealthBar, ARTWORK)
-                bar.texture:SetVertexColor(.2, .9, .1, 0.9)
+                bar.texture:SetVertexColor(.2, .9, .1, .9)
                 bar.wasHealthPrediction = true
                 srslylawlUI.Frame_ChangeAbsorbSegment(bar, segment.width, segment.amount, height, true)
+                bar:Show()
+            elseif segment.sType == "healAbsorb" then
+                bar.texture:SetTexture(srslylawlUI.textures.HealthBar, ARTWORK)
+                bar.texture:SetVertexColor(.43, .01, .98, .9)
+                bar.wasHealthPrediction = true
+                srslylawlUI.Frame_ChangeAbsorbSegment(bar, segment.width, segment.amount, srslylawlUI.settings.party.hp.height, true)
                 bar:Show()
             elseif segment.sType == "various" then
                 if bar.wasHealthPrediction then
@@ -2056,6 +2058,12 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
         end
     end
     sortedAbsorbAuras = SortAbsorbBySpellIDDesc(trackedAurasByIndex)
+    if healAbsorb > 0 then
+        healAbsorbWidth = floor(healAbsorb * pixelPerHp)
+        if healAbsorbWidth > 2 then
+            CalcSegment(healAbsorb, "healAbsorb", nil)
+        end
+    end
     if incomingHeal ~= nil then
         incomingHealWidth = floor(incomingHeal * pixelPerHp)
         if incomingHealWidth > 2 then
@@ -2288,21 +2296,8 @@ local function Initialize()
         end
     end
     local function CreateBuffFrames()
-        for _, v in pairs(unitTable) do
-            local unitName = v
-            local frameName = "srslylawlUI_"..unitName.."Aura"
-
-            if units[unitName].buffFrames == nil then
-                units[unitName] = {
-                    absorbAuras = {},
-                    trackedAurasByIndex = {},
-                    buffFrames = {},
-                    defensiveAuras = {},
-                    debuffFrames = {},
-                    effectiveHealthSegments = {},
-                    parentName = "srslylawlUI_AuraHolderFrame"
-                }
-            end
+        for _, unit in pairs(unitTable) do
+            local frameName = "srslylawlUI_"..unit.."Aura"
             for i = 1, srslylawlUI.settings.party.buffs.maxBuffs do
                 local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
                 local parent = _G[frameName .. (i - 1)]
@@ -2315,7 +2310,7 @@ local function Initialize()
                 end
                 local f = CreateFrame("Button", frameName .. i, parent, "CompactBuffTemplate")
                 f:SetPoint(anchor, xOffset, yOffset)
-                f:SetAttribute("unit", unitName)
+                f:SetAttribute("unit", unit)
                 f:SetScript("OnLoad", nil)
                 f:SetScript("OnEnter", function(self)
                     GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
@@ -2336,14 +2331,13 @@ local function Initialize()
                         srslylawlUI_Frame_HandleAuras_ALL()
                     end
                 end)
-                units[unitName].buffFrames[i] = f
+                units[unit].buffFrames[i] = f
             end
         end
     end
     local function CreateDebuffFrames()
-        for _, v in pairs(unitTable) do
-            local unitName = v
-            local frameName = "srslylawlUI_"..unitName.."Debuff"
+        for _, unit in pairs(unitTable) do
+            local frameName = "srslylawlUI_"..unit.."Debuff"
 
             for i = 1, srslylawlUI.settings.party.debuffs.maxDebuffs do
                 local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
@@ -2357,7 +2351,7 @@ local function Initialize()
                 end
                 local f = CreateFrame("Button", frameName .. i, parent, "CompactDebuffTemplate")
                 f:SetPoint(anchor, xOffset, yOffset)
-                f:SetAttribute("unit", unitName)
+                f:SetAttribute("unit", unit)
                 f:SetScript("OnLoad", nil)
                 f:SetScript("OnEnter", function(self)
                     GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
@@ -2377,22 +2371,22 @@ local function Initialize()
                         GameTooltip:SetUnitDebuff(self:GetAttribute("unit"),self:GetID())
                     end
                 end)
-                units[unitName].debuffFrames[i] = f
+                units[unit].debuffFrames[i] = f
             end
         end
     end
-    local function CreateCustomFrames()
-        local function CreateAbsorbFrame(parent, i, height, parentTable, unit)
-            local isOverlapFrame = parentTable == units[unit]["absorbFramesOverlap"]
+    local function CreateCustomFrames(buttonFrame, unit)
+        local function CreateAbsorbFrame(parent, i, parentTable, unit)
+            local isOverlapFrame = parentTable == units[unit].absorbFramesOverlap
             local n = "srslylawlUI_"..unit .. (isOverlapFrame and "AbsorbFrameOverlap" or "AbsorbFrame") .. i
             local f = CreateFrame("Frame", n, parent)
             f.texture = f:CreateTexture("$parent_texture", "ARTWORK")
             f.texture:SetAllPoints()
             f.texture:SetTexture(srslylawlUI.textures.AbsorbFrame)
             if isOverlapFrame then
-            f:SetPoint("TOPRIGHT", parent, "TOPLEFT", -1, 0)
+                f:SetPoint("TOPRIGHT", parent, "TOPLEFT", -1, 0)
             else
-            f:SetPoint("TOPLEFT", parent, "TOPRIGHT", 1, 0)
+                f:SetPoint("TOPLEFT", parent, "TOPRIGHT", 1, 0)
             end
             f:SetFrameLevel(5)
             f.background = CreateFrame("Frame", "$parent_background", f)
@@ -2423,6 +2417,7 @@ local function Initialize()
             if GameTooltip:IsOwned(f) then GameTooltip:Hide() end
             end)
 
+            
             parentTable[i] = f
             parentTable[i].wasHealthPrediction = false
         end
@@ -2474,30 +2469,25 @@ local function Initialize()
             f.texture:SetVertexColor(unpack(color))
             f.texture.bg:SetVertexColor(1, 1, 1, 1)
             f.texture.bg:SetBlendMode("MOD")
+            f:Hide()
 
             f:SetFrameLevel(5)
 
             units[unit]["effectiveHealthFrames"][i] = f
         end
-        for _, unit in pairs(unitTable) do
-            buttonFrame = srslylawlUI.Frame_GetByUnitType(unit)
-            --create absorb frames
-            units[unit]["absorbFrames"] = {}
-            for i = 1, srslylawlUI.settings.party.maxAbsorbFrames do
-                local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or units[unit]["absorbFrames"][i - 1]
-                CreateAbsorbFrame(parentFrame, i, height, units[unit]["absorbFrames"], unit)
-            end
-
-            --overlap frames (absorb/incoming heal that exceeds maximum health)
-            units[unit]["absorbFramesOverlap"] = {}
-            for i = 1, srslylawlUI.settings.party.maxAbsorbFrames do
-                local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or units[unit]["absorbFramesOverlap"][i - 1]
-                CreateAbsorbFrame(parentFrame, i, height, units[unit]["absorbFramesOverlap"], unit)
-            end
-            --effective health frame (sums up active defensive spells)
-            units[unit]["effectiveHealthFrames"] = {}
-            CreateEffectiveHealthFrame(buttonFrame, unit, 1)
+        -- buttonFrame = srslylawlUI.Frame_GetByUnitType(unit)
+        --create absorb frames
+        for i = 1, srslylawlUI.settings.party.maxAbsorbFrames do
+            local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or units[unit].absorbFrames[i - 1]
+            CreateAbsorbFrame(parentFrame, i, units[unit].absorbFrames, unit)
         end
+        --overlap frames (absorb/incoming heal that exceeds maximum health)
+        for i = 1, srslylawlUI.settings.party.maxAbsorbFrames do
+            local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or units[unit].absorbFramesOverlap[i - 1]
+            CreateAbsorbFrame(parentFrame, i, units[unit].absorbFramesOverlap, unit)
+        end
+        --effective health frame (sums up active defensive spells)
+        CreateEffectiveHealthFrame(buttonFrame, unit, 1)
     end
     local function FrameSetup()
         local function CreateCCBar(unitFrame, unit)
@@ -2541,12 +2531,6 @@ local function Initialize()
             unitFrame.unit.CCTexture:Show()
 
             CreateCCBar(unitFrame, unit)
-            
-            srslylawlUI.Frame_InitialUnitConfig(unitFrame, faux)
-
-            if faux then return unitFrame end
-            
-            RegisterUnitWatch(unitFrame)
 
             return unitFrame
         end
@@ -2558,11 +2542,25 @@ local function Initialize()
         local fauxHeader = CreateFrame("Frame", "srslylawlUI_FAUX_PartyHeader", header)
         fauxHeader:SetAllPoints(true)
         fauxHeader:Hide()
-        
         local parent = header
         for _, unit in pairs(unitTable) do
+            units[unit] = {
+                absorbAuras = {},
+                absorbFrames = {},
+                absorbFramesOverlap = {},
+                buffFrames = {},
+                debuffFrames = {},
+                defensiveAuras = {},
+                effectiveHealthFrames = {},
+                effectiveHealthSegments = {},
+                trackedAurasByIndex = {},
+                parentName = "srslylawlUI_AuraHolderFrame"
+            }
+
             local frame = CreateUnitFrame(header, unit)
-            CreateUnitFrame(fauxHeader, unit, true)
+            local faux = CreateUnitFrame(fauxHeader, unit, true)
+            CreateCustomFrames(frame, unit)
+            -- CreateCustomFrames(faux, unit)
 
             --initial sorting
             if unit == "player" then
@@ -2571,9 +2569,11 @@ local function Initialize()
                 frame:SetPoint("TOPLEFT", parent, "BOTTOMLEFT")
             end
 
+            srslylawlUI.Frame_InitialUnitConfig(frame, false)
+            srslylawlUI.Frame_InitialUnitConfig(faux, true)
+
             parent = frame
         end
-
 
         srslylawlUI.Frame_UpdateVisibility()
     end
@@ -2583,7 +2583,6 @@ local function Initialize()
     CreateSlashCommands()
     CreateBuffFrames()
     CreateDebuffFrames()
-    CreateCustomFrames()
 end
 
 srslylawlUI_EventFrame = CreateFrame("Frame")

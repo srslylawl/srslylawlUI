@@ -82,9 +82,9 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 					</Frame>		
 				</Frames>
 				<Scripts>
-					<OnDragStart function="srslylawlUI_Button_OnDragStart"/>
-					<OnDragStop function="srslylawlUI_Button_OnDragStop"/>
-					<OnHide function="srslylawlUI_Button_OnDragStop"/>
+					<OnDragStart function="srslylawlUI_PartyFrame_OnDragStart"/>
+					<OnDragStop function="srslylawlUI_PartyFrame_OnDragStop"/>
+					<OnHide function="srslylawlUI_PartyFrame_OnDragStop"/>
 				</Scripts>
 				<Attributes>
 					<Attribute name="useparent-unit" type="boolean" value="true"/>
