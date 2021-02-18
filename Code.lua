@@ -11,6 +11,11 @@ srslylawlUI.settings = {
         debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true,
                 maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
         maxAbsorbFrames = 20,
+        ccbar = {
+            enabled = true,
+            width = 100,
+            heightPercent = 0.5
+        },
         showArena = false,
         showParty = true,
         showSolo = true,
@@ -87,7 +92,6 @@ local debugString = ""
 -- TODO:
 --      config window:
 --          faux frames absorb auras
---          power/petbar width
 --      player, target, targettarget, playerpet
 --      UnitHasIncomingResurrection(unit)
 --      incoming summon
@@ -507,6 +511,7 @@ function srslylawlUI.Frame_ResetDimensions_ALL()
             srslylawlUI.Frame_ResetDimensions(button)
             srslylawlUI.Frame_ResetDimensions_Pet(button)
             srslylawlUI.Frame_ResetDimensions_PowerBar(button)
+            srslylawlUI.Frame_ResetCCDurBar(button)
         end
     end
 end
@@ -548,6 +553,14 @@ end
 function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
     button.unit.powerBar:SetPoint("BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -2, 0)
     button.unit.powerBar:SetPoint("TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.settings.party.power.width), 0)
+end
+function srslylawlUI.Frame_ResetCCDurBar(button)
+    local h = srslylawlUI.settings.party.hp.height
+    local h2 = h*srslylawlUI.settings.party.ccbar.heightPercent
+    local w = srslylawlUI.settings.party.ccbar.width
+    local iconSize = (w > h2 and h2) or w
+    srslylawlUI.Utils_SetSizePixelPerfect(button.unit.CCDurBar, w, h2)
+    srslylawlUI.Utils_SetSizePixelPerfect(button.unit.CCDurBar.icon, iconSize, iconSize)
 end
 function srslylawlUI.Frame_IsHeaderVisible()
     return srslylawlUI_PartyHeader:IsVisible()
@@ -957,7 +970,7 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
 
             --CC bar
             local timerCC, duration, expirationTime, remaining = 0, fauxUnit.CCMaxDur, 0, 0
-            frame.unit.CCDurBar:SetScript("OnUpdate", 
+            frame.unit.CCDurBar:SetScript("OnUpdate",
                 function(self, elapsed)
                     timerCC = timerCC + elapsed
                     if timerCC >= 0.025 then
@@ -972,7 +985,7 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                         expirationTime = GetTime()+duration
                     end
                 end)
-            frame.unit.CCDurBar:Show()
+            frame.unit.CCDurBar:SetShown(srslylawlUI.settings.party.ccbar.enabled)
             frame.unit.CCDurBar.icon:SetTexture(fauxUnit.CCIcon)
             local color = DebuffTypeColor[fauxUnit.CCColor]
             frame.unit.CCDurBar:SetStatusBarColor(color.r, color.g, color.b)
@@ -1133,15 +1146,16 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.unit.powerBar, h)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.pet.healthBar, h)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.pet, h)
-                    local h2 = h/2
-                    local w = 100
-                    local petW = srslylawlUI.settings.party.pet.width + 2
+                    local h2 = h*srslylawlUI.settings.party.ccbar.heightPercent
+                    local w = srslylawlUI.settings.party.ccbar.width
                     local iconSize = (w > h2 and h2) or w
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar, w, h2)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar.icon, iconSize, iconSize)
                     srslylawlUI.Frame_ResetDimensions_Pet(self)
                     srslylawlUI.Frame_ResetDimensions_PowerBar(self)
-                    
+
+                    self.unit.CCDurBar:SetShown(srslylawlUI.settings.party.ccbar.enabled)
+
                     timerFrame = 0
                 end
             end)
@@ -1421,21 +1435,6 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         end
     end
 
-    -- if unitbutton.buffFrame == nil and srslylawlUI.settings.party.buffs.maxBuffs > 0 then -- this unit doesnt own the frames yet
-    --     unitbutton.buffFrames = units[unit].buffFrames
-    --     if unitbutton.buffFrames[1] == nil then
-    --         error('Max visible buffs setting has been changed, please reload UI by typing "/reload" ')
-    --     end
-    --     srslylawlUI.SetBuffFrames()
-    -- end
-    -- if unitbutton.debuffFrames == nil and srslylawlUI.settings.party.debuffs.maxDebuffs > 0 then -- this unit doesnt own the frames yet
-    --     unitbutton.debuffFrames = units[unit].debuffFrames
-    --     if unitbutton.debuffFrames[1] == nil then
-    --         error('Max visible debuffs setting has been changed, please reload UI by typing "/reload" ')
-    --     end
-    --     srslylawlUI.SetDebuffFrames()
-    -- end
-    -- frames exist and unit owns them
     -- reset frame check verifier
     for k, v in pairs(units[unit].trackedAurasByIndex) do
         v["checkedThisEvent"] = false
@@ -1551,7 +1550,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     end
 
     --see if we want to display our cced frame
-    if #appliedCC > 0 then
+    if #appliedCC > 0 and srslylawlUI.settings.party.ccbar.enabled then
         --Decide which cc to display
         table.sort(appliedCC, function(a, b) return b.remaining < a.remaining end)
         local CCToDisplay = appliedCC[1]
@@ -2611,15 +2610,13 @@ local function Initialize()
             local CCDurationBar = CreateFrame("StatusBar", "$parent_CCDurBar"..unit, unitFrame.unit.auraAnchor)
             unitFrame.unit.CCDurBar = CCDurationBar
             CCDurationBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
-            local h = srslylawlUI.settings.party.hp.height/2
-            local w = 100
+            local h = srslylawlUI.settings.party.hp.height*srslylawlUI.settings.party.ccbar.heightPercent
+            local w = srslylawlUI.settings.party.ccbar.width
             local petW = srslylawlUI.settings.party.pet.width
             local iconSize = (w > h and h) or w
             srslylawlUI.Utils_SetSizePixelPerfect(CCDurationBar, w, h)
             CCDurationBar:SetMinMaxValues(0, 1)
-            --CCDurationBar:SetPoint("BOTTOMLEFT", unitFrame.unit.auraAnchor, "BOTTOMRIGHT", 17, 0)
             unitFrame.unit.CCDurBar.icon = unitFrame.unit.CCDurBar:CreateTexture("icon", "OVERLAY", nil, 2)
-            --unitFrame.unit.CCDurBar.icon:SetPoint("LEFT", CCDurationBar, "RIGHT")
             unitFrame.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", unitFrame.unit, "BOTTOMRIGHT", petW+6, 0)
             CCDurationBar:SetPoint("LEFT", unitFrame.unit.CCDurBar.icon, "RIGHT", 1, 0)
             srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CCDurBar.icon, iconSize, iconSize)

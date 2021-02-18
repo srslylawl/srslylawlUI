@@ -17,6 +17,11 @@ srslylawl_saved = {
             pet = {
                 width = 15
             },
+            ccbar = {
+                enabled = true,
+                width = 100,
+                heightPercent = 0.5
+            },
             buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true, maxBuffs = 40, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true},
             debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true,
                 maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true},

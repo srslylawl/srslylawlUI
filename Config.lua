@@ -500,10 +500,11 @@ function srslylawlUI.CreateConfigWindow()
             "RIGHT", 10, 0)
         AddTooltip(cFrame.sliders.minWidth, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
 
-
+        --powerbar
         local powerFrame = CreateFrameWBG("Party Power Bar", healthBarFrame)
         powerFrame:SetPoint("TOPLEFT", healthBarFrame, "BOTTOMLEFT", 0, -15)
-        powerFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", -450, -75)
+        powerFrame:SetSize(225, 60)
+        -- powerFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", -475, -75)
         cFrame.sliders.powerWidth = CreateCustomSlider("Power Bar Width", 3, 50, srslylawlUI.settings.party.power.width, powerFrame, -50, 1, true, 0)
         cFrame.sliders.powerWidth:HookScript("OnValueChanged", function(self, value)
             srslylawlUI.settings.party.power.width = value
@@ -513,9 +514,11 @@ function srslylawlUI.CreateConfigWindow()
         cFrame.sliders.powerWidth:ClearAllPoints()
         cFrame.sliders.powerWidth:SetPoint("LEFT", powerFrame, "LEFT", 10, 0)
 
+        --petbar
         local petFrame = CreateFrameWBG("Party Pet Bar", powerFrame)
         petFrame:SetPoint("TOPLEFT", powerFrame, "TOPRIGHT", 5, 0)
-        petFrame:SetPoint("BOTTOMRIGHT", powerFrame, "BOTTOMRIGHT", 245, 0)
+        petFrame:SetSize(225, 60)
+        -- petFrame:SetPoint("BOTTOMRIGHT", powerFrame, "BOTTOMRIGHT", 265, 0)
         cFrame.sliders.petWidth = CreateCustomSlider("Pet Bar Width", 3, 50, srslylawlUI.settings.party.pet.width, petFrame, -50, 1, true, 0)
         cFrame.sliders.petWidth:HookScript("OnValueChanged", function(self, value)
             srslylawlUI.settings.party.pet.width = value
@@ -585,6 +588,49 @@ function srslylawlUI.CreateConfigWindow()
             srslylawlUI.settings.party.buffs.maxBuffs = value
             srslylawlUI.SetDirtyFlag() end)
         AddTooltip(cFrame.sliders.maxBuffs, "Requires UI Reload")
+
+        --ccbar frame
+        local ccBarFrame = CreateFrameWBG("Crowd Control Bar", petFrame)
+        ccBarFrame:SetPoint("TOPLEFT", petFrame, "TOPRIGHT", 5, 0)
+        ccBarFrame:SetSize(233, 125)
+        -- ccBarFrame:SetPoint("BOTTOMRIGHT", petFrame, "BOTTOMRIGHT", 220, -65)
+        
+        --enable/disable ccbar
+        local enableCCBar = CreateCheckButton("Enable CC Duration Bar", ccBarFrame)
+        enableCCBar:SetScript("OnClick", function(self)
+            srslylawlUI.settings.party.ccbar.enabled = self:GetChecked()
+            srslylawlUI.Frame_ResetDimensions_ALL()
+            srslylawlUI.SetDirtyFlag()
+        end)
+        AddTooltip(enableCCBar, "Show Crowd Control duration of party members.")
+        enableCCBar:SetPoint("TOPLEFT", ccBarFrame, "TOPLEFT", 5, -5)
+        enableCCBar:SetChecked(srslylawlUI.settings.party.ccbar.enabled)
+        enableCCBar:SetAttribute("defaultValue", srslylawlUI.settings.party.ccbar.enabled)
+
+        --ccbar width
+        cFrame.sliders.ccbarWidth = CreateCustomSlider("CC Bar Width", 3, 300, srslylawlUI.settings.party.ccbar.width, ccBarFrame, -50, 1, true, 0)
+        cFrame.sliders.ccbarWidth:HookScript("OnValueChanged", function(self, value)
+            srslylawlUI.settings.party.ccbar.width = value
+            srslylawlUI.Frame_ResetDimensions_ALL()
+            srslylawlUI.SetDirtyFlag()
+        end)
+        cFrame.sliders.ccbarWidth:ClearAllPoints()
+        cFrame.sliders.ccbarWidth:SetPoint("TOPLEFT", enableCCBar, "BOTTOMLEFT", 5, -10)
+
+        --ccbar height
+        cFrame.sliders.ccbarHeight = CreateCustomSlider("CC Bar Height %", 0.1, 1, srslylawlUI.settings.party.ccbar.heightPercent, ccBarFrame, -50, 0.05, false, 2)
+        cFrame.sliders.ccbarHeight:HookScript("OnValueChanged", function(self, value)
+            srslylawlUI.settings.party.ccbar.heightPercent = value
+            srslylawlUI.Frame_ResetDimensions_ALL()
+            srslylawlUI.SetDirtyFlag()
+        end)
+        cFrame.sliders.ccbarHeight:ClearAllPoints()
+        cFrame.sliders.ccbarHeight:SetPoint("TOPLEFT", cFrame.sliders.ccbarWidth, "BOTTOMLEFT", 0, -20)
+        AddTooltip(cFrame.sliders.ccbarHeight, "Percentage of HP Bar height.")
+        
+
+
+
 
         --Debuff Frames
         local debuffFrame = CreateFrameWBG("Party Debuffs", buffFrame)
