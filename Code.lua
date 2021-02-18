@@ -85,11 +85,12 @@ srslylawlUI.anchorTable = {
 local debugString = ""
 
 -- TODO:
---      config window: 
+--      config window:
 --          faux frames absorb auras
 --          power/petbar width
 --      player, target, targettarget, playerpet
 --      UnitHasIncomingResurrection(unit)
+--      incoming summon
 --      immunities
 --      more sort methods?
 
@@ -477,15 +478,18 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
         RegisterUnitWatch(buttonFrame.pet)
     end
 
-    buttonFrame.pet:SetPoint("TOPLEFT", buttonFrame.unit, "TOPRIGHT", 2, 0)
-    buttonFrame.pet:SetPoint("BOTTOMRIGHT", buttonFrame.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width+2, 0)
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
-
+    
+    buttonFrame.unit.powerBar:ClearAllPoints()
+    
+    
     buttonFrame.unit.healthBar.name:SetPoint("BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
     buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 0, 2)
     buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY", 7)
     buttonFrame.unit.auras = {}
     buttonFrame.PartyLeader:SetShown(UnitIsGroupLeader(unit))
+    srslylawlUI.Frame_ResetDimensions_Pet(buttonFrame)
+    srslylawlUI.Frame_ResetDimensions_PowerBar(buttonFrame)
     srslylawlUI.Frame_ResetDimensions(buttonFrame)
 end
 function srslylawlUI.Frame_GetByUnitType(unit)
@@ -501,6 +505,8 @@ function srslylawlUI.Frame_ResetDimensions_ALL()
         local button = srslylawlUI.Frame_GetByUnitType(v)
         if v then
             srslylawlUI.Frame_ResetDimensions(button)
+            srslylawlUI.Frame_ResetDimensions_Pet(button)
+            srslylawlUI.Frame_ResetDimensions_PowerBar(button)
         end
     end
 end
@@ -533,6 +539,15 @@ function srslylawlUI.Frame_ResetDimensions(button)
     end
 
     srslylawlUI.Frame_ResetUnitButton(button.unit, button:GetAttribute("unit"))
+end
+function srslylawlUI.Frame_ResetDimensions_Pet(button)
+    button.pet:SetPoint("TOPLEFT", button.unit, "TOPRIGHT", 2, 0)
+    button.pet:SetPoint("BOTTOMRIGHT", button.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width+2, 0)
+    button.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", button.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width+6, 0)
+end
+function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
+    button.unit.powerBar:SetPoint("BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -2, 0)
+    button.unit.powerBar:SetPoint("TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.settings.party.power.width), 0)
 end
 function srslylawlUI.Frame_IsHeaderVisible()
     return srslylawlUI_PartyHeader:IsVisible()
@@ -671,7 +686,6 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
     end
 end
 function srslylawlUI.Frame_ResetUnitButton(button, unit)
-    if button == nil then error("trying to reset nonexisting button"..unit) return end
     srslylawlUI.Frame_ResetHealthBar(button, unit)
     srslylawlUI.Frame_ResetPowerBar(button, unit)
     srslylawlUI.Frame_ResetName(button, unit)
@@ -1125,8 +1139,9 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                     local iconSize = (w > h2 and h2) or w
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar, w, h2)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar.icon, iconSize, iconSize)
-
-
+                    srslylawlUI.Frame_ResetDimensions_Pet(self)
+                    srslylawlUI.Frame_ResetDimensions_PowerBar(self)
+                    
                     timerFrame = 0
                 end
             end)
@@ -2598,14 +2613,14 @@ local function Initialize()
             CCDurationBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
             local h = srslylawlUI.settings.party.hp.height/2
             local w = 100
-            local petW = srslylawlUI.settings.party.pet.width + 2
+            local petW = srslylawlUI.settings.party.pet.width
             local iconSize = (w > h and h) or w
             srslylawlUI.Utils_SetSizePixelPerfect(CCDurationBar, w, h)
             CCDurationBar:SetMinMaxValues(0, 1)
             --CCDurationBar:SetPoint("BOTTOMLEFT", unitFrame.unit.auraAnchor, "BOTTOMRIGHT", 17, 0)
             unitFrame.unit.CCDurBar.icon = unitFrame.unit.CCDurBar:CreateTexture("icon", "OVERLAY", nil, 2)
             --unitFrame.unit.CCDurBar.icon:SetPoint("LEFT", CCDurationBar, "RIGHT")
-            unitFrame.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", unitFrame.unit, "BOTTOMRIGHT", petW+4, 0)
+            unitFrame.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", unitFrame.unit, "BOTTOMRIGHT", petW+6, 0)
             CCDurationBar:SetPoint("LEFT", unitFrame.unit.CCDurBar.icon, "RIGHT", 1, 0)
             srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CCDurBar.icon, iconSize, iconSize)
             unitFrame.unit.CCDurBar.icon:SetTexCoord(.08, .92, .08, .92)

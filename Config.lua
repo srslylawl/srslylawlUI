@@ -500,10 +500,35 @@ function srslylawlUI.CreateConfigWindow()
             "RIGHT", 10, 0)
         AddTooltip(cFrame.sliders.minWidth, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
 
+
+        local powerFrame = CreateFrameWBG("Party Power Bar", healthBarFrame)
+        powerFrame:SetPoint("TOPLEFT", healthBarFrame, "BOTTOMLEFT", 0, -15)
+        powerFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", -450, -75)
+        cFrame.sliders.powerWidth = CreateCustomSlider("Power Bar Width", 3, 50, srslylawlUI.settings.party.power.width, powerFrame, -50, 1, true, 0)
+        cFrame.sliders.powerWidth:HookScript("OnValueChanged", function(self, value)
+            srslylawlUI.settings.party.power.width = value
+            srslylawlUI.Frame_ResetDimensions_ALL()
+            srslylawlUI.SetDirtyFlag()
+        end)
+        cFrame.sliders.powerWidth:ClearAllPoints()
+        cFrame.sliders.powerWidth:SetPoint("LEFT", powerFrame, "LEFT", 10, 0)
+
+        local petFrame = CreateFrameWBG("Party Pet Bar", powerFrame)
+        petFrame:SetPoint("TOPLEFT", powerFrame, "TOPRIGHT", 5, 0)
+        petFrame:SetPoint("BOTTOMRIGHT", powerFrame, "BOTTOMRIGHT", 245, 0)
+        cFrame.sliders.petWidth = CreateCustomSlider("Pet Bar Width", 3, 50, srslylawlUI.settings.party.pet.width, petFrame, -50, 1, true, 0)
+        cFrame.sliders.petWidth:HookScript("OnValueChanged", function(self, value)
+            srslylawlUI.settings.party.pet.width = value
+            srslylawlUI.Frame_ResetDimensions_ALL()
+            srslylawlUI.SetDirtyFlag()
+        end)
+        cFrame.sliders.petWidth:ClearAllPoints()
+        cFrame.sliders.petWidth:SetPoint("LEFT", petFrame, "LEFT", 10, 0)
+        
         -- Buff Frames
-        local buffFrame = CreateFrameWBG("Party Buffs", healthBarFrame)
-        buffFrame:SetPoint("TOPLEFT", healthBarFrame, "BOTTOMLEFT", 0, -15)
-        buffFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", 0, -120)
+        local buffFrame = CreateFrameWBG("Party Buffs", powerFrame)
+        buffFrame:SetPoint("TOPLEFT", powerFrame, "BOTTOMLEFT", 0, -15)
+        buffFrame:SetPoint("BOTTOMRIGHT", powerFrame, "BOTTOMRIGHT", 200, -120)
         local buffAnchor = CreateCustomDropDown("Anchor", 75, buffFrame, "TOPLEFT",
             "TOPLEFT", -10, -20, srslylawlUI.settings.party.buffs.anchor, srslylawlUI.anchorTable, function(newValue)
                 srslylawlUI.settings.party.buffs.anchor = newValue

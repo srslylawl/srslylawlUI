@@ -11,6 +11,9 @@ srslylawl_saved = {
                 height = 50,
                 minWidthPercent = 0.55
             },
+            power = {
+                width = 15
+            },
             pet = {
                 width = 15
             },
