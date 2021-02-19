@@ -60,10 +60,22 @@ srslylawlUI.textures = {
     AbsorbFrame = "Interface/RAIDFRAME/Shield-Fill",
     HealthBar = "Interface/Addons/srslylawlUI/media/healthBar",
     EffectiveHealth = "Interface/AddOns/srslylawlUI/media/eHealthBar",
-    CCHighlight = "Interface/AddOns/srslylawlUI/media/ccHighlight"
+    CCHighlight = "Interface/AddOns/srslylawlUI/media/ccHighlight",
+    Immunity = ""
 }
 srslylawlUI.unsaved = {flag = false, buttons = {}}
-
+srslylawlUI.keyPhrases = {
+    defensive = {
+        "reduces damage taken", "damage taken reduced", "reducing damage taken",
+        "reducing all damage taken", "reduces all damage taken", "damage taken is redirected", "damage taken is transferred"
+    },
+    absorbs = {
+        "absorb"
+    },
+    immunity = {
+        "immune to physical damage", "immune to all damage", "immune to all attacks", "immune to damage", "immune to magical damage"
+    }
+}
 -- "units" tracks auras and frames
 local units = {
     player = {},
@@ -74,7 +86,6 @@ local units = {
 }
 local unitHealthBars = {}
 srslylawlUI.units = units
-srslylawlUI.AuraHolderFrame = CreateFrame("Frame", "srslylawlUI_AuraHolderFrame", nil, nil)
 srslylawlUI.sortTimerActive = false
 
 
@@ -255,6 +266,14 @@ function srslylawlUI.Utils_AnchorInvert(position)
         return "TOPLEFT"
     end
 end
+function srslylawlUI.Utils_StringHasKeyWord(str, keywordTable)
+    local s = string.lower(str)
+    for _, phrase in pairs(keywordTable) do
+        if s:match(phrase) then return true end
+    end
+
+    return false
+end
 function srslylawlUI.Debug()
     if srslylawlUI.DebugWindow == nil then
         srslylawlUI.DebugWindow = CreateFrame("Frame", "srslylawlUI_DebugWindow", UIParent)
@@ -303,7 +322,7 @@ function srslylawlUI.Debug()
         return s
     end
 
-    for k, v in pairs(srslylawlUI.units) do
+    for k, v in pairs(units) do
         local absorbFrameVisible = v.absorbFrames[1]:IsVisible()
         local absorbOverlapFrameVisible = v.absorbFramesOverlap[1]:IsVisible()
         local s = "________________\n" .. k .. "\n" .. (absorbFrameVisible and "Absorb Frame is visible! :)" or "Absorb Frame not visible") .. "\n" ..
@@ -1449,7 +1468,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
-            srslylawlUI.Auras_RememberBuff(spellId, i, unit)
+            srslylawlUI.Auras_RememberBuff(i, unit)
             if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.settings.party.buffs.maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
@@ -1754,7 +1773,7 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
 
     return srslylawlUI.settings.party.debuffs.showDefault
 end
-function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
+function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
     local function GetPercentValue(tooltipText)
             -- %d+ = multiple numbers in a row
             -- %% = the % sign
@@ -1768,29 +1787,6 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
 
             return tonumber(number) or 0
     end
-    local function HasDefensiveKeyword(tooltipText)
-        local s = string.lower(tooltipText)
-        local keyPhrases = {
-        "reduces damage taken", "damage taken reduced", "reducing damage taken",
-        "reducing all damage taken", "reduces all damage taken", "damage taken is redirected", "damage taken is transferred"
-        }
-
-        for _, phrase in pairs(keyPhrases) do
-            if s:match(phrase) and true then return true end
-        end
-
-        return false
-    end
-    local function HasAbsorbKeyword(tooltipText)
-        local s = string.lower(tooltipText)
-        local keyPhrases = {"absorb"}
-
-        for _, phrase in pairs(keyPhrases) do
-            if s:match(phrase) and true then return true end
-        end
-
-        return false
-    end
     local function ProcessID(buffIndex, unit)
         local spellName, icon, stacks, debuffType, duration, expirationTime, source,
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
@@ -1798,8 +1794,9 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
             UnitAura(unit, buffIndex, "HELPFUL")
         local buffText = srslylawlUI.Auras_GetBuffText(buffIndex, unit)
         local buffLower = buffText ~= nil and string.lower(buffText) or ""
-        local keyWordAbsorb = HasAbsorbKeyword(buffLower) and ((arg1 ~= nil) and (arg1 > 1))
-        local keyWordDefensive = HasDefensiveKeyword(buffLower)
+        local keyWordAbsorb = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.absorbs) and ((arg1 ~= nil) and (arg1 > 1))
+        local keyWordDefensive = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.defensive)
+        local keyWordImmunity = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.immunity)
         local isKnown = srslylawlUI.buffs.known[spellId] ~= nil
         local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect ~= nil and srslylawlUI.buffs.known[spellId].autoDetect == false
 
@@ -1827,6 +1824,17 @@ function srslylawlUI.Auras_RememberBuff(spellId, buffIndex, unit)
 
             srslylawlUI.buffs.absorbs[spellId] = spell
             srslylawl_saved.buffs.absorbs[spellId] = spell
+        elseif keyWordImmunity then
+            local log = "new defensive spell " .. link .. " encountered as immunity!"
+
+            spell.reductionAmount = 100
+
+            if (srslylawlUI.buffs.defensives[spellId] == nil) then
+                -- first time entry
+                srslylawlUI.Log(log)
+            end
+            srslylawlUI.buffs.defensives[spellId] = spell
+            srslylawl_saved.buffs.defensives[spellId] = spell
         elseif keyWordDefensive then
             local amount = GetPercentValue(buffLower)
             local log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "%!"
@@ -2155,10 +2163,6 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
                 srslylawlUI.Frame_ChangeAbsorbSegment(bar, segment.width, segment.amount, height)
                 bar:Show()
             else
-                if segment.tAura == nil then
-                    srslylawlUI.Log("ERROR: segment nil", segment.oIndex, segment.amount, segment.sType);
-                    return
-                end
                 SetupSegment(segment.tAura, bar, segment.amount, segment.width, height)
             end
             bar.hide = false
@@ -2250,7 +2254,6 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit)
         end
     end
     if effectiveHealthMod ~= 1 then
-        assert(#units[unit].effectiveHealthSegments > 0)
         local width = srslylawlUI.Utils_GetPhysicalPixelSize(srslylawlUI.Frame_GetByUnitType(unit).unit.healthBar:GetWidth()) --need to convert here since we will later reapply the pixel scaling
         local playerHealthMax = UnitHealthMax(unit)
         local playerCurrentHP = UnitHealth(unit)
@@ -2265,12 +2268,15 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit)
             barWidth = additionalHealth * pixelPerHp
             barWidth = barWidth < maxWidth and barWidth or maxWidth
         else
-            eHealth = 0
-            barWidth = maxWidth > 0 and maxWidth or 1
             --this means a 100% absorb has been used, target is immune
+            eHealth = 0
+            barWidth = maxWidth > 2 and maxWidth or 0
+            
         end
-        srslylawlUI.Frame_ChangeAbsorbSegment(units[unit]["effectiveHealthFrames"][1], barWidth, eHealth, srslylawlUI.settings.party.hp.height)
-        units[unit]["effectiveHealthFrames"][1]:Show()
+        if barWidth >= 2 then
+            srslylawlUI.Frame_ChangeAbsorbSegment(units[unit]["effectiveHealthFrames"][1], barWidth, eHealth, srslylawlUI.settings.party.hp.height)
+            units[unit]["effectiveHealthFrames"][1]:Show()
+        end
     else
         units[unit]["effectiveHealthFrames"][1]:Hide()
     end
@@ -2688,7 +2694,6 @@ local function Initialize()
                 effectiveHealthFrames = {},
                 effectiveHealthSegments = {},
                 trackedAurasByIndex = {},
-                parentName = "srslylawlUI_AuraHolderFrame"
             }
 
             local frame = CreateUnitFrame(header, unit)
@@ -2719,6 +2724,25 @@ local function Initialize()
     srslylawlUI.SetBuffFrames()
     srslylawlUI.SetDebuffFrames()
     CreateSlashCommands()
+
+    -- local testFrame = CreateFrame("Frame", "srslylawlUI_TESTFRAME123091", UIParent)
+    -- testFrame:EnableMouse(true)
+    -- testFrame:SetMovable(true)
+    -- testFrame:RegisterForDrag("LeftButton")
+    -- testFrame:SetScript("OnDragStart", function(self)
+    --     self:StartMoving()
+    -- end)
+    -- testFrame:SetScript("OnDragStop", function(self)
+    --     self:StopMovingOrSizing()
+    -- end)
+    -- testFrame:SetPoint("CENTER")
+    -- testFrame:SetFrameLevel(20)
+    -- srslylawlUI.Utils_SetSizePixelPerfect(testFrame, srslylawlUI.settings.party.hp.width, srslylawlUI.settings.party.hp.height)
+    -- testFrame.texture = testFrame:CreateTexture("blendtest", "OVERLAY")
+    -- testFrame.texture:SetTexture("Interface/AddOns/srslylawlUI/media/immunity")
+    -- testFrame.texture:SetAllPoints(true)
+    -- testFrame.texture:SetBlendMode("BLEND")
+    -- testFrame.texture:SetVertexColor(1, 0, 0)
 
     -- --castbartest
     -- srslylawlUI.TestCastBar = CreateFrame("StatusBar", "srslylawl_TESTCASTBAR", UIParent)
