@@ -888,7 +888,7 @@ function srslylawlUI.CreateConfigWindow()
                 attributePanel.isDefensive = CreateCheckButton("is Defensive effect", attributePanel)
                 attributePanel.isDefensive:SetPoint("TOPLEFT", attributePanel.AutoDetect, "BOTTOMRIGHT", -5, 0)
                 attributePanel.isDefensive:SetScript("OnClick", ButtonCheckFunction(auraType, "defensives", "isDefensive"))
-                AddTooltip(attributePanel.isDefensive, "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations.\n\nNote: stacking effects may show their last seen, stacked values")
+                AddTooltip(attributePanel.isDefensive, "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations.\n\n.")
 
                 attributePanel.DefensiveAmount = CreateEditBox("Reduction Amount", attributePanel, 0,
                     nil, "LEFT", 0, 0, true)
@@ -907,7 +907,7 @@ function srslylawlUI.CreateConfigWindow()
 
                         srslylawlUI.Log("Damage reduction amount for spell " .. GetSpellInfo(id) .. " set from " .. old .. "% to " .. amount .. "%!")
                     end)
-                AddTooltip(attributePanel.DefensiveAmount, "Set custom damage reduction effect (per stack) in % and confirm with [ENTER]-Key.\n(For example: Enter 15 for 15% damage reduction)")
+                AddTooltip(attributePanel.DefensiveAmount, "Set custom damage reduction effect (per stack) in % and confirm with [ENTER]-Key.\n(For example: Enter 15 for 15% damage reduction)\n\nSetting this to 100 will cause this spell to be treated as an immunity.")
 
                 attributePanel.isAbsorb = CreateCheckButton("is Absorb effect", attributePanel)
                 attributePanel.isAbsorb:SetPoint("TOPLEFT", attributePanel.isDefensive, "BOTTOMLEFT")

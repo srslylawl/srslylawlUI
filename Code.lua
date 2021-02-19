@@ -22,6 +22,18 @@ srslylawlUI.settings = {
         showRaid = false,
         showPlayer = true,
     },
+    player = {
+        header = {anchor = "CENTER", xOffset = 10, yOffset = 10},
+        playerFrame = {
+            position = {offsetX = 0, offsetY = 0},
+            hp = {width = 100, height = 50},
+            buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", perRow = 5,
+                showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
+            debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", perRow = 5, showCastByPlayer = true,
+                maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
+
+        }
+    },
     frameOnUpdateInterval = 0.1
 }
 srslylawlUI.buffs = {
@@ -83,6 +95,11 @@ local partyUnits = {
     party3 = {},
     party4 = {},
 }
+local mainUnits = {
+    player = {},
+    target = {},
+    targettarget = {}
+}
 local unitHealthBars = {}
 srslylawlUI.sortTimerActive = false
 
@@ -101,10 +118,12 @@ local debugString = ""
 -- TODO:
 --      config window:
 --          faux frames absorb auras
+
 --      player, target, targettarget, playerpet
+--      castbars
+--      alt powerbar
 --      UnitHasIncomingResurrection(unit)
 --      incoming summon
---      immunities
 --      more sort methods?
 
 
@@ -484,6 +503,7 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
     --buttonFrame.pet.healthBar:SetFrameLevel(1)
     buttonFrame.unit:RegisterForDrag("LeftButton")
     local unit = buttonFrame:GetAttribute("unit")
+    buttonFrame.unit:SetAttribute("unit", unit)
 
     if not faux then
         buttonFrame:RegisterUnitEvent("UNIT_HEALTH", unit)
@@ -548,8 +568,7 @@ function srslylawlUI.Frame_InitialUnitConfig(buttonFrame, faux)
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
     
     buttonFrame.unit.powerBar:ClearAllPoints()
-    
-    
+
     buttonFrame.unit.healthBar.name:SetPoint("BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
     buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 0, 2)
     buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY", 7)
@@ -843,7 +862,6 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     else
         SBColor[4] = 0.4
     end
-    button.healthBar.immuneTex:SetVertexColor(unpack(SBColor))
     button.healthBar:SetStatusBarColor(unpack(SBColor))
 end
 function srslylawlUI.Frame_ResetPowerBar(button, unit)
@@ -953,6 +971,13 @@ function srslylawlUI.Frame_ReadyCheck(button, state)
 end
 function srslylawlUI.Frame_ShowImmunity(healthBar, isImmune)
     if isImmune then
+        local unit = healthBar:GetParent():GetAttribute("unit")
+        local class = select(2, UnitClass(unit)) or "WARRIOR"
+        local classColor = RAID_CLASS_COLORS[class]
+        --textureobject seems to reset after being switched from the object to the texturefile below
+        --needs texture assigned again
+        healthBar.immuneTex:SetTexture(srslylawlUI.textures.Immunity, true, "REPEAT")
+        healthBar.immuneTex:SetVertexColor(classColor.r, classColor.g, classColor.b, classColor.a)
         healthBar:SetStatusBarTexture(healthBar.immuneTex)
     else
         healthBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
@@ -1857,7 +1882,7 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             name = spellName,
             text = buffText,
             isAbsorb = keyWordAbsorb,
-            isDefensive = keyWordDefensive
+            isDefensive = keyWordDefensive or keyWordImmunity
         }
         local link = GetSpellLink(spellId)
 
@@ -2336,7 +2361,7 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit)
         partyUnits[unit]["effectiveHealthFrames"][1]:Hide()
     end
 
-    if hpBar.isImmune and eHealth ~= 0 then
+    if hpBar.isImmune and effectiveHealthMod > 0 then
         srslylawlUI.Frame_ShowImmunity(hpBar, false)
     end
 end
@@ -2502,12 +2527,15 @@ local function Initialize()
             end)
             --shift-Right click blacklists spell
             f:SetScript("OnClick", function(self, button, down)
+                local id = self:GetID()
+                local unit = self:GetAttribute("unit")
                 if button == "RightButton" and IsShiftKeyDown() then
                     GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
-                    local id = self:GetID()
-                    local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HELPFUL"))
+                    local spellID = select(10, UnitAura(unit, id, "HELPFUL"))
                     srslylawlUI.Auras_BlacklistSpell(spellID, "buffs")
                     srslylawlUI.Frame_HandleAuras_ALL()
+                elseif button == "RightButton" and unit == "player" and not InCombatLockdown() then
+                        CancelUnitBuff(unit, id, "HELPFUL")
                 end
             end)
             partyUnits[unit].buffFrames[i] = f
@@ -2726,12 +2754,12 @@ local function Initialize()
             -- unitFrame.unit.healthBar.standardTex = unitFrame.unit.healthBar:CreateTexture(nil, "BACKGROUND")
             -- unitFrame.unit.healthBar.standardTex:SetTexture(unitFrame.unit.healthBar:GetStatusBarTexture())
 
-            unitFrame.unit.healthBar.immuneTex = unitFrame.unit.healthBar:CreateTexture(nil, "BACKGROUND")
-            unitFrame.unit.healthBar.immuneTex:SetTexture(srslylawlUI.textures.Immunity, true, "REPEAT")
-            -- testTex:SetVertTile(true)
-            unitFrame.unit.healthBar.immuneTex:SetHorizTile(true)
-            unitFrame.unit.healthBar.immuneTex:SetBlendMode("BLEND")
-            unitFrame.unit.healthBar.isImmune = false
+            if not faux then
+                unitFrame.unit.healthBar.immuneTex = unitFrame.unit.healthBar:CreateTexture("srslylawlUI_Textures_ImmuneTextureObject"..unit, "BACKGROUND")
+                unitFrame.unit.healthBar.immuneTex:SetHorizTile(true)
+                unitFrame.unit.healthBar.immuneTex:SetBlendMode("BLEND")
+                unitFrame.unit.healthBar.isImmune = false
+            end
             CreateCCBar(unitFrame, unit)
 
             return unitFrame
@@ -2742,6 +2770,7 @@ local function Initialize()
         header:Show()
         --Create Unit Frames
         local fauxHeader = CreateFrame("Frame", "srslylawlUI_FAUX_PartyHeader", header)
+        local mainHeader = CreateFrame("Frame", srslylawlUI_MainHeader, UIParent)
         fauxHeader:SetAllPoints(true)
         fauxHeader:Hide()
         local parent = header
