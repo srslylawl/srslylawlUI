@@ -60,8 +60,7 @@ srslylawlUI.textures = {
     AbsorbFrame = "Interface/RAIDFRAME/Shield-Fill",
     HealthBar = "Interface/Addons/srslylawlUI/media/healthBar",
     EffectiveHealth = "Interface/AddOns/srslylawlUI/media/eHealthBar",
-    CCHighlight = "Interface/AddOns/srslylawlUI/media/ccHighlight",
-    Immunity = ""
+    Immunity = "Interface/AddOns/srslylawlUI/media/healthBarImmune"
 }
 srslylawlUI.unsaved = {flag = false, buttons = {}}
 srslylawlUI.keyPhrases = {
@@ -77,7 +76,7 @@ srslylawlUI.keyPhrases = {
     }
 }
 -- "units" tracks auras and frames
-local units = {
+local partyUnits = {
     player = {},
     party1 = {},
     party2 = {},
@@ -85,7 +84,6 @@ local units = {
     party4 = {},
 }
 local unitHealthBars = {}
-srslylawlUI.units = units
 srslylawlUI.sortTimerActive = false
 
 
@@ -274,6 +272,52 @@ function srslylawlUI.Utils_StringHasKeyWord(str, keywordTable)
 
     return false
 end
+function srslylawlUI.Utils_TranslateTexY(texture, amount, isTiledTexture)
+    --this bugs out if texture gets resized
+    local coords = {texture:GetTexCoord()}
+    if isTiledTexture then
+        local original = {0, 0, 0, 1, 1, 0, 1, 1}
+        local cont = false
+        for i, v in ipairs(coords) do
+            if coords[i] ~= original[i] then
+                cont = true
+                break
+            end
+        end
+        if not cont then return end
+    end
+    coords[2] = coords[2] + amount
+    coords[4] = coords[4] + amount
+    coords[6] = coords[6] + amount
+    coords[8] = coords[8] + amount
+
+    texture:SetTexCoord(unpack(coords))
+end
+function srslylawlUI.Utils_TranslateTexX(texture, amount, isTiledTexture)
+    --this bugs out if texture gets resized
+    local coords = {texture:GetTexCoord()}
+
+    if isTiledTexture then
+        local original = {0, 0, 0, 1, 1, 0, 1, 1}
+        local cont = false
+        for i, v in ipairs(coords) do
+            if coords[i] ~= original[i] then
+                cont = true
+                break
+            end
+        end
+        if not cont then
+            return
+        end
+    end
+
+    coords[1] = coords[1] + amount
+    coords[3] = coords[3] + amount
+    coords[5] = coords[5] + amount
+    coords[7] = coords[7] + amount
+
+    texture:SetTexCoord(unpack(coords))
+end
 function srslylawlUI.Debug()
     if srslylawlUI.DebugWindow == nil then
         srslylawlUI.DebugWindow = CreateFrame("Frame", "srslylawlUI_DebugWindow", UIParent)
@@ -322,7 +366,7 @@ function srslylawlUI.Debug()
         return s
     end
 
-    for k, v in pairs(units) do
+    for k, v in pairs(partyUnits) do
         local absorbFrameVisible = v.absorbFrames[1]:IsVisible()
         local absorbOverlapFrameVisible = v.absorbFramesOverlap[1]:IsVisible()
         local s = "________________\n" .. k .. "\n" .. (absorbFrameVisible and "Absorb Frame is visible! :)" or "Absorb Frame not visible") .. "\n" ..
@@ -342,14 +386,14 @@ end
 
 --Frame
 function srslylawlUI.SetBuffFrames()
-    for k, v in pairs(units) do
-        if units[k] ~= nil and units[k].buffFrames ~= nil then
+    for k, v in pairs(partyUnits) do
+        if partyUnits[k] ~= nil and partyUnits[k].buffFrames ~= nil then
             for i = 1, srslylawlUI.settings.party.buffs.maxBuffs do
                 local size = srslylawlUI.settings.party.buffs.size
                 local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
                 local anchor = "CENTER"
-                units[k].buffFrames[i]:ClearAllPoints()
-                if units[k].buffFrames[i] == nil then
+                partyUnits[k].buffFrames[i]:ClearAllPoints()
+                if partyUnits[k].buffFrames[i] == nil then
                     srslylawlUI.Log('Max visible buffs setting has been changed, please reload UI by typing "/reload" ')
                     error('Max visible buffs setting has been changed, please reload UI by typing "/reload" ')
                 end
@@ -357,38 +401,38 @@ function srslylawlUI.SetBuffFrames()
                     anchor = srslylawlUI.settings.party.buffs.anchor
                     xOffset = srslylawlUI.settings.party.buffs.xOffset
                     yOffset = srslylawlUI.settings.party.buffs.yOffset
-                    units[k].buffFrames[i]:SetParent(srslylawlUI.Frame_GetByUnitType(k).unit.auraAnchor)
-                    units[k].buffFrames[i]:SetPoint(anchor, xOffset, yOffset)
+                    partyUnits[k].buffFrames[i]:SetParent(srslylawlUI.Frame_GetByUnitType(k).unit.auraAnchor)
+                    partyUnits[k].buffFrames[i]:SetPoint(anchor, xOffset, yOffset)
                 else
-                    units[k].buffFrames[i]:SetPoint(anchor, units[k].buffFrames[i-1], anchor, xOffset, yOffset)
+                    partyUnits[k].buffFrames[i]:SetPoint(anchor, partyUnits[k].buffFrames[i-1], anchor, xOffset, yOffset)
                 end
-                srslylawlUI.Utils_SetSizePixelPerfect(units[k].buffFrames[i], size, size)
+                srslylawlUI.Utils_SetSizePixelPerfect(partyUnits[k].buffFrames[i], size, size)
             end
         end
     end
 end
 function srslylawlUI.SetDebuffFrames()
-    for k, v in pairs(units) do
-        if units[k] ~= nil and units[k].debuffFrames ~= nil then
+    for k, v in pairs(partyUnits) do
+        if partyUnits[k] ~= nil and partyUnits[k].debuffFrames ~= nil then
             for i = 1, srslylawlUI.settings.party.debuffs.maxDebuffs do
                 local size = srslylawlUI.settings.party.debuffs.size
                 local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
                 local anchor = "CENTER"
-                if units[k].debuffFrames[i] == nil then
+                if partyUnits[k].debuffFrames[i] == nil then
                     srslylawlUI.Log('Max visible debuffs setting has been changed, please reload UI by typing "/reload" ')
                     error('Max visible debuffs setting has been changed, please reload UI by typing "/reload" ')
                 end
-                units[k].debuffFrames[i]:ClearAllPoints()
+                partyUnits[k].debuffFrames[i]:ClearAllPoints()
                 if (i == 1) then
                     anchor = srslylawlUI.settings.party.debuffs.anchor
                     xOffset = srslylawlUI.settings.party.debuffs.xOffset
                     yOffset = srslylawlUI.settings.party.debuffs.yOffset
-                    units[k].debuffFrames[i]:SetParent(srslylawlUI.Frame_GetByUnitType(k).unit.auraAnchor)
-                    units[k].debuffFrames[i]:SetPoint(anchor, xOffset, yOffset)
+                    partyUnits[k].debuffFrames[i]:SetParent(srslylawlUI.Frame_GetByUnitType(k).unit.auraAnchor)
+                    partyUnits[k].debuffFrames[i]:SetPoint(anchor, xOffset, yOffset)
                 else
-                    units[k].debuffFrames[i]:SetPoint(anchor, units[k].debuffFrames[i-1], anchor, xOffset, yOffset)
+                    partyUnits[k].debuffFrames[i]:SetPoint(anchor, partyUnits[k].debuffFrames[i-1], anchor, xOffset, yOffset)
                 end
-                srslylawlUI.Utils_SetSizePixelPerfect(units[k].debuffFrames[i], size, size)
+                srslylawlUI.Utils_SetSizePixelPerfect(partyUnits[k].debuffFrames[i], size, size)
             end
         end
     end
@@ -764,11 +808,11 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local online = UnitIsConnected(unit)
     local inRange = UnitInRange(unit)
     local differentPhase = UnitPhaseReason(unit)
-    local SBColor = { r = classColor.r, g = classColor.g, b =classColor.b, a = classColor.a}
+    local SBColor = { classColor.r, classColor.g, classColor.b, classColor.a}
     button.healthBar.text:SetText(health .. " " .. healthPercent .. "%")
     if not alive or not online then
         -- set bar color to grey and fill bar
-        SBColor.r, SBColor.g, SBColor.b = 0.3, 0.3, 0.3
+        SBColor[1], SBColor[2], SBColor[3] = 0.3, 0.3, 0.3
 
         if not alive then
             button.healthBar.text:SetText("DEAD")
@@ -795,12 +839,12 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     button.healthBar:SetValue(health)
 
     if unit == "player" or inRange then
-        SBColor.a = 1
+        SBColor[4] = 1
     else
-        SBColor.a = 0.4
+        SBColor[4] = 0.4
     end
-
-    button.healthBar:SetStatusBarColor(SBColor.r, SBColor.g, SBColor.b, SBColor.a)
+    button.healthBar.immuneTex:SetVertexColor(unpack(SBColor))
+    button.healthBar:SetStatusBarColor(unpack(SBColor))
 end
 function srslylawlUI.Frame_ResetPowerBar(button, unit)
     local powerType, powerToken = UnitPowerType(unit)
@@ -873,9 +917,9 @@ function srslylawlUI_Frame_OnShow(button)
 end
 function srslylawlUI_Frame_OnHide(button)
     local unit = button:GetAttribute("unit")
-    units[unit].absorbFrames[1]:Hide()
-    units[unit].absorbFramesOverlap[1]:Hide()
-    units[unit].effectiveHealthFrames[1]:Hide()
+    partyUnits[unit].absorbFrames[1]:Hide()
+    partyUnits[unit].absorbFramesOverlap[1]:Hide()
+    partyUnits[unit].effectiveHealthFrames[1]:Hide()
 end
 function srslylawlUI.Frame_ReadyCheck(button, state)
     local rc = button.ReadyCheck
@@ -906,6 +950,14 @@ function srslylawlUI.Frame_ReadyCheck(button, state)
         button.ReadyCheck:SetAlpha(1)
         button.ReadyCheck:Show()
     end
+end
+function srslylawlUI.Frame_ShowImmunity(healthBar, isImmune)
+    if isImmune then
+        healthBar:SetStatusBarTexture(healthBar.immuneTex)
+    else
+        healthBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
+    end
+    healthBar.isImmune = isImmune
 end
 
 function srslylawlUI_Frame_ToggleFauxFrames(visible)
@@ -1327,26 +1379,26 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         if source == nil then source = "unknown" end
 
         local aura = {["name"] = name, ["index"] = index}
-        if units[unit][byAura][source] == nil then
-            units[unit][byAura][source] = {[spellId] = aura}
+        if partyUnits[unit][byAura][source] == nil then
+            partyUnits[unit][byAura][source] = {[spellId] = aura}
         else
-            units[unit][byAura][source][spellId] = aura
+            partyUnits[unit][byAura][source][spellId] = aura
         end
 
         local diff = 0
         if verify then
-            if units[unit][byIndex][index] ~= nil and
-                units[unit][byIndex][index].expiration ~= nil then
-                diff = expirationTime - units[unit][byIndex][index].expiration
+            if partyUnits[unit][byIndex][index] ~= nil and
+                partyUnits[unit][byIndex][index].expiration ~= nil then
+                diff = expirationTime - partyUnits[unit][byIndex][index].expiration
             end
         end
 
         local flagRefreshed = (diff > 0.01)
 
-        if units[unit][byIndex][index] == nil then
-            units[unit][byIndex][index] = {}
+        if partyUnits[unit][byIndex][index] == nil then
+            partyUnits[unit][byIndex][index] = {}
         end
-        local t = units[unit][byIndex][index]
+        local t = partyUnits[unit][byIndex][index]
         -- doing it this way since we dont want our tracked fragment to reset
         t["source"] = source
         t["name"] = name
@@ -1363,54 +1415,54 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     end
     local function UntrackAura(index)
         local byIndex = "trackedAurasByIndex"
-        local auraType = units[unit][byIndex][index].auraType
+        local auraType = partyUnits[unit][byIndex][index].auraType
         if auraType == nil then error("auraType is nil") end
         local byAura = auraType .. "Auras"
 
-        if units[unit][byIndex][index].source == nil then
-            error("error while untracking an aura", units[unit][byIndex][index].name)
+        if partyUnits[unit][byIndex][index].source == nil then
+            error("error while untracking an aura", partyUnits[unit][byIndex][index].name)
         end
 
-        local src = units[unit][byIndex][index].source
+        local src = partyUnits[unit][byIndex][index].source
 
-        local s = units[unit][byIndex][index].spellId
+        local s = partyUnits[unit][byIndex][index].spellId
 
-        if units[unit][byAura][src] == nil or units[unit][byAura][src][s] == nil then
+        if partyUnits[unit][byAura][src] == nil or partyUnits[unit][byAura][src][s] == nil then
             --error("error while untracking an aura", units[unit][byIndex][index].name)
         end
 
-        units[unit][byIndex][index] = nil
+        partyUnits[unit][byIndex][index] = nil
 
-        if units[unit][byAura][src] == nil then
+        if partyUnits[unit][byAura][src] == nil then
             return;
         end
-        units[unit][byAura][src][s] = nil
-        local t = srslylawlUI.Utils_GetTableLength(units[unit][byAura][src])
+        partyUnits[unit][byAura][src][s] = nil
+        local t = srslylawlUI.Utils_GetTableLength(partyUnits[unit][byAura][src])
 
         --No more auras being tracked for that unit, untrack source
-        if t == 0 then units[unit][byAura][src] = nil end
+        if t == 0 then partyUnits[unit][byAura][src] = nil end
     end
     local function ChangeTrackingIndex(name, source, count, spellId, currentIndex, absorb, icon, duration, expirationTime, auraType)
         -- srslylawlUI.Log("index changed " .. name)
         local byAura = auraType .. "Auras"
         local byIndex = "trackedAurasByIndex"
-        local oldIndex = units[unit][byAura][source][spellId].index
+        local oldIndex = partyUnits[unit][byAura][source][spellId].index
         assert(oldIndex ~= nil)
         -- assign to current
-        units[unit][byAura][source][spellId].index = currentIndex
+        partyUnits[unit][byAura][source][spellId].index = currentIndex
 
         -- flag for timer refresh
         local diff = 0
-        if units[unit][byIndex][oldIndex] ~= nil and units[unit][byIndex][oldIndex].expiration ~= nil then
-            diff = expirationTime - units[unit][byIndex][oldIndex].expiration
+        if partyUnits[unit][byIndex][oldIndex] ~= nil and partyUnits[unit][byIndex][oldIndex].expiration ~= nil then
+            diff = expirationTime - partyUnits[unit][byIndex][oldIndex].expiration
         end
 
         local flagRefreshed = (diff > 0.1)
 
-        if units[unit][byIndex][currentIndex] == nil then
-            units[unit][byIndex][currentIndex] = {}
+        if partyUnits[unit][byIndex][currentIndex] == nil then
+            partyUnits[unit][byIndex][currentIndex] = {}
         end
-        local t = units[unit][byIndex][currentIndex]
+        local t = partyUnits[unit][byIndex][currentIndex]
         t["source"] = source
         t["name"] = name
         t["spellId"] = spellId
@@ -1424,24 +1476,24 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         t["stacks"] = count
         t["auraType"] = auraType
         
-        local tat = units[unit][byIndex][oldIndex].trackedApplyTime
+        local tat = partyUnits[unit][byIndex][oldIndex].trackedApplyTime
         if tat then 
             t["trackedApplyTime"] = tat
         end
 
-        units[unit][byIndex][oldIndex] = nil
+        partyUnits[unit][byIndex][oldIndex] = nil
     end
     local function IsAuraBeingTrackedAtOtherIndex(source, spellId, auraType)
-        if units[unit][auraType .. "Auras"][source] == nil then
+        if partyUnits[unit][auraType .. "Auras"][source] == nil then
             return false
-        elseif units[unit][auraType .. "Auras"][source][spellId] == nil then
+        elseif partyUnits[unit][auraType .. "Auras"][source][spellId] == nil then
             return false
         else
             return true
         end
     end
     local function AuraIsBeingTrackedAtIndex(index)
-        return units[unit].trackedAurasByIndex[index] ~= nil
+        return partyUnits[unit].trackedAurasByIndex[index] ~= nil
     end
     local function ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
         if IsAuraBeingTrackedAtOtherIndex(source, spellId, auraType) then
@@ -1455,14 +1507,14 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     end
 
     -- reset frame check verifier
-    for k, v in pairs(units[unit].trackedAurasByIndex) do
+    for k, v in pairs(partyUnits[unit].trackedAurasByIndex) do
         v["checkedThisEvent"] = false
     end
     -- process buffs on unit
     local currentBuffFrame = 1
     for i = 1, 40 do
         -- loop through all frames on standby and assign them based on their index
-        local f = units[unit].buffFrames[currentBuffFrame]
+        local f = partyUnits[unit].buffFrames[currentBuffFrame]
         local name, icon, count, debuffType, duration, expirationTime, source,
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
@@ -1482,7 +1534,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
 
             if auraType ~= nil then
                 if AuraIsBeingTrackedAtIndex(i) then
-                    if units[unit].trackedAurasByIndex[i]["spellId"] ~= spellId then
+                    if partyUnits[unit].trackedAurasByIndex[i]["spellId"] ~= spellId then
                         -- different spell is being tracked
                         UntrackAura(i)
                         ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
@@ -1508,7 +1560,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     local appliedCC = {}
     currentDebuffFrame = 1
     for i = 1, 40 do
-        local f = units[unit].debuffFrames[currentDebuffFrame]
+        local f = partyUnits[unit].debuffFrames[currentDebuffFrame]
         local name, icon, count, debuffType, duration, expirationTime, source,
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
@@ -1569,7 +1621,8 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
     end
 
     --see if we want to display our cced frame
-    if #appliedCC > 0 and srslylawlUI.settings.party.ccbar.enabled then
+    local displayCC = #appliedCC > 0 and srslylawlUI.settings.party.ccbar.enabled
+    if displayCC then
         --Decide which cc to display
         table.sort(appliedCC, function(a, b) return b.remaining < a.remaining end)
         local CCToDisplay = appliedCC[1]
@@ -1583,10 +1636,6 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                 end
             end
         end
-
-        local color = DebuffTypeColor[CCToDisplay.debuffType] or DebuffTypeColor["none"];
-        unitbutton.CCTexture:SetVertexColor(color.r, color.g, color.b)
-        unitbutton.CCTexture:Show()
 
         local exists = unitbutton.CCDurBar.spellData ~= nil
         local differentSpell = exists and unitbutton.CCDurBar.spellData.ID ~= CCToDisplay.ID
@@ -1624,21 +1673,19 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
             --just update data
             unitbutton.CCDurBar.spellData = CCToDisplay
         end
-        unitbutton.CCDurBar:Show()
-    else
-        unitbutton.CCDurBar:Hide()
-        unitbutton.CCTexture:Hide()
+        
     end
+    unitbutton.CCDurBar:SetShown(displayCC)
     -- we checked all frames, untrack any that are gone
-    for k, v in pairs(units[unit].trackedAurasByIndex) do
+    for k, v in pairs(partyUnits[unit].trackedAurasByIndex) do
         if (v["checkedThisEvent"] == false) then
             UntrackAura(k)
         end
     end
 
     -- -- we tracked all absorbs, now we have to visualize them
-    srslylawlUI.Auras_HandleEffectiveHealth(units[unit].trackedAurasByIndex, unit)
-    srslylawlUI.Auras_HandleAbsorbFrames(units[unit].trackedAurasByIndex, unit)
+    srslylawlUI.Auras_HandleEffectiveHealth(partyUnits[unit].trackedAurasByIndex, unit)
+    srslylawlUI.Auras_HandleAbsorbFrames(partyUnits[unit].trackedAurasByIndex, unit)
 end
 function srslylawlUI.Frame_HandleAuras_ALL()
     for k, v in pairs(unitTable) do
@@ -1679,13 +1726,13 @@ function srslylawlUI.Frame_MoveAbsorbAnchorWithHealth(unit)
     local playerCurrentHP = UnitHealth(unit)
     local baseAnchorOffset = playerCurrentHP * pixelPerHp
     local mergeOffset = 0
-    if units[unit]["absorbFramesOverlap"][1].isMerged then
+    if partyUnits[unit]["absorbFramesOverlap"][1].isMerged then
         --offset by mergeamount
-        mergeOffset = srslylawlUI.Utils_GetVirtualPixelSize(units[unit]["absorbFramesOverlap"][1].mergeAmount+1)
+        mergeOffset = srslylawlUI.Utils_GetVirtualPixelSize(partyUnits[unit]["absorbFramesOverlap"][1].mergeAmount+1)
     end
-    units[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
-    units[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
-    units[unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
+    partyUnits[unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
+    partyUnits[unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
+    partyUnits[unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
 end
 function srslylawlUI.Auras_ShouldDisplayBuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
@@ -2130,13 +2177,13 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
         for k, _ in ipairs(absorbSegments) do
             segment = absorbSegments[k]
             i = segment.oIndex > 1 and curBarOverlapIndex or curBarIndex
-            pool = segment.oIndex > 1 and units[unit]["absorbFramesOverlap"] or units[unit]["absorbFrames"]
+            pool = segment.oIndex > 1 and partyUnits[unit]["absorbFramesOverlap"] or partyUnits[unit]["absorbFrames"]
             bar = pool[i]
             shouldMerge = segment.oIndex > 1 and segment.tAura ~= nil and segment.tAura == absorbSegments[1].tAura and absorbSegments[1].oIndex == 1
             shouldMerge = shouldMerge or (segment.sType == absorbSegments[1].sType and segment.oIndex > 1 and absorbSegments[1].oIndex == 1)
             if shouldMerge then
                 --hiding the non overlap frame and instead making the overlap frame bigger
-                units[unit]["absorbFrames"][1].hide = true
+                partyUnits[unit]["absorbFrames"][1].hide = true
                 bar.isMerged = true
                 bar.mergeAmount = absorbSegments[1].width
                 segment.width = segment.width + bar.mergeAmount
@@ -2197,11 +2244,11 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
         CalcSegment(variousAbsorbAmount, "various", nil)
     end
     --flag all bars as hide
-    for _, bar in pairs(units[unit]["absorbFramesOverlap"]) do
+    for _, bar in pairs(partyUnits[unit]["absorbFramesOverlap"]) do
         bar.hide = true
     end
-    units[unit]["absorbFramesOverlap"][1].isMerged = false
-    for _, bar in pairs(units[unit]["absorbFrames"]) do
+    partyUnits[unit]["absorbFramesOverlap"][1].isMerged = false
+    for _, bar in pairs(partyUnits[unit]["absorbFrames"]) do
         bar.hide = true
     end
 
@@ -2210,12 +2257,12 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit)
     end
 
     --hide the ones we didnt use
-    for _, bar in pairs(units[unit]["absorbFramesOverlap"]) do
+    for _, bar in pairs(partyUnits[unit]["absorbFramesOverlap"]) do
         if bar.hide then
             bar:Hide()
         end
     end
-    for _, bar in pairs(units[unit]["absorbFrames"]) do
+    for _, bar in pairs(partyUnits[unit]["absorbFrames"]) do
         if bar.hide then
             bar:Hide()
         end
@@ -2241,26 +2288,30 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit)
     end
     --Display effective health
 
-    units[unit].effectiveHealthSegments = FilterDefensives(trackedAurasByIndex)
+    partyUnits[unit].effectiveHealthSegments = FilterDefensives(trackedAurasByIndex)
     local effectiveHealthMod = 1
-    if #units[unit].effectiveHealthSegments > 0 then
+    if #partyUnits[unit].effectiveHealthSegments > 0 then
         local stackMultiplier = 1
         local reducAmount
-        for _, v in ipairs(units[unit].effectiveHealthSegments) do
+        for _, v in ipairs(partyUnits[unit].effectiveHealthSegments) do
             stackMultiplier = v.stacks > 1 and v.stacks or 1
             reducAmount = srslylawlUI.buffs.known[v.spellId].reductionAmount / 100
     
             effectiveHealthMod = effectiveHealthMod * (1 - (reducAmount * stackMultiplier))
         end
     end
-    if effectiveHealthMod ~= 1 then
+    local hasDefensive = effectiveHealthMod ~= 1
+    local eHealth = -1
+    local hpBar = srslylawlUI.Frame_GetByUnitType(unit).unit.healthBar
+    local showFrames = false
+    if hasDefensive then
         local width = srslylawlUI.Utils_GetPhysicalPixelSize(srslylawlUI.Frame_GetByUnitType(unit).unit.healthBar:GetWidth()) --need to convert here since we will later reapply the pixel scaling
         local playerHealthMax = UnitHealthMax(unit)
         local playerCurrentHP = UnitHealth(unit)
         local pixelPerHp = width / playerHealthMax
         local playerMissingHP = playerHealthMax - playerCurrentHP
-        local eHealth, barWidth
         local maxWidth = playerMissingHP*pixelPerHp - 1
+        local barWidth
 
         if effectiveHealthMod > 0 then
             eHealth = playerCurrentHP / effectiveHealthMod
@@ -2271,14 +2322,22 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit)
             --this means a 100% absorb has been used, target is immune
             eHealth = 0
             barWidth = maxWidth > 2 and maxWidth or 0
-            
+            --show immunity texture
+            if not hpBar.isImmune then
+                srslylawlUI.Frame_ShowImmunity(hpBar, true)
+            end
         end
-        if barWidth >= 2 then
-            srslylawlUI.Frame_ChangeAbsorbSegment(units[unit]["effectiveHealthFrames"][1], barWidth, eHealth, srslylawlUI.settings.party.hp.height)
-            units[unit]["effectiveHealthFrames"][1]:Show()
+        showFrames = barWidth >= 2
+        if showFrames then
+            srslylawlUI.Frame_ChangeAbsorbSegment(partyUnits[unit]["effectiveHealthFrames"][1], barWidth, eHealth, srslylawlUI.settings.party.hp.height)
         end
+        partyUnits[unit]["effectiveHealthFrames"][1]:SetShown(showFrames)
     else
-        units[unit]["effectiveHealthFrames"][1]:Hide()
+        partyUnits[unit]["effectiveHealthFrames"][1]:Hide()
+    end
+
+    if hpBar.isImmune and eHealth ~= 0 then
+        srslylawlUI.Frame_ShowImmunity(hpBar, false)
     end
 end
 --Config
@@ -2451,7 +2510,7 @@ local function Initialize()
                     srslylawlUI.Frame_HandleAuras_ALL()
                 end
             end)
-            units[unit].buffFrames[i] = f
+            partyUnits[unit].buffFrames[i] = f
             parent = f
             f:Hide()
         end
@@ -2492,14 +2551,14 @@ local function Initialize()
                         GameTooltip:SetUnitDebuff(self:GetAttribute("unit"),self:GetID())
                     end
             end)
-            units[unit].debuffFrames[i] = f
+            partyUnits[unit].debuffFrames[i] = f
             parent = f
             f:Hide()
         end
     end
     local function CreateCustomFrames(buttonFrame, unit)
         local function CreateAbsorbFrame(parent, i, parentTable, unit)
-            local isOverlapFrame = parentTable == units[unit].absorbFramesOverlap
+            local isOverlapFrame = parentTable == partyUnits[unit].absorbFramesOverlap
             local n = "srslylawlUI_"..unit .. (isOverlapFrame and "AbsorbFrameOverlap" or "AbsorbFrame") .. i
             local f = CreateFrame("Frame", n, parent)
             f.texture = f:CreateTexture("$parent_texture", "ARTWORK")
@@ -2558,13 +2617,13 @@ local function Initialize()
             f.background:SetPoint("TOPLEFT", f, "TOPLEFT", -1, 0)
             f.background:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.background:SetFrameLevel(3)
-            f["icon"] = f:CreateTexture("$parent_icon", "OVERLAY", nil, 2)
-            f["icon"]:SetPoint("CENTER")
-            f["icon"]:SetTexCoord(.08, .92, .08, .92)
-            f["icon"]:Hide()
-            f["cooldown"] = CreateFrame("Cooldown", n .. "CD", f, "CooldownFrameTemplate")
-            f["cooldown"]:SetReverse(true)
-            f["cooldown"]:Show()
+            f.icon = f:CreateTexture("$parent_icon", "OVERLAY", nil, 2)
+            f.icon:SetPoint("CENTER")
+            f.icon:SetTexCoord(.08, .92, .08, .92)
+            f.icon:Hide()
+            f.cooldown = CreateFrame("Cooldown", n .. "CD", f, "CooldownFrameTemplate")
+            f.cooldown:SetReverse(true)
+            f.cooldown:Show()
             f:SetAttribute("unit", unit)
             f:SetScript("OnEnter", function(self)
                 local index = self:GetAttribute("buffIndex")
@@ -2595,18 +2654,18 @@ local function Initialize()
 
             f:SetFrameLevel(5)
 
-            units[unit]["effectiveHealthFrames"][i] = f
+            partyUnits[unit]["effectiveHealthFrames"][i] = f
         end
         -- buttonFrame = srslylawlUI.Frame_GetByUnitType(unit)
         --create absorb frames
         for i = 1, srslylawlUI.settings.party.maxAbsorbFrames do
-            local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or units[unit].absorbFrames[i - 1]
-            CreateAbsorbFrame(parentFrame, i, units[unit].absorbFrames, unit)
+            local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or partyUnits[unit].absorbFrames[i - 1]
+            CreateAbsorbFrame(parentFrame, i, partyUnits[unit].absorbFrames, unit)
         end
         --overlap frames (absorb/incoming heal that exceeds maximum health)
         for i = 1, srslylawlUI.settings.party.maxAbsorbFrames do
-            local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or units[unit].absorbFramesOverlap[i - 1]
-            CreateAbsorbFrame(parentFrame, i, units[unit].absorbFramesOverlap, unit)
+            local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or partyUnits[unit].absorbFramesOverlap[i - 1]
+            CreateAbsorbFrame(parentFrame, i, partyUnits[unit].absorbFramesOverlap, unit)
         end
         --effective health frame (sums up active defensive spells)
         CreateEffectiveHealthFrame(buttonFrame, unit, 1)
@@ -2644,11 +2703,6 @@ local function Initialize()
             local unitFrame = CreateFrame("Frame", "$parent_"..unit, header, "srslylawlUI_UnitTemplate")
             header[unit] = unitFrame
             unitFrame:SetAttribute("unit", unit)
-            unitFrame.unit.CCTexture = unitFrame:CreateTexture("$parent_CCTexture", "OVERLAY")
-            unitFrame.unit.CCTexture:SetTexture(srslylawlUI.textures.CCHighlight, true, true)
-            unitFrame.unit.CCTexture:SetBlendMode("ADD")
-            unitFrame.unit.CCTexture:SetAllPoints(true)
-            unitFrame.unit.CCTexture:Show()
             unitFrame.ReadyCheck = CreateFrame("Frame", "$parent_ReadyCheck", unitFrame)
             unitFrame.ReadyCheck:SetPoint("CENTER")
             local h = srslylawlUI.settings.party.hp.height*0.75
@@ -2669,7 +2723,15 @@ local function Initialize()
             unitFrame.PartyLeader.texture:SetAllPoints(true)
             unitFrame.PartyLeader:Hide()
 
-            
+            -- unitFrame.unit.healthBar.standardTex = unitFrame.unit.healthBar:CreateTexture(nil, "BACKGROUND")
+            -- unitFrame.unit.healthBar.standardTex:SetTexture(unitFrame.unit.healthBar:GetStatusBarTexture())
+
+            unitFrame.unit.healthBar.immuneTex = unitFrame.unit.healthBar:CreateTexture(nil, "BACKGROUND")
+            unitFrame.unit.healthBar.immuneTex:SetTexture(srslylawlUI.textures.Immunity, true, "REPEAT")
+            -- testTex:SetVertTile(true)
+            unitFrame.unit.healthBar.immuneTex:SetHorizTile(true)
+            unitFrame.unit.healthBar.immuneTex:SetBlendMode("BLEND")
+            unitFrame.unit.healthBar.isImmune = false
             CreateCCBar(unitFrame, unit)
 
             return unitFrame
@@ -2684,7 +2746,7 @@ local function Initialize()
         fauxHeader:Hide()
         local parent = header
         for _, unit in pairs(unitTable) do
-            units[unit] = {
+            partyUnits[unit] = {
                 absorbAuras = {},
                 absorbFrames = {},
                 absorbFramesOverlap = {},
@@ -2701,8 +2763,7 @@ local function Initialize()
             CreateBuffFrames(frame, unit)
             CreateDebuffFrames(frame, unit)
             CreateCustomFrames(frame, unit)
-            -- CreateCustomFrames(faux, unit)
-
+            
             --initial sorting
             if unit == "player" then
                 frame:SetPoint("TOPLEFT", header, "TOPLEFT")
