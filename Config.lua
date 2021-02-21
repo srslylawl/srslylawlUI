@@ -461,9 +461,9 @@ function srslylawlUI.CreateConfigWindow()
         lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
         lockFrames:SetScript("OnClick", function(self)
             srslylawlUI_PartyHeader:SetMovable(self:GetChecked())
-            srslylawlUI.mainUnits.player.unitFrame.unit:SetMovable(self:GetChecked())
-            srslylawlUI.mainUnits.target.unitFrame.unit:SetMovable(self:GetChecked())
-            srslylawlUI.mainUnits.targettarget.unitFrame.unit:SetMovable(self:GetChecked())
+            srslylawlUI.mainUnits.player.unitFrame:SetMovable(self:GetChecked())
+            srslylawlUI.mainUnits.target.unitFrame:SetMovable(self:GetChecked())
+            srslylawlUI.mainUnits.targettarget.unitFrame:SetMovable(self:GetChecked())
             srslylawlUI_Frame_ToggleFauxFrames(self:GetChecked())
         end
         )
@@ -777,8 +777,6 @@ function srslylawlUI.CreateConfigWindow()
             table.insert(sortedSpellList, 1, exactMatch)
         end
 
-        --print("SpellList", spellListKey, "Generated with filter ", filter, "and len", #sortedSpellList)
-
         srslylawlUI.sortedSpellLists[auratype][spellListKey] = sortedSpellList
     end
     local function OpenSpellAttributePanel(parentTab, spellId)
@@ -891,7 +889,7 @@ function srslylawlUI.CreateConfigWindow()
                 attributePanel.isDefensive = CreateCheckButton("is Defensive effect", attributePanel)
                 attributePanel.isDefensive:SetPoint("TOPLEFT", attributePanel.AutoDetect, "BOTTOMRIGHT", -5, 0)
                 attributePanel.isDefensive:SetScript("OnClick", ButtonCheckFunction(auraType, "defensives", "isDefensive"))
-                AddTooltip(attributePanel.isDefensive, "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations.\n\n.")
+                AddTooltip(attributePanel.isDefensive, "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations.")
 
                 attributePanel.DefensiveAmount = CreateEditBox("Reduction Amount", attributePanel, 0,
                     nil, "LEFT", 0, 0, true)
@@ -901,7 +899,6 @@ function srslylawlUI.CreateConfigWindow()
                         local amount = self:GetNumber();
                         local id = self:GetParent():GetAttribute("spellId")
                         local old = srslylawlUI.buffs.known[id].reductionAmount
-                        print(amount, old)
                         srslylawlUI.buffs.known[id].reductionAmount = amount
                         srslylawlUI.buffs.defensives[id] = srslylawlUI.buffs.known[id]
 
@@ -1036,7 +1033,6 @@ function srslylawlUI.CreateConfigWindow()
             
         end
         SetEnableButtons(attributePanel, auraType, autoDetect)
-        --print("open", auraType, spellList, spellId)
     end
     local function CreateFauxScrollFrame(parent, spellList)
         --fauxscrollframe doesnt actually create a button for every item, it just creates max amount of buttons once and then updates them during scrolling

@@ -136,16 +136,18 @@ srslylawlUI.anchorTable = {
 local debugString = ""
 
 -- TODO:
---      config window:
---          faux frames absorb auras
 
---      player, target, targettarget, playerpet
---      castbars
+--      playerpet
 --      powerbars
 --      alt powerbar
+--      buffs/debuffs for player/target
 --      UnitHasIncomingResurrection(unit)
 --      incoming summon
 --      more sort methods?
+--      config window:
+--          faux frames absorb auras
+--          faux frames for target/player/targettarget/pet
+--          settings for player/target/targettarget/pet/buffs/debuffs
 
 
 --Utils
@@ -653,7 +655,7 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     RegisterUnitWatch(buttonFrame)
     RegisterUnitWatch(buttonFrame.pet)
 
-    buttonFrame.unit:SetMovable(false)
+    buttonFrame:SetMovable(false)
     buttonFrame.unit:RegisterForDrag("LeftButton")
     buttonFrame.unit:EnableMouse(true)
     buttonFrame.unit:SetScript("OnDragStart", srslylawlUI.PlayerFrame_OnDragStart)
@@ -830,6 +832,12 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
             self.portrait:PortraitUpdate()
             srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
             srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
+            srslylawlUI.Frame_HandleAuras(self.unit, unit)
+            if self.CastBar then
+                self.CastBar:Hide()
+                self.CastBar:Show()
+            end
+            
         end
     elseif event == "PARTY_LEADER_CHANGED" then
         self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
@@ -1029,12 +1037,14 @@ function srslylawlUI_PartyFrame_OnDragStop()
     end
 end
 function srslylawlUI.PlayerFrame_OnDragStart(self)
+    self = self:GetParent()
     if self:IsMovable() then
         self.isMoving = true
         self:StartMoving()
     end
 end
 function srslylawlUI.PlayerFrame_OnDragStop(self)
+    self = self:GetParent()
     if self.isMoving then
         self:StopMovingOrSizing()
         self.isMoving = false
@@ -2606,12 +2616,28 @@ function srslylawlUI.LoadSettings(reset, announce)
             end
         end
     end
-    if not srslylawlUI_PartyHeader then return end
-    srslylawlUI_PartyHeader:ClearAllPoints()
-    srslylawlUI_PartyHeader:SetPoint(srslylawlUI.settings.party.header.anchor,srslylawlUI.settings.party.header.xOffset,srslylawlUI.settings.party.header.yOffset)
-    srslylawlUI.SetBuffFrames()
-    srslylawlUI.Frame_UpdateVisibility()
-    srslylawlUI.RemoveDirtyFlag()
+    if srslylawlUI_PartyHeader then
+        srslylawlUI_PartyHeader:ClearAllPoints()
+        srslylawlUI_PartyHeader:SetPoint(srslylawlUI.settings.party.header.anchor,srslylawlUI.settings.party.header.xOffset,srslylawlUI.settings.party.header.yOffset)
+        srslylawlUI.SetBuffFrames()
+        srslylawlUI.Frame_UpdateVisibility()
+        srslylawlUI.RemoveDirtyFlag()
+    end
+    for _, unit in pairs(mainUnitsTable) do
+        local a = srslylawlUI.settings.player[unit.."Frame"].position
+        local frame = mainUnits[unit].unitFrame
+        if frame then
+            if a and #a > 1 then
+                frame:SetPoint(unpack(a))
+            elseif unit == "targettarget" then
+                frame:SetPoint("TOPLEFT", mainUnits.target.unitFrame, "TOPRIGHT", 0, 0)
+            elseif unit == "target" then
+                frame:SetPoint("TOPLEFT", UIParent, "CENTER", 0, 0)
+            elseif unit == "player" then
+                frame:SetPoint("TOPRIGHT", UIParent, "CENTER", 0, 0)
+            end
+        end
+    end
     if (reset) then srslylawlUI.UpdateEverything() end
 end
 function srslylawlUI.SaveSettings()
@@ -2654,6 +2680,272 @@ end
 function srslylawlUI.RemoveDirtyFlag()
     srslylawlUI.unsaved.flag = false
     for _, v in ipairs(srslylawlUI.unsaved.buttons) do v:Disable() end
+end
+function srslylawlUI.CreateCastBar(parent, unit)
+    local cBar = CreateFrame("Frame", "$parent_CastBar", parent)
+    Mixin(cBar, BackdropTemplateMixin)
+    cBar:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background"
+    })
+    cBar:SetBackdropColor(0, 0, 0, .4)
+    local function CastOnUpdate(self, elapsed)
+	    local time = GetTime()
+        
+	    self.elapsed = self.isChannelled and self.elapsed - (time - self.lastUpdate) or self.elapsed + (time - self.lastUpdate)
+	    self.lastUpdate = time
+	    self.StatusBar:SetValue(self.elapsed)
+
+	    if self.elapsed <= 0 then
+	    	self.elapsed = 0
+	    end
+
+        if self.isChannelled then
+	    	if self.elapsed <= 0 then
+	    		self.StatusBar.Timer:SetText("0.0")
+                self.spellName = nil
+                self.castID = nil
+                self:FadeOut()
+            elseif self.pushback == 0 then
+                -- no pushback
+	    		self.StatusBar.Timer:SetText(srslylawlUI.Utils_DecimalRound(self.elapsed, 1))
+	    	else
+                -- has pushback, display it
+                self.StatusBar.Timer:SetText("|cffff0000".."+"..srslylawlUI.Utils_DecimalRound(self.pushback, 1).."|r".." "..srslylawlUI.Utils_DecimalRound(self.elapsed, 1))
+	    	end
+        else
+	    	local timeLeft = self.endSeconds - self.elapsed
+	    	if timeLeft <= 0 then
+	    		self.StatusBar.Timer:SetText("0.0")
+            elseif self.pushback == 0 then
+                -- no pushback
+	    		self.StatusBar.Timer:SetText(srslylawlUI.Utils_DecimalRound(timeLeft, 1))
+	    	else
+                -- has pushback, display pushback
+	    		self.StatusBar.Timer:SetText("|cffff0000".."+"..srslylawlUI.Utils_DecimalRound(self.pushback, 1).."|r".." "..srslylawlUI.Utils_DecimalRound(timeLeft, 1))
+	    	end
+            
+            if self.elapsed >= self.endSeconds then
+                self.spellName = nil
+                self.castID = nil
+                self:FadeOut()
+            end
+	    end
+    end
+    function cBar:UpdateCast()
+	    local spell, displayName, icon, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(self.unit)
+	    local isChannelled
+	    if not spell then
+	    	spell, displayName, icon, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo(self.unit)
+	    	isChannelled = true
+	    end
+	    if not spell then
+            return
+        end
+
+	    self.StatusBar.SpellName:SetText(spell)
+	    self.Icon:SetTexture(icon)
+	    self.Icon:Show()
+
+	    self.isChannelled = isChannelled
+	    self.startTime = startTime / 1000
+	    self.endTime = endTime / 1000
+	    self.endSeconds = self.endTime - self.startTime
+	    self.elapsed = self.isChannelled and self.endSeconds or 0
+	    self.spellName = spell
+	    self.spellID = spellID
+	    self.castID = isChannelled and spellID or castID
+	    self.pushback = 0
+	    self.lastUpdate = self.startTime
+
+	    self.StatusBar:SetMinMaxValues(0, self.endSeconds)
+	    self.StatusBar:SetValue(self.elapsed)
+	    self.StatusBar:Show()
+	    self:SetAlpha(1)
+
+        self:SetScript("OnUpdate", CastOnUpdate)
+    
+	    if notInterruptible then
+	    	self:ChangeBarColor("uninterruptible")
+        elseif self.isChannelled then
+            self:ChangeBarColor("channel")
+	    else
+            self:ChangeBarColor("cast")
+	    end
+    end
+    function cBar:StopCast(event, unit, castID, spellID)
+	    if event == "UNIT_SPELLCAST_CHANNEL_STOP" and not castID then
+            castID = spellID
+        end
+	    if self.castID ~= castID or (event == "UNIT_SPELLCAST_FAILED" and self.isChannelled) or not self.castID then
+            return
+        end
+	    self.spellName = nil
+	    self.spellID = nil
+	    self.castID = nil
+	    self:FadeOut()
+    end
+    function cBar:UpdateDelay()
+	    local spell, displayName, icon, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(self.unit)
+	    if not spell then
+	    	spell, displayName, icon, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo(self.unit)
+	    end
+        if not spell then return end
+	    startTime = startTime / 1000
+	    endTime = endTime / 1000
+
+
+	    local delay = startTime - self.startTime
+	    if not self.isChannelled then
+	    	self.endSeconds = self.endSeconds + delay
+	    	self.StatusBar:SetMinMaxValues(0, self.endSeconds)
+	    else
+	    	self.elapsed = self.elapsed + delay
+	    end
+
+        if abs(delay) > 0.01 then
+	        self.pushback = self.pushback + delay
+        end
+	    self.lastUpdate = GetTime()
+	    self.startTime = startTime
+	    self.endTime = endTime
+    end
+    function cBar:CastSucceeded(event, unit, castID, spellID)
+	    if not self.isChannelled and self.castID == castID then
+	    	self:ChangeBarColor("success")
+	    end
+    end
+    function cBar:FadeOut()
+        if self.unit == "target" then
+        end
+        if self:GetAlpha() <= 0.01 then return end
+        local fadeTime = .5
+        local tick = 0.01
+        self.fadeTimer = (self.fadeTimer and self.fadeTimer) or fadeTime
+        self.fadeInterval = self.fadeInterval or 0
+
+        self:SetScript("OnUpdate", function(self, elapsed)
+            self.fadeTimer = self.fadeTimer - elapsed
+            self.fadeInterval = self.fadeInterval + elapsed
+            if self.fadeInterval <= tick then return end
+
+            self.fadeTimer = self.fadeTimer > 0 and self.fadeTimer or 0
+
+            self:SetAlpha(self.fadeTimer/fadeTime)
+
+            if self.fadeTimer == 0 then
+                self:SetScript("OnUpdate", nil)
+                self.fadeTimer = nil
+                return
+            end
+
+            self.fadeInterval = self.fadeInterval - tick
+            self.fadeTimer = self.fadeTimer - tick
+        end)
+    end
+    function cBar:ChangeBarColor(type)
+        local color = {1, 1, 1, 1}
+        local bgColor = {0, 0, 0, .4}
+        if type == "channel" then
+            color = {0.160, 0.411, 1, 1}
+        elseif type == "cast" then
+            -- color = {0.862, 0.549, 0.196, 1}
+            color = {0.862, 0.713, 0.196, 1}
+        elseif type == "uninterruptible" then
+            color = {0.8, 0, 0.741, 1}
+        elseif type == "success" then
+            color = {0.364, 1, 0.160, 1}
+        elseif type == "failed" then
+            color = {0.980, 0.152, 0, 1}
+            bgColor = color
+        end
+        self.StatusBar:SetStatusBarColor(unpack(color))
+        bgColor[4] = .4
+        self:SetBackdropColor(unpack(bgColor))
+    end
+    function cBar:CastInterrupted(event, unit, castID, spellID)
+        if not self.castID then
+            return
+        end
+        self:ChangeBarColor("failed")
+        self.StatusBar.SpellName:SetText("Interrupted")
+
+        self.castID = nil
+	    self.spellID = nil
+        self:FadeOut()
+    end
+    function cBar:Interruptible()
+        if self.isChannelled then
+            self:ChangeBarColor("channel")
+        else
+            self:ChangeBarColor("cast")
+        end
+    end
+    cBar.unit = unit
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_START", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", unit)
+	cBar:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", unit)
+
+    cBar.StatusBar = CreateFrame("StatusBar", "$parent_StatusBar", cBar)
+    cBar.StatusBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
+    cBar.StatusBar:Hide()
+    cBar.Icon = cBar:CreateTexture("$parent_icon", "OVERLAY")
+    cBar.Icon:SetTexCoord(.08, .92, .08, .92)
+    cBar.StatusBar.Timer = cBar.StatusBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
+    cBar.StatusBar.SpellName = cBar.StatusBar:CreateFontString("$parent_SpellName", "OVERLAY", "GameFontHIGHLIGHT")
+    cBar.Icon:SetSize(40, 40)
+    cBar.Icon:SetPoint("TOPLEFT", cBar, "TOPLEFT", 0, 0)
+    cBar.StatusBar:SetPoint("TOPLEFT", cBar.Icon, "TOPRIGHT", 2, 0)
+    cBar.StatusBar:SetPoint("BOTTOMRIGHT", cBar, "BOTTOMRIGHT", 0, 0)
+    cBar.StatusBar.SpellName:SetPoint("LEFT", cBar.StatusBar, "LEFT", 1, 0)
+    cBar.StatusBar.Timer:SetPoint("RIGHT", cBar.StatusBar, "RIGHT", -1, 0)
+    cBar:SetAlpha(0)
+
+    cBar:SetScript("OnShow", function(self)
+        if UnitCastingInfo(self.unit) or UnitChannelInfo(self.unit) then
+		    self:UpdateCast()
+	    else
+            self.castID = nil
+	        self.spellID = nil
+            self.StatusBar:Hide()
+            self.Icon:Hide()
+            self:SetAlpha(0)
+	    end
+    end)
+
+    cBar:SetScript("OnEvent", function(self, event, arg1, arg2, arg3)
+        if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START" then
+        -- starting cast
+            self:UpdateCast()
+        elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "UNIT_SPELLCAST_FAILED" then
+        -- stopping cast
+            self:StopCast(event, arg1, arg2, arg3)
+        elseif event == "UNIT_SPELLCAST_DELAYED" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE" then
+        -- cast delayed
+            self:UpdateDelay()
+        elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+        -- cast successful
+            self:CastSucceeded(event, arg1, arg2, arg3)
+        elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
+        -- cast interrupted
+            self:CastInterrupted(event, unit, castID, spellID)
+        elseif event == "UNIT_SPELLCAST_INTERRUPTIBLE" then
+        -- cast can now be interrupted, change color
+            self:Interruptible()
+        elseif event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE" then
+        -- cast can now now longer be interrupted, change color
+            self:ChangeBarColor("uninterruptible")
+        end
+    end)
+
+    return cBar
 end
 
 local function Initialize()
@@ -3047,6 +3339,10 @@ local function Initialize()
                 frame:SetPoint("TOPRIGHT", UIParent, "CENTER", 0, 0)
             end
 
+            frame.CastBar = srslylawlUI.CreateCastBar(frame, unit)
+            frame.CastBar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, 0)
+            frame.CastBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, -40)
+            
             srslylawlUI.Frame_InitialMainUnitConfig(frame)
         end
         srslylawlUI.Frame_UpdateVisibility()
@@ -3057,132 +3353,7 @@ local function Initialize()
     srslylawlUI.SetBuffFrames()
     srslylawlUI.SetDebuffFrames()
     CreateSlashCommands()
-
-    -- local testFrame = CreateFrame("Frame", "srslylawlUI_TESTFRAME123091", UIParent)
-    -- testFrame:EnableMouse(true)
-    -- testFrame:SetMovable(true)
-    -- testFrame:RegisterForDrag("LeftButton")
-    -- testFrame:SetScript("OnDragStart", function(self)
-    --     self:StartMoving()
-    -- end)
-    -- testFrame:SetScript("OnDragStop", function(self)
-    --     self:StopMovingOrSizing()
-    -- end)
-    -- testFrame:SetPoint("CENTER")
-    -- testFrame:SetFrameLevel(20)
-    -- srslylawlUI.Utils_SetSizePixelPerfect(testFrame, srslylawlUI.settings.party.hp.width, srslylawlUI.settings.party.hp.height)
-    -- testFrame.texture = testFrame:CreateTexture("blendtest", "OVERLAY")
-    -- testFrame.texture:SetTexture("Interface/AddOns/srslylawlUI/media/immunity")
-    -- testFrame.texture:SetAllPoints(true)
-    -- testFrame.texture:SetBlendMode("BLEND")
-    -- testFrame.texture:SetVertexColor(1, 0, 0)
-
-    -- --castbartest
-    -- srslylawlUI.TestCastBar = CreateFrame("StatusBar", "srslylawl_TESTCASTBAR", UIParent)
-    -- srslylawlUI.TestCastBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
-    -- local h = srslylawlUI.settings.party.hp.height/2
-    -- local w = 100
-    -- local iconSize = h
-    -- srslylawlUI.Utils_SetSizePixelPerfect(srslylawlUI.TestCastBar, w, h)
-    -- srslylawlUI.TestCastBar:SetMinMaxValues(0, 1)
-    -- srslylawlUI.TestCastBar.icon = srslylawlUI.TestCastBar:CreateTexture("icon", "OVERLAY", nil, 2)
-    -- --unitFrame.unit.CCDurBar.icon:SetPoint("LEFT", CCDurationBar, "RIGHT")
-    -- srslylawlUI.TestCastBar.icon:SetPoint("CENTER", UIPARENT, "CENTER", 0, 0)
-    -- srslylawlUI.TestCastBar:SetPoint("LEFT", srslylawlUI.TestCastBar.icon, "RIGHT", 1, 0)
-    -- srslylawlUI.Utils_SetSizePixelPerfect(srslylawlUI.TestCastBar.icon, iconSize, iconSize)
-    -- srslylawlUI.TestCastBar.icon:SetTexCoord(.08, .92, .08, .92)
-    -- srslylawlUI.TestCastBar.icon:SetTexture(408)
-    -- srslylawlUI.TestCastBar.timer = srslylawlUI.TestCastBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
-    -- srslylawlUI.TestCastBar.timer:SetText("5")
-    -- srslylawlUI.TestCastBar.timer:SetPoint("LEFT")
-    -- Mixin(srslylawlUI.TestCastBar, BackdropTemplateMixin)
-    -- srslylawlUI.TestCastBar:SetBackdrop({
-    --     bgFile = "Interface/Tooltips/UI-Tooltip-Background"
-    --     -- edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-    --     -- edgeSize = 10,
-    --     -- insets = {left = 4, right = 4, top = 4, bottom = 4}
-    -- })
-    -- srslylawlUI.TestCastBar:SetBackdropColor(0, 0, 0, .4)
-
-    -- local unit = "player"
-    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_START", unit)
-    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", unit)
-    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
-    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", unit)
-    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
-    -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
-    -- -- srslylawlUI.TestCastBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
-    -- srslylawlUI.TestCastBar:Hide()
-    -- srslylawlUI.TestCastBar.icon:Hide()
-
-    -- local function UpdateTimer(self, endTime, duration, timerstring, channel)
-    --     remaining = endTime-GetTime()
-    --     self:SetValue(channel and remaining/duration or 1-remaining/duration)
-    --     timerstring = tostring(remaining)
-    --     timerstring = timerstring:match("%d+%p?%d")
-    --     self.timer:SetText(timerstring)
-    -- end
-    -- local function FadeOut(self, success)
-    --     local timer = 0
-    --     local color = success and {r = .09, g = .96, b = .14, a = 1} or {r = .72, g = 0, b = .12, a = 1}
-    --     self:SetStatusBarColor(color.r, color.g, color.b, color.a)
-    --     self:SetValue(1)
-    --     self.timer:SetText((success and "Success" or "Interrupted"))
-    --     UIFrameFadeOut(self, .2, 1, 0)
-    --     UIFrameFadeOut(self.icon, .2, 1, 0)
-    --     self:SetScript("OnUpdate", nil)
-    -- end
-
-    -- srslylawlUI.TestCastBar:SetScript("OnEvent", function(self, event, arg1, ...)
-    --     local unit = arg1
-    --     local name, text, texture, startTimeMS, endTimeMS, isTradeSkill, castID, notInterruptible, spellId, endTime, remaining, duration, timerstring, timer
-    --     local display = false
-    --     local channel = false
-    --     local updateInterval = 0.01
-
-    --     if event == "UNIT_SPELLCAST_START" then
-    --         name, text, texture, startTimeMS, endTimeMS, isTradeSkill, castID, notInterruptible, spellId = UnitCastingInfo(unit)
-    --         display = true
-    --     elseif event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE" then
-    --         name, text, texture, startTimeMS, endTimeMS, isTradeSkill, notInterruptible, spellId = UnitChannelInfo(unit)
-    --         display = true
-    --         channel = true
-    --     elseif event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "UNIT_SPELLCAST_STOP" then
-    --         FadeOut(self, false)
-    --         -- self.icon:Hide()
-    --         -- self:Hide()
-    --     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-    --         FadeOut(self, true)
-    --     end
-
-    --     if display then
-    --         self.icon:SetTexture(texture)
-    --         duration = (endTimeMS-startTimeMS)/1000
-    --         endTime = endTimeMS/1000
-    --         UpdateTimer(self, endTime, duration, timerstring, channel)
-    --         UIFrameFadeIn(self.icon, 0, 0, 1)
-    --         UIFrameFadeIn(self, 0, 0, 1)
-    --         self.icon:Show()
-    --         self:Show()
-    --         timer = 0
-    --         self:SetScript("OnUpdate",
-    --             function(self, elapsed)
-    --                 timer = timer + elapsed
-    --                 if endTime == nil then return end
-    --                 if timer >= updateInterval then
-    --                     if duration == 0 then
-    --                         self:SetValue(1)
-    --                         self.timer:SetText("")
-    --                     else
-    --                         UpdateTimer(self, endTime, duration, timerstring, channel)
-    --                     end
-    --                     timer = timer - updateInterval
-    --                 end
-    --         end)
-    --     end
-    -- end)
 end
-
 srslylawlUI_EventFrame = CreateFrame("Frame")
 srslylawlUI_EventFrame:RegisterEvent("PLAYER_LOGIN")
 srslylawlUI_EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
