@@ -861,6 +861,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         elseif event == "UNIT_DISPLAYPOWER" then
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
         elseif event == powerUpdateType then
+            self.unit.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
             self.unit.powerBar:SetValue(UnitPower(unit))
         elseif event == "UNIT_NAME_UPDATE" then
             srslylawlUI.Frame_ResetName(self.unit, unit)
