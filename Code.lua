@@ -149,6 +149,8 @@ local debugString = ""
 --          faux frames absorb auras
 --          faux frames for target/player/targettarget/pet
 --          settings for player/target/targettarget/pet/buffs/debuffs
+--      resizing infight still happens and taints
+--      debuff tracking broken?
 
 
 --Utils
@@ -1513,7 +1515,7 @@ function srslylawlUI.SortPartyFrames()
 
 end
 function srslylawlUI.UpdateEverything()
-    if InCombatLockdown() == false then
+    if not InCombatLockdown() then
         srslylawlUI.SortPartyFrames()
         srslylawlUI.Frame_ResizeHealthBarScale()
     else
@@ -1591,8 +1593,7 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
 
         return auraType
     end
-    local function TrackAura(source, spellId, count, name, index, absorb, icon,
-                             duration, expirationTime, auraType, verify)
+    local function TrackAura(source, spellId, count, name, index, absorb, icon, duration, expirationTime, auraType, verify)
         if auraType == nil then error("auraType is nil") end
 
         local byAura = auraType .. "Auras"
@@ -1699,9 +1700,12 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
         t["stacks"] = count
         t["auraType"] = auraType
         
-        local tat = srslylawlUI[unitsType][unit][byIndex][oldIndex].trackedApplyTime
-        if tat then 
-            t["trackedApplyTime"] = tat
+        --TODO: nil here
+        if srslylawlUI[unitsType][unit][byIndex] and srslylawlUI[unitsType][unit][byIndex][oldIndex] then
+            local tat = srslylawlUI[unitsType][unit][byIndex][oldIndex].trackedApplyTime
+            if tat then
+                t["trackedApplyTime"] = tat
+            end
         end
 
         srslylawlUI[unitsType][unit][byIndex][oldIndex] = nil
@@ -1749,8 +1753,8 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                 f:SetID(i)
                 f:Show()
                 currentBuffFrame = currentBuffFrame + 1
-            elseif f then
-                f:Hide()
+            elseif srslylawlUI[unitsType][unit].buffFrames[i] then
+                srslylawlUI[unitsType][unit].buffFrames[i]:Hide()
             end
             -- track auras, check if we care to track it
             local auraType = GetTypeOfAuraID(spellId)
@@ -1774,8 +1778,8 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                     UntrackAura(i)
                 end
             end
-        elseif f then -- no more buffs, hide frames
-            f:Hide()
+        elseif srslylawlUI[unitsType][unit].buffFrames[i] then -- no more buffs, hide frames
+            srslylawlUI[unitsType][unit].buffFrames[i]:Hide()
         end
     end
     -- process debuffs on unit
@@ -1790,7 +1794,6 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
             UnitAura(unit, i, "HARMFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberDebuff(spellId, i, unit)
-
             --check if its CC
             if srslylawlUI.debuffs.known[spellId] ~= nil and srslylawlUI.debuffs.known[spellId].crowdControlType ~= "none" and srslylawlUI.debuffs.blackList[spellId] == nil then
                 local cc = {
@@ -1831,16 +1834,15 @@ function srslylawlUI.Frame_HandleAuras(unitbutton, unit)
                 f:Show()
                 currentDebuffFrame = currentDebuffFrame + 1
             else
-                if f then
-                    f:Hide()
+                if srslylawlUI[unitsType][unit].debuffFrames[i] then
+                    srslylawlUI[unitsType][unit].debuffFrames[i]:Hide()
                 end
             end
         else -- no more debuffs, hide frames
-            if f then
-                f:Hide()
+            if srslylawlUI[unitsType][unit].debuffFrames[i] then
+                    srslylawlUI[unitsType][unit].debuffFrames[i]:Hide()
             end
         end
-        
     end
 
     --see if we want to display our cced frame
