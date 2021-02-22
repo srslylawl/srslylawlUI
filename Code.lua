@@ -284,7 +284,7 @@ function srslylawlUI.Utils_SetHeightPixelPerfect(frame, height)
     frame:SetHeight(srslylawlUI.Utils_GetVirtualPixelSize(height))
 end
 function srslylawlUI.Utils_SetSizePixelPerfect(frame, width, height)
-    frame:SetSize(srslylawlUI.Utils_GetVirtualPixelSize(width, height))
+    frame:SetSize(srslylawlUI.Utils_GetPhysicalPixelSize(width, height))
 end
 function srslylawlUI.Utils_AnchorInvert(position)
     if position == "TOP" then
@@ -1950,13 +1950,15 @@ function srslylawlUI.Frame_MoveAbsorbAnchorWithHealth(unit, unitsType)
     local playerCurrentHP = UnitHealth(unit)
     local baseAnchorOffset = playerCurrentHP * pixelPerHp
     local mergeOffset = 0
+    local pixelOffset = srslylawlUI.Utils_GetPhysicalPixelSize(1)
     if srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].isMerged then
         --offset by mergeamount
-        mergeOffset = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].mergeAmount+1)
+        -- mergeOffset = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].mergeAmount+1)
+        mergeOffset = srslylawlUI.Utils_GetPhysicalPixelSize(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].mergeAmount) + pixelOffset
     end
-    srslylawlUI[unitsType][unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
+    srslylawlUI[unitsType][unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset, 0)
     srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
-    srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+1, 0)
+    srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset, 0)
 end
 function srslylawlUI.Auras_ShouldDisplayBuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
@@ -2704,7 +2706,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
         if self.isChannelled then
 	    	if self.elapsed <= 0 then
 	    		self.StatusBar.Timer:SetText("0.0")
-                self.StatusBar.SetValue(0)
+                self.StatusBar:SetValue(0)
                 self.spellName = nil
                 self.castID = nil
                 self:FadeOut()
@@ -3223,7 +3225,9 @@ local function Initialize()
             unitFrame:SetAttribute("unitsType", faux and "fauxUnits" or party and "partyUnits" or "mainUnits")
             unitFrame.unit:SetAttribute("unitsType", faux and "fauxUnits" or party and "partyUnits" or "mainUnits")
 
-            local h = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.party.hp.height)
+            -- local h = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.party.hp.height)
+
+            local h = srslylawlUI.Utils_GetPhysicalPixelSize(srslylawlUI.settings.party.hp.height)
 
             unitFrame.ReadyCheck = CreateFrame("Frame", "$parent_ReadyCheck", unitFrame)
             unitFrame.ReadyCheck:SetPoint("CENTER")
