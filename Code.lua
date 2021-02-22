@@ -89,7 +89,8 @@ srslylawlUI.textures = {
     AbsorbFrame = "Interface/RAIDFRAME/Shield-Fill",
     HealthBar = "Interface/Addons/srslylawlUI/media/healthBar",
     EffectiveHealth = "Interface/AddOns/srslylawlUI/media/eHealthBar",
-    Immunity = "Interface/AddOns/srslylawlUI/media/healthBarImmune"
+    Immunity = "Interface/AddOns/srslylawlUI/media/healthBarImmune",
+    PowerBarSprite = "Interface/AddOns/srslylawlUI/media/powerBarSprite"
 }
 srslylawlUI.unsaved = {flag = false, buttons = {}}
 srslylawlUI.keyPhrases = {
@@ -104,7 +105,7 @@ srslylawlUI.keyPhrases = {
         "immune to physical damage", "immune to all damage", "immune to all attacks", "immune to damage", "immune to magical damage"
     }
 }
--- "units" tracks auras and frames
+
 srslylawlUI.partyUnits = {
     player = {},
     party1 = {},
@@ -2694,15 +2695,16 @@ function srslylawlUI.CreateCastBar(parent, unit)
         
 	    self.elapsed = self.isChannelled and self.elapsed - (time - self.lastUpdate) or self.elapsed + (time - self.lastUpdate)
 	    self.lastUpdate = time
+        
+        if self.elapsed <= 0 then
+            self.elapsed = 0
+        end
 	    self.StatusBar:SetValue(self.elapsed)
-
-	    if self.elapsed <= 0 then
-	    	self.elapsed = 0
-	    end
 
         if self.isChannelled then
 	    	if self.elapsed <= 0 then
 	    		self.StatusBar.Timer:SetText("0.0")
+                self.StatusBar.SetValue(0)
                 self.spellName = nil
                 self.castID = nil
                 self:FadeOut()
@@ -2717,6 +2719,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
 	    	local timeLeft = self.endSeconds - self.elapsed
 	    	if timeLeft <= 0 then
 	    		self.StatusBar.Timer:SetText("0.0")
+                self.StatusBar:SetValue(self.endSeconds)
             elseif self.pushback == 0 then
                 -- no pushback
 	    		self.StatusBar.Timer:SetText(srslylawlUI.Utils_DecimalRound(timeLeft, 1))
@@ -2780,6 +2783,9 @@ function srslylawlUI.CreateCastBar(parent, unit)
 	    if self.castID ~= castID or (event == "UNIT_SPELLCAST_FAILED" and self.isChannelled) or not self.castID then
             return
         end
+
+        self.StatusBar:SetMinMaxValues(0, 1)
+        self.StatusBar:SetValue(self.isChannelled and 0 or 1)
 	    self.spellName = nil
 	    self.spellID = nil
 	    self.castID = nil
