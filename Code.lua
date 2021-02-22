@@ -150,7 +150,7 @@ local debugString = ""
 --          faux frames for target/player/targettarget/pet
 --          settings for player/target/targettarget/pet/buffs/debuffs
 --      resizing infight still happens and taints
---      debuff tracking broken?
+--      revisit some of the sorting/resize logic, probably firing way more often than necessary
 
 
 --Utils
@@ -679,9 +679,9 @@ function srslylawlUI.Frame_GetFrameByUnit(unit, unitsType)
     return srslylawlUI[unitsType][unit].unitFrame
 end
 function srslylawlUI.Frame_Party_ResetDimensions_ALL()
-    for k, v in pairs(partyUnitsTable) do
-        local button = srslylawlUI.Frame_GetFrameByUnit(v, "partyUnits")
-        if v then
+    for _, unit in pairs(partyUnitsTable) do
+        local button = partyUnits[unit].unitFrame
+        if button then
             srslylawlUI.Frame_ResetDimensions(button)
             srslylawlUI.Frame_ResetDimensions_Pet(button)
             srslylawlUI.Frame_ResetDimensions_PowerBar(button)
@@ -724,6 +724,11 @@ function srslylawlUI.Frame_ResetDimensions(button)
     srslylawlUI.Frame_ResetUnitButton(button.unit, button:GetAttribute("unit"))
 end
 function srslylawlUI.Frame_ResetDimensions_Pet(button)
+    --manipulating the petframe will cause taint in combat
+    if InCombatLockdown() then
+        srslylawlUI.SortAfterCombat()
+        return
+    end
     button.pet:SetPoint("TOPLEFT", button.unit, "TOPRIGHT", 2, 0)
     button.pet:SetPoint("BOTTOMRIGHT", button.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width+2, 0)
     button.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", button.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width+6, 0)
@@ -1020,9 +1025,15 @@ function srslylawlUI.Frame_ResizeHealthBarScale()
             scaledWidth = scaledWidth < minWidth and minWidth or scaledWidth
             unitHealthBars[unit]["width"] = scaledWidth
         end
-    else -- sort by average
+    else -- sort by something else, NYI
     end
-    srslylawlUI.Frame_Party_ResetDimensions_ALL()
+
+    for _, unit in pairs(partyUnitsTable) do
+        local button = partyUnits[unit].unitFrame
+        if button then
+            srslylawlUI.Frame_ResetDimensions(button)
+        end
+    end
 end
 function srslylawlUI_PartyFrame_OnDragStart()
     if not srslylawlUI_PartyHeader:IsMovable() then return end
@@ -1487,7 +1498,7 @@ function srslylawlUI.SortPartyFrames()
     end
 
     if hasUnknownMember then
-        -- all units arent properly loaded yet, lets check again in a few secs
+        -- not all units are properly loaded yet, lets check again in a few secs
         if not srslylawlUI.sortTimerActive then
             srslylawlUI.sortTimerActive = true
             C_Timer.After(1, function()
@@ -3376,7 +3387,7 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         srslylawlUI.SortAfterLogin()
         self:UnregisterEvent("PLAYER_LOGIN")
     elseif event == "UNIT_MAXHEALTH" or event == "GROUP_ROSTER_UPDATE" then
-        -- delay since it bugs if it happens at the same frame for some reason
+        -- delay since it bugs if it happens on the same frame for some reason
         if event == "UNIT_MAXHEALTH" and not (arg1 == "player" or arg1 == "party1" or arg1 == "party2" or arg1 == "party3" or arg1 == "party4") then
             --this event fires for all nameplates etc, but we only care about our party members
             return
