@@ -87,7 +87,7 @@ srslylawlUI.sortedSpellLists = {
 local powerUpdateType = "UNIT_POWER_UPDATE" -- "UNIT_POWER_UPDATE" or "UNIT_POWER_FRQUENT"
 srslylawlUI.textures = {
     AbsorbFrame = "Interface/RAIDFRAME/Shield-Fill",
-    HealthBar = "Interface/Addons/srslylawlUI/media/healthBar",
+    HealthBar = "Interface/AddOns/srslylawlUI/media/powerBarSprite",--"Interface/Addons/srslylawlUI/media/healthBar",
     EffectiveHealth = "Interface/AddOns/srslylawlUI/media/eHealthBar",
     Immunity = "Interface/AddOns/srslylawlUI/media/healthBarImmune",
     PowerBarSprite = "Interface/AddOns/srslylawlUI/media/powerBarSprite"
@@ -251,42 +251,55 @@ function srslylawlUI.Utils_CCTableTranslation(string)
     else return "none"
     end
 end
-function srslylawlUI.Utils_GetVirtualPixelSize(size, ...)
-   local perPixelScale = 768.0 / GetScreenHeight()
-   local curUiScale = GetCVar("uiscale") or 1
-   local virtPixelScale = perPixelScale / curUiScale
-   if select('#', ...) > 0 then
-        local t = {}
-        for i=1, select('#', ...) do
-            local value = select(i, ...)
-            table.insert(t, value/virtPixelScale)
-        end
-        return size/virtPixelScale, unpack(t)
-    end
-    return size/virtPixelScale
-end
-function srslylawlUI.Utils_GetPhysicalPixelSize(size, ...)
-   local perPixelScale = 768.0 / GetScreenHeight()
-   local curUiScale = GetCVar("uiscale") or 1
-   local virtPixelScale = perPixelScale / curUiScale
-   if select('#', ...) > 0 then
-      local t = {}
-      for i=1, select('#', ...) do
-         local value = select(i, ...)
-         table.insert(t, value*virtPixelScale)
-      end
-      return size*virtPixelScale, unpack(t)
-   end
-   return size*virtPixelScale
-end
 function srslylawlUI.Utils_SetWidthPixelPerfect(frame, width)
-    frame:SetWidth(srslylawlUI.Utils_GetVirtualPixelSize(width))
+    local physicalWidth, _ = GetPhysicalScreenSize()
+    local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
+    local scaleX = ingameWidth/physicalWidth
+    width = srslylawlUI.Utils_ScuffedRound(width)
+    frame:SetWidth(width*scaleX)
 end
 function srslylawlUI.Utils_SetHeightPixelPerfect(frame, height)
-    frame:SetHeight(srslylawlUI.Utils_GetVirtualPixelSize(height))
+    local _, physicalHeight = GetPhysicalScreenSize()
+    local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
+    local scaleY = ingameHeight/physicalHeight
+    height = srslylawlUI.Utils_ScuffedRound(height)
+    frame:SetHeight(height*scaleY)
 end
 function srslylawlUI.Utils_SetSizePixelPerfect(frame, width, height)
-    frame:SetSize(srslylawlUI.Utils_GetPhysicalPixelSize(width, height))
+    width = srslylawlUI.Utils_ScuffedRound(width)
+    height = srslylawlUI.Utils_ScuffedRound(height)
+    local physicalWidth, physicalHeight = GetPhysicalScreenSize()
+    local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
+    local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
+    local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+    frame:SetSize(width*scaleX, height*scaleY)
+end
+function srslylawlUI.Utils_SetPointPixelPerfect(frame, point, parent, relativeTo, offsetX, offsetY)
+    local physicalWidth, physicalHeight = GetPhysicalScreenSize()
+    local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
+    local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
+    local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+    frame:SetPoint(point, parent, relativeTo, offsetX*scaleX, offsetY*scaleY)
+end
+function srslylawlUI.Utils_PixelFromCodeToScreen(width, height)
+    local physicalWidth, physicalHeight = GetPhysicalScreenSize()
+    local ingameHeight = GetScreenHeight() * UIParent:GetScale()
+    local ingameWidth = GetScreenWidth() * UIParent:GetScale()
+    local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+
+    width = width ~= nil and width*scaleX
+    height = height ~= nil and height*scaleY
+    return width, height
+end
+function srslylawlUI.Utils_PixelFromScreenToCode(width, height)
+    local physicalWidth, physicalHeight = GetPhysicalScreenSize()
+    local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
+    local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
+    local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+
+    width = width ~= nil and srslylawlUI.Utils_ScuffedRound(width/scaleX)
+    height = height ~= nil and srslylawlUI.Utils_ScuffedRound(height/scaleY)
+    return width, height
 end
 function srslylawlUI.Utils_AnchorInvert(position)
     if position == "TOP" then
@@ -472,9 +485,9 @@ function srslylawlUI.SetBuffFrames()
                     xOffset = srslylawlUI.settings.party.buffs.xOffset
                     yOffset = srslylawlUI.settings.party.buffs.yOffset
                     partyUnits[k].buffFrames[i]:SetParent(srslylawlUI.Frame_GetFrameByUnit(k, "partyUnits").unit.auraAnchor)
-                    partyUnits[k].buffFrames[i]:SetPoint(anchor, xOffset, yOffset)
+                    partyUnits[k].buffFrames[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                 else
-                    partyUnits[k].buffFrames[i]:SetPoint(anchor, partyUnits[k].buffFrames[i-1], anchor, xOffset, yOffset)
+                    srslylawlUI.Utils_SetPointPixelPerfect(partyUnits[k].buffFrames[i], anchor, partyUnits[k].buffFrames[i-1], anchor, xOffset, yOffset)
                 end
                 srslylawlUI.Utils_SetSizePixelPerfect(partyUnits[k].buffFrames[i], size, size)
             end
@@ -498,9 +511,9 @@ function srslylawlUI.SetDebuffFrames()
                     xOffset = srslylawlUI.settings.party.debuffs.xOffset
                     yOffset = srslylawlUI.settings.party.debuffs.yOffset
                     partyUnits[k].debuffFrames[i]:SetParent(srslylawlUI.Frame_GetFrameByUnit(k, "partyUnits").unit.auraAnchor)
-                    partyUnits[k].debuffFrames[i]:SetPoint(anchor, xOffset, yOffset)
+                    partyUnits[k].debuffFrames[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                 else
-                    partyUnits[k].debuffFrames[i]:SetPoint(anchor, partyUnits[k].debuffFrames[i-1], anchor, xOffset, yOffset)
+                    srslylawlUI.Utils_SetPointPixelPerfect(partyUnits[k].debuffFrames[i], anchor, partyUnits[k].debuffFrames[i-1], anchor, xOffset, yOffset)
                 end
                 srslylawlUI.Utils_SetSizePixelPerfect(partyUnits[k].debuffFrames[i], size, size)
             end
@@ -509,7 +522,7 @@ function srslylawlUI.SetDebuffFrames()
 end
 function srslylawlUI.GetBuffOffsets()
     local xOffset, yOffset
-    local size = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.party.buffs.size)
+    local size = srslylawlUI.settings.party.buffs.size
     local growthDir = srslylawlUI.settings.party.buffs.growthDir
     if growthDir == "LEFT" then
         xOffset = -size
@@ -528,7 +541,7 @@ function srslylawlUI.GetBuffOffsets()
 end
 function srslylawlUI.GetDebuffOffsets()
     local xOffset, yOffset
-    local size = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.party.debuffs.size)
+    local size = srslylawlUI.settings.party.debuffs.size
     local growthDir = srslylawlUI.settings.party.debuffs.growthDir
     if growthDir == "LEFT" then
         xOffset = -size
@@ -555,8 +568,8 @@ function srslylawlUI.SetupUnitFrame(buttonFrame)
     buttonFrame.unit:SetAttribute("unit", buttonFrame:GetAttribute("unit"))
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
     buttonFrame.unit.powerBar:ClearAllPoints()
-    buttonFrame.unit.healthBar.name:SetPoint("BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 12, 2)
-    buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 0, 2)
+    srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.name,"BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 12, 2)
+    buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 0, srslylawlUI.Utils_PixelFromCodeToScreen(2))
     buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY", 7)
     buttonFrame.unit.CombatIcon:SetScript("OnUpdate", srslylawlUI.Frame_UpdateCombatIcon)
 end
@@ -702,8 +715,8 @@ function srslylawlUI.Frame_ResetDimensions(button)
         end
     end
 
-    local widthIsWrong = abs(button.unit.healthBar:GetWidth() - srslylawlUI.Utils_GetVirtualPixelSize(w)) > 1
-    local heightIsWrong = abs(button.unit.healthBar:GetHeight() - srslylawlUI.Utils_GetVirtualPixelSize(h)) > 1
+    local widthIsWrong = abs(srslylawlUI.Utils_PixelFromScreenToCode(button.unit.healthBar:GetWidth()) - w) > 1
+    local heightIsWrong = abs(srslylawlUI.Utils_PixelFromScreenToCode(button.unit.healthBar:GetHeight()) - h) > 1
     local needsResize = widthIsWrong or heightIsWrong
     if needsResize then
         srslylawlUI.Utils_SetSizePixelPerfect(button.unit.auraAnchor, w, h)
@@ -729,13 +742,13 @@ function srslylawlUI.Frame_ResetDimensions_Pet(button)
         srslylawlUI.SortAfterCombat()
         return
     end
-    button.pet:SetPoint("TOPLEFT", button.unit, "TOPRIGHT", 2, 0)
-    button.pet:SetPoint("BOTTOMRIGHT", button.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width+2, 0)
-    button.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", button.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width+6, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "TOPLEFT", button.unit, "TOPRIGHT", 1, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMRIGHT", button.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(button.unit.CCDurBar.icon, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", srslylawlUI.settings.party.pet.width+4, 0)
 end
 function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
-    button.unit.powerBar:SetPoint("BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -2, 0)
-    button.unit.powerBar:SetPoint("TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.settings.party.power.width), 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.settings.party.power.width), 0)
 end
 function srslylawlUI.Frame_ResetCCDurBar(button)
     local h = srslylawlUI.settings.party.hp.height
@@ -1134,8 +1147,8 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
     frame:RegisterEvent("UNIT_PORTRAIT_UPDATE")
 	frame:RegisterEvent("UNIT_MODEL_CHANGED")
     local portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame)
-    portrait:SetPoint("TOPLEFT", frame.unit, "TOPRIGHT", 2, 0)
-    portrait:SetPoint("BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.player.targettargetFrame.hp.height+2), 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(portrait, "TOPLEFT", frame.unit, "TOPRIGHT", 2, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(portrait, "BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", srslylawlUI.settings.player.targettargetFrame.hp.height+2, 0)
     portrait:SetAlpha(1)
     portrait:SetUnit("target")
     portrait:SetPortraitZoom(1)
@@ -1331,9 +1344,9 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                 if (i == 1) then
                     xOffset = srslylawlUI.settings.party.buffs.xOffset
                     yOffset = srslylawlUI.settings.party.buffs.yOffset
-                    f:SetPoint(srslylawlUI.settings.party.buffs.anchor, xOffset, yOffset)
+                    f:SetPoint(srslylawlUI.settings.party.buffs.anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                 else
-                    f:SetPoint("CENTER", parent, "CENTER", xOffset, yOffset)
+                    srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
                 end
                 f:EnableMouse(false)
                 f.icon:SetTexture(135932)
@@ -1352,9 +1365,9 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                     anchor = srslylawlUI.settings.party.debuffs.anchor
                     xOffset = srslylawlUI.settings.party.debuffs.xOffset
                     yOffset = srslylawlUI.settings.party.debuffs.yOffset
-                    f:SetPoint(srslylawlUI.settings.party.debuffs.anchor, xOffset, yOffset)
+                    f:SetPoint(srslylawlUI.settings.party.debuffs.anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                 else
-                    f:SetPoint("CENTER", parent, "CENTER", xOffset, yOffset)
+                    srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
                 end
                 f:EnableMouse(false)
                 f.icon:SetTexture(136207)
@@ -1397,14 +1410,14 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                                 xOffset = srslylawlUI.settings.party.buffs.xOffset
                                 yOffset = srslylawlUI.settings.party.buffs.yOffset
                                 self.buffs[i]:SetParent(self.unit.auraAnchor)
-                                self.buffs[i]:SetPoint(anchor, xOffset, yOffset)
+                                self.buffs[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                                 self.buffs.anchor = anchor
                                 self.buffs.xOffset = xOffset
                                 self.buffs.yOffset = yOffset
                                 self.buffs.size = size
                                 self.buffs.growthDir = srslylawlUI.settings.party.buffs.growthDir
                             else
-                                self.buffs[i]:SetPoint(anchor, self.buffs[i-1], anchor, xOffset, yOffset)
+                                srslylawlUI.Utils_SetPointPixelPerfect(self.buffs[i], anchor, self.buffs[i-1], anchor, xOffset, yOffset)
                             end
                             srslylawlUI.Utils_SetSizePixelPerfect(self.buffs[i], size, size)
                         end
@@ -1426,14 +1439,14 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                                 xOffset = srslylawlUI.settings.party.debuffs.xOffset
                                 yOffset = srslylawlUI.settings.party.debuffs.yOffset
                                 self.debuffs[i]:SetParent(self.unit.auraAnchor)
-                                self.debuffs[i]:SetPoint(anchor, xOffset, yOffset)
+                                self.debuffs[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                                 self.debuffs.anchor = anchor
                                 self.debuffs.xOffset = xOffset
                                 self.debuffs.yOffset = yOffset
                                 self.debuffs.size = size
                                 self.debuffs.growthDir = srslylawlUI.settings.party.debuffs.growthDir
                             else
-                                self.debuffs[i]:SetPoint(anchor, self.debuffs[i-1], anchor, xOffset, yOffset)
+                                srslylawlUI.Utils_SetPointPixelPerfect(self.debuffs[i], anchor, self.debuffs[i-1], anchor, xOffset, yOffset)
                             end
                             srslylawlUI.Utils_SetSizePixelPerfect(self.debuffs[i], size, size)
                         end
@@ -1518,7 +1531,7 @@ function srslylawlUI.SortPartyFrames()
                 buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
             else
                 local parent = srslylawlUI.Frame_GetFrameByUnit(list[i - 1].unit, "partyUnits")
-                buttonFrame:SetPoint("TOPLEFT", parent, "BOTTOMLEFT")
+                srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
             end
             srslylawlUI.Frame_ResetUnitButton(buttonFrame.unit, list[i].unit)
         end
@@ -1957,21 +1970,20 @@ function srslylawlUI.Frame_ChangeAbsorbSegment(frame, barWidth, absorbAmount, he
 end
 function srslylawlUI.Frame_MoveAbsorbAnchorWithHealth(unit, unitsType)
     local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(unit, unitsType)
-    local width = buttonFrame.unit.healthBar:GetWidth()
+    local width = srslylawlUI.Utils_PixelFromScreenToCode(buttonFrame.unit.healthBar:GetWidth())
     local maxHP = UnitHealthMax(unit)
     local pixelPerHp = width / (maxHP ~= 0 and maxHP or 1)
     local playerCurrentHP = UnitHealth(unit)
     local baseAnchorOffset = playerCurrentHP * pixelPerHp
     local mergeOffset = 0
-    local pixelOffset = srslylawlUI.Utils_GetPhysicalPixelSize(1)
+    local pixelOffset = 1
     if srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].isMerged then
         --offset by mergeamount
-        -- mergeOffset = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].mergeAmount+1)
-        mergeOffset = srslylawlUI.Utils_GetPhysicalPixelSize(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].mergeAmount) + pixelOffset
+        mergeOffset = srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].mergeAmount + pixelOffset
     end
-    srslylawlUI[unitsType][unit]["absorbFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset, 0)
-    srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1]:SetPoint("TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
-    srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:SetPoint("TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFrames"][1], "TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], "TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], "TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset, 0)
 end
 function srslylawlUI.Auras_ShouldDisplayBuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
@@ -2544,7 +2556,7 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit, unit
     local hpBar = srslylawlUI.Frame_GetFrameByUnit(unit, unitsType).unit.healthBar
     local showFrames = false
     if hasDefensive then
-        local width = srslylawlUI.Utils_GetPhysicalPixelSize(hpBar:GetWidth()) --need to convert here since we will later reapply the pixel scaling
+        local width = srslylawlUI.Utils_PixelFromScreenToCode(hpBar:GetWidth()) --need to convert here since we will later reapply the pixel scaling
         local playerHealthMax = UnitHealthMax(unit)
         local playerCurrentHP = UnitHealth(unit)
         local pixelPerHp = width / playerHealthMax
@@ -2645,13 +2657,13 @@ function srslylawlUI.LoadSettings(reset, announce)
         local frame = mainUnits[unit].unitFrame
         if frame then
             if a and #a > 1 then
-                frame:SetPoint(unpack(a))
+            srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], a[2], a[3], a[4], a[5])
             elseif unit == "targettarget" then
                 frame:SetPoint("TOPLEFT", mainUnits.target.unitFrame, "TOPRIGHT", 0, 0)
             elseif unit == "target" then
-                frame:SetPoint("TOPLEFT", UIParent, "CENTER", 0, 0)
+                frame:SetPoint("TOPLEFT", nil, "CENTER", 0, 0)
             elseif unit == "player" then
-                frame:SetPoint("TOPRIGHT", UIParent, "CENTER", 0, 0)
+                frame:SetPoint("TOPRIGHT", nil, "CENTER", 0, 0)
             end
         end
     end
@@ -2676,18 +2688,19 @@ function srslylawlUI.SaveSettings()
     
     srslylawlUI.RemoveDirtyFlag()
 end
-function srslylawlUI.CreateBackground(frame)
+function srslylawlUI.CreateBackground(frame, customSize)
+    customSize = customSize or 1
     local background = CreateFrame("Frame", "$parent_background", frame)
     local t = background:CreateTexture(nil, "BACKGROUND")
     t:SetColorTexture(0, 0, 0, .5)
-    t:SetAllPoints(background)
-    background:SetPoint("TOPLEFT", frame, "TOPLEFT", -1, 1)
-    background:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 1, -1)
+    t:SetAllPoints()
+    srslylawlUI.Utils_SetPointPixelPerfect(background, "TOPLEFT", frame, "TOPLEFT", -customSize, customSize)
+    srslylawlUI.Utils_SetPointPixelPerfect(background, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", customSize, -customSize)
     background.texture = t
     background:Show()
     background:SetFrameStrata("BACKGROUND")
-    background:SetFrameLevel(1)
-    frame.bg = background
+    background:SetFrameLevel(frame:GetFrameLevel()-1)
+    frame.background = background
 end
 function srslylawlUI.SetDirtyFlag()
     if srslylawlUI.unsaved.flag == true then return end
@@ -2924,10 +2937,10 @@ function srslylawlUI.CreateCastBar(parent, unit)
     cBar.StatusBar.SpellName = cBar.StatusBar:CreateFontString("$parent_SpellName", "OVERLAY", "GameFontHIGHLIGHT")
     cBar.Icon:SetSize(40, 40)
     cBar.Icon:SetPoint("TOPLEFT", cBar, "TOPLEFT", 0, 0)
-    cBar.StatusBar:SetPoint("TOPLEFT", cBar.Icon, "TOPRIGHT", 2, 0)
-    cBar.StatusBar:SetPoint("BOTTOMRIGHT", cBar, "BOTTOMRIGHT", 0, 0)
-    cBar.StatusBar.SpellName:SetPoint("LEFT", cBar.StatusBar, "LEFT", 1, 0)
-    cBar.StatusBar.Timer:SetPoint("RIGHT", cBar.StatusBar, "RIGHT", -1, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar, "TOPLEFT", cBar.Icon, "TOPRIGHT", 2, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar, "BOTTOMRIGHT", cBar, "BOTTOMRIGHT", 0, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar.SpellName, "LEFT", cBar.StatusBar, "LEFT", 1, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar.Timer, "RIGHT", cBar.StatusBar, "RIGHT", -1, 0)
     cBar:SetAlpha(0)
 
     cBar:SetScript("OnShow", function(self)
@@ -3011,9 +3024,9 @@ local function Initialize()
                 anchor = srslylawlUI.settings.party.buffs.anchor
                 xOffset = srslylawlUI.settings.party.buffs.xOffset
                 yOffset = srslylawlUI.settings.party.buffs.yOffset
-                f:SetPoint(anchor, xOffset, yOffset)
+                f:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
             else
-                f:SetPoint("CENTER", parent, "CENTER", xOffset, yOffset)
+                srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
             end
             f:SetAttribute("unit", unit)
             f:SetScript("OnLoad", nil)
@@ -3057,9 +3070,9 @@ local function Initialize()
                 anchor = srslylawlUI.settings.party.debuffs.anchor
                 xOffset = srslylawlUI.settings.party.debuffs.xOffset
                 yOffset = srslylawlUI.settings.party.debuffs.yOffset
-                f:SetPoint(anchor, xOffset, yOffset)
+                f:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
             else
-                f:SetPoint("CENTER", parent, "CENTER", xOffset, yOffset)
+                srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
             end
             f:SetAttribute("unit", unit)
             f:SetScript("OnLoad", nil)
@@ -3096,19 +3109,20 @@ local function Initialize()
             f.texture:SetAllPoints()
             f.texture:SetTexture(srslylawlUI.textures.AbsorbFrame)
             if isOverlapFrame then
-                f:SetPoint("TOPRIGHT", parent, "TOPLEFT", -1, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(f, "TOPRIGHT", parent, "TOPLEFT", -1, 0)
             else
-                f:SetPoint("TOPLEFT", parent, "TOPRIGHT", 1, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(f, "TOPLEFT", parent, "TOPRIGHT", 1, 0)
             end
             f:SetFrameLevel(5)
-            f.background = CreateFrame("Frame", "$parent_background", f)
-            f.background.texture = f.background:CreateTexture("$parent_texture", "BACKGROUND")
-            f.background.texture:SetColorTexture(0, 0, 0, .5)
-            f.background.texture:SetAllPoints(true)
-            f.background.texture:Show()
-            f.background:SetPoint("TOPLEFT", f, "TOPLEFT", -1, 0)
-            f.background:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
-            f.background:SetFrameLevel(5)
+            srslylawlUI.CreateBackground(f)
+            -- f.background = CreateFrame("Frame", "$parent_background", f)
+            -- f.background.texture = f.background:CreateTexture("$parent_texture", "BACKGROUND")
+            -- f.background.texture:SetColorTexture(0, 0, 0, .5)
+            -- f.background.texture:SetAllPoints(true)
+            -- f.background.texture:Show()
+            -- f.background:SetPoint("TOPLEFT", f, "TOPLEFT", -1, 0)
+            -- f.background:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
+            -- f.background:SetFrameLevel(5)
             f:Hide()
             f["icon"] = f:CreateTexture("$parent_icon", "OVERLAY", nil, 2)
             f["icon"]:SetPoint("CENTER")
@@ -3137,7 +3151,7 @@ local function Initialize()
             local parentFrame = buttonFrame.unit.healthBar
             local n = "srslylawlUI" .. unit .. "EffectiveHealthFrame" .. i
             local f = CreateFrame("Frame", n, parentFrame)
-            f:SetPoint("TOPLEFT", parentFrame, "TOPRIGHT", 1, 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(f, "TOPLEFT", parentFrame, "TOPRIGHT", 1, 0)
             f:SetHeight(buttonFrame.unit:GetHeight())
             f:SetWidth(40)
             f.background = CreateFrame("Frame", "$parent_background", f)
@@ -3145,8 +3159,8 @@ local function Initialize()
             f.background.texture:SetColorTexture(0, 0, 0, .5)
             f.background.texture:SetAllPoints(true)
             f.background.texture:Show()
-            f.background:SetPoint("TOPLEFT", f, "TOPLEFT", -1, 0)
-            f.background:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
+            srslylawlUI.Utils_SetPointPixelPerfect(f.background, "TOPLEFT", f, "TOPLEFT", -1, 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(f.background, "BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.background:SetFrameLevel(3)
             f.icon = f:CreateTexture("$parent_icon", "OVERLAY", nil, 2)
             f.icon:SetPoint("CENTER")
@@ -3169,18 +3183,20 @@ local function Initialize()
             f.texture = f:CreateTexture(nil, "BACKGROUND")
             f.texture:SetAllPoints()
             f.texture:SetTexture(srslylawlUI.textures.HealthBar, true, "MIRROR")
+            -- srslylawlUI.CreateBackground(f)
             f.texture.bg = f:CreateTexture(nil, "BACKGROUND")
             f.texture.bg:SetTexture(srslylawlUI.textures.EffectiveHealth, true, "MIRROR")
             f.texture.bg:SetVertTile(true)
             f.texture.bg:SetHorizTile(true)
             f.texture.bg:SetAllPoints()
+            f.texture.bg:SetVertexColor(1, 1, 1, 1)
+            f.texture.bg:SetBlendMode("MOD")
+            
             
             local class = UnitClassBase(unit)
             local color = {GetClassColor(class)}
             color[4] = 0.7
             f.texture:SetVertexColor(unpack(color))
-            f.texture.bg:SetVertexColor(1, 1, 1, 1)
-            f.texture.bg:SetBlendMode("MOD")
             f:Hide()
 
             f:SetFrameLevel(5)
@@ -3212,23 +3228,15 @@ local function Initialize()
             srslylawlUI.Utils_SetSizePixelPerfect(CCDurationBar, w, h)
             CCDurationBar:SetMinMaxValues(0, 1)
             unitFrame.unit.CCDurBar.icon = unitFrame.unit.CCDurBar:CreateTexture("icon", "OVERLAY", nil, 2)
-            unitFrame.unit.CCDurBar.icon:SetPoint("BOTTOMLEFT", unitFrame.unit, "BOTTOMRIGHT", petW+6, 0)
-            CCDurationBar:SetPoint("LEFT", unitFrame.unit.CCDurBar.icon, "RIGHT", 1, 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CCDurBar.icon, "BOTTOMLEFT", unitFrame.unit, "BOTTOMRIGHT", petW+6, 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar, "LEFT", unitFrame.unit.CCDurBar.icon, "RIGHT", 1, 0)
             srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CCDurBar.icon, iconSize, iconSize)
             unitFrame.unit.CCDurBar.icon:SetTexCoord(.08, .92, .08, .92)
             unitFrame.unit.CCDurBar.icon:SetTexture(408)
             unitFrame.unit.CCDurBar.timer = unitFrame.unit.CCDurBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
             unitFrame.unit.CCDurBar.timer:SetText("5")
             unitFrame.unit.CCDurBar.timer:SetPoint("LEFT")
-            Mixin(CCDurationBar, BackdropTemplateMixin)
-            CCDurationBar:SetBackdrop({
-                bgFile = "Interface/Tooltips/UI-Tooltip-Background"
-                -- edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-                -- edgeSize = 10,
-                -- insets = {left = 4, right = 4, top = 4, bottom = 4}
-            })
-            CCDurationBar:SetBackdropColor(0, 0, 0, .4)
-            -- unitFrame.unit.CCDurBar.icon:Hide()
+            srslylawlUI.CreateBackground(CCDurationBar, 0)
             unitFrame.unit.CCDurBar:Hide()
         end
         local function CreateUnitFrame(header, unit, faux, party)
@@ -3238,13 +3246,15 @@ local function Initialize()
             unitFrame:SetAttribute("unitsType", faux and "fauxUnits" or party and "partyUnits" or "mainUnits")
             unitFrame.unit:SetAttribute("unitsType", faux and "fauxUnits" or party and "partyUnits" or "mainUnits")
 
-            -- local h = srslylawlUI.Utils_GetVirtualPixelSize(srslylawlUI.settings.party.hp.height)
+            local h = srslylawlUI.settings.party.hp.height
 
-            local h = srslylawlUI.Utils_GetPhysicalPixelSize(srslylawlUI.settings.party.hp.height)
+            srslylawlUI.CreateBackground(unitFrame.unit.healthBar)
+            srslylawlUI.CreateBackground(unitFrame.pet)
+            srslylawlUI.CreateBackground(unitFrame.unit.powerBar)
 
             unitFrame.ReadyCheck = CreateFrame("Frame", "$parent_ReadyCheck", unitFrame)
             unitFrame.ReadyCheck:SetPoint("CENTER")
-            unitFrame.ReadyCheck:SetSize(h, h)
+            srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.ReadyCheck, h, h)
             unitFrame.ReadyCheck.texture = unitFrame.ReadyCheck:CreateTexture("$parent_ReadyCheck", "OVERLAY")
             unitFrame.ReadyCheck.texture:SetAllPoints(true)
             unitFrame.ReadyCheck.texture:SetTexture("Interface/RAIDFRAME/ReadyCheck-Waiting")
@@ -3255,7 +3265,7 @@ local function Initialize()
             unitFrame.PartyLeader:SetPoint("TOPLEFT", unitFrame.unit, "TOPLEFT")
             unitFrame.PartyLeader:SetFrameLevel(unitFrame.unit:GetFrameLevel()+1)
             h = h * 0.35
-            unitFrame.PartyLeader:SetSize(h, h)
+            srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.PartyLeader, h, h)
             unitFrame.PartyLeader.texture = unitFrame.PartyLeader:CreateTexture("$parent_PartyLeader", "OVERLAY")
             unitFrame.PartyLeader.texture:SetTexture("Interface/GROUPFRAME/UI-Group-LeaderIcon")
             unitFrame.PartyLeader.texture:SetAllPoints(true)
@@ -3269,8 +3279,8 @@ local function Initialize()
             unitFrame.unit.CombatIcon.texture:SetTexCoord(0.5, 1, 0, .5)
             -- unitFrame.unit.CombatIcon.texture:SetTexCoord(0, .5, 0, .5)
             -- unitFrame.CombatIcon.texture:SetTexCoord(0.5, 1, 0, .5)
-            srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CombatIcon, 17, 17)
-            unitFrame.unit.CombatIcon:SetPoint("BOTTOMLEFT", unitFrame.unit, "BOTTOMLEFT", -4, -2)
+            srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CombatIcon, h, h)
+            srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CombatIcon, "BOTTOMLEFT", unitFrame.unit, "BOTTOMLEFT", -4, -2)
             unitFrame.unit.CombatIcon:SetFrameLevel(4)
             unitFrame.unit.CombatIcon.texture:Hide()
 
@@ -3287,7 +3297,7 @@ local function Initialize()
             
             return unitFrame
         end
-        local header = CreateFrame("Frame", "srslylawlUI_PartyHeader", UIParent)
+        local header = CreateFrame("Frame", "srslylawlUI_PartyHeader", nil)
         header:SetSize(srslylawlUI.settings.party.hp.width, srslylawlUI.settings.party.hp.height)
         header:SetPoint(srslylawlUI.settings.party.header.anchor, srslylawlUI.settings.party.header.xOffset, srslylawlUI.settings.party.header.yOffset)
         header:Show()
@@ -3332,7 +3342,7 @@ local function Initialize()
         end
         --Initiate player, target and targettarget frame
         for _, unit in pairs(mainUnitsTable) do
-            local frame = CreateUnitFrame(UIParent, unit, false, false)
+            local frame = CreateUnitFrame(nil, unit, false, false)
 
             srslylawlUI.mainUnits[unit] = {
                 absorbAuras = {},
@@ -3354,7 +3364,7 @@ local function Initialize()
             local a = srslylawlUI.settings.player[unit.."Frame"].position
 
             if a and #a > 1 then
-                frame:SetPoint(unpack(a))
+                srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], a[2], a[3], a[4], a[5])
             elseif unit == "targettarget" then
                 frame:SetPoint("TOPLEFT", mainUnits.target.unitFrame, "TOPRIGHT", 0, 0)
             elseif unit == "target" then
@@ -3364,8 +3374,8 @@ local function Initialize()
             end
 
             frame.CastBar = srslylawlUI.CreateCastBar(frame, unit)
-            frame.CastBar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, 0)
-            frame.CastBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, -40)
+            srslylawlUI.Utils_SetPointPixelPerfect(frame.CastBar, "TOPLEFT", frame, "BOTTOMLEFT", 0, 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(frame.CastBar, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, -40)
             
             srslylawlUI.Frame_InitialMainUnitConfig(frame)
         end

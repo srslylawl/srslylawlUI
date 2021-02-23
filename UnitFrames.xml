@@ -24,26 +24,12 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 						<Anchors>
 							<Anchor point="TOPLEFT" />
 						</Anchors>
-						<BarTexture name="$parent_texture" file="Interface\Addons\srslylawlUI\media\healthBar" />
+						<BarTexture name="$parent_texture" file="Interface\Addons\srslylawlUI\media\powerBarSprite" />
 						<BarColor r="1.0" g="1.0" b="1.0" />
 						<Layers>
 							<Layer level="OVERLAY">
 								<FontString name="$parent_Name" parentKey="name" inherits="GameFontHighlight"/>
 								<FontString name="$parent_Text" parentKey="text" inherits="GameFontHighlight"/>
-							</Layer>
-							<Layer level="BACKGROUND">
-								<Texture parentKey="background" alpha="0.5">
-									<Color r="0.0" g="0.0" b="0.0"/>
-									<Size x="1" y="1" />
-									<Anchors>
-										<Anchor point="TOPLEFT" relativePoint="TOPLEFT">
-											<Offset x="-1" y="1" />
-										</Anchor>
-										<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT">
-											<Offset x="1" y="-1" />
-										</Anchor>
-									</Anchors>
-								</Texture>
 							</Layer>
 						</Layers>
 					</StatusBar>
@@ -56,22 +42,6 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 						</Anchors>
 						<BarTexture name="$parent_texture" file="Interface\AddOns\srslylawlUI\media\healthBar"/>
 						<BarColor r="1.0" g="1.0" b="1.0" />
-						<Layers>
-							<Layer level="BACKGROUND">
-								<Texture parentKey="background" alpha="0.5">
-									<Color r="0.0" g="0.0" b="0.0"/>
-									<Size x="12" y="52" />
-									<Anchors>
-										<Anchor point="TOPLEFT" relativePoint="TOPLEFT">
-											<Offset x="-1" y="1" />
-										</Anchor>
-										<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT">
-											<Offset x="1" y="-1" />
-										</Anchor>
-									</Anchors>
-								</Texture>
-							</Layer>
-						</Layers>
 					</StatusBar>
 					<Frame name="$parent_AuraAnchor" parentKey="auraAnchor">
 						<Anchors>
@@ -110,20 +80,6 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 				<Layers>
 					<Layer level="HIGHLIGHT">
 					<Texture name="$parent_Highlight" parentKey="selected" setAllPoints="true" file="Interface\BUTTONS\ButtonHilight-Square" alphaMode="ADD"/>
-					</Layer>
-					<Layer level="BACKGROUND">
-						<Texture parentKey="background" alpha="0.5">
-							<Color r="0.0" g="0.0" b="0.0"/>
-							<Size x="12" y="52" />
-							<Anchors>
-								<Anchor point="TOPLEFT" relativePoint="TOPLEFT">
-									<Offset x="-1" y="1" />
-								</Anchor>
-								<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT">
-									<Offset x="1" y="-1" />
-								</Anchor>
-							</Anchors>
-						</Texture>
 					</Layer>
 				</Layers>
 				<Attributes>
