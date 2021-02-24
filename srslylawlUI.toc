@@ -10,3 +10,4 @@ UnitFrames.xml
 Code.lua
 Config.lua
 PowerBars.lua
+Frames.lua

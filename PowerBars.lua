@@ -76,71 +76,10 @@ function srslylawlUI.CreatePointPowerBar(amount, parent, padding, sizeX, sizeY)
         self.bg:SetAllPoints()
         self:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 0, 0)
 
-        srslylawlUI.Frame_MakeFrameMoveable(self)   
+        srslylawlUI.Frame_MakeFrameMoveable(self)
 
     end
 
     frame:SetPoints()
     return frame
-end
-
-function srslylawlUI.CreateTestBar(x, y)
-    local physicalWidth, physicalHeight = GetPhysicalScreenSize()
-    local ingameHeight = GetScreenHeight() * UIParent:GetScale()
-    local ingameWidth = GetScreenWidth() * UIParent:GetScale()
-    local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
-
-    local totalSize = x
-    local height = y - 2
-    local buttons = 5
-    local totalpadding = (buttons+1)*1
-    totalSize = totalSize - totalpadding
-    local barSize = srslylawlUI.Utils_ScuffedRound(totalSize/buttons)
-    totalSize = barSize*buttons+totalpadding
-    print("totalSize: ", totalSize)
-    if not TESTBAR1 then
-       TESTHOLDER = CreateFrame("Frame", "TESTHOLDER")
-       Mixin(TESTHOLDER, BackdropTemplateMixin)
-       TESTHOLDER:SetBackdrop({
-             bgFile = "Interface/Tooltips/UI-Tooltip-Background"
-       })
-       TESTHOLDER:SetBackdropColor(0, 0, 0, .4)
-       TESTBAR1 = CreateFrame("StatusBar", "TESTBAR11", nil)
-       --TESTBAR1.tex = TESTBAR1:CreateTexture(nil, "OVERLAY")
-       --TESTBAR1.tex:SetAllPoints(true)
-       --TESTBAR1.tex:SetColorTexture(1, 1, 1, 1)
-       TESTBAR1:SetStatusBarColor(1, 1, 1, 1)
-       TESTBAR1:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
-       TESTBAR1:SetMinMaxValues(0, 1)
-       TESTBAR1:SetValue(1)
-       TESTBAR1:Show()
-
-       for x=2, buttons do
-          local bar = CreateFrame("StatusBar", "TESTBAR"..x..1, nil)
-          --bar.tex = bar:CreateTexture(nil, "OVERLAY")
-          --bar.tex:SetAllPoints(true)
-          --bar.tex:SetColorTexture(1, 1, 1, 1)
-          bar:SetMinMaxValues(0, 1)
-          bar:SetValue(1)
-          bar:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
-
-          bar:SetPoint("TOPLEFT", "TESTBAR"..(x-1)..1, "TOPRIGHT", 1*scaleX, 0)
-          bar:SetSize(barSize*scaleX,height*scaleY)
-          bar:Show()
-       end
-
-    end
-
-    TESTHOLDER:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
-    TESTHOLDER:SetSize((totalSize)*scaleX, (height+2)*scaleY)
-    --TESTBAR1:SetPoint("BOTTOMLEFT", TESTHOLDER, "BOTTOMLEFT", 1*scaleX, 1*scaleY)
-    --TESTBAR1:SetSize(barSize*scaleX,height*scaleY)
-
-    TESTHOLDER:SetScript("OnUpdate", function(self, elapsed)
-          local point = {self:GetPoint()}
-          point[4] = point[4] + elapsed
-          point[5] = point[5] + elapsed
-          self:SetPoint(unpack(point))
-    end)
-
 end
