@@ -185,6 +185,7 @@ local function CreateCustomFrames(buttonFrame, unit)
         f.texture:SetVertexColor(unpack(color))
         f:Hide()
         f:SetFrameLevel(5)
+        buttonFrame.unit.healthBar.effectiveHealthFrame = f
         srslylawlUI[unitsType][unit]["effectiveHealthFrames"][i] = f
     end
     --create absorb frames
@@ -360,11 +361,17 @@ function srslylawlUI.FrameSetup()
                 frame:SetPoint("TOPRIGHT", nil, "CENTER", 0, 0)
             end
 
-            frame.CastBar = srslylawlUI.CreateCastBar(frame, unit)
-            srslylawlUI.Utils_SetPointPixelPerfect(frame.CastBar, "TOPLEFT", frame.unit, "BOTTOMLEFT", 0, -1)
-            srslylawlUI.Utils_SetPointPixelPerfect(frame.CastBar, "BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", 0, -41)
+            
             
             srslylawlUI.Frame_InitialMainUnitConfig(frame)
+            if unit ~= "targettarget" then
+                frame.CastBar = srslylawlUI.CreateCastBar(frame, unit)
+                srslylawlUI.Utils_SetPointPixelPerfect(frame.CastBar, "TOPLEFT", frame.unit, "BOTTOMLEFT", 0, -1)
+                srslylawlUI.Utils_SetPointPixelPerfect(frame.CastBar, "BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", 0, -41)
+            end
+            if unit == "player" then
+                srslylawlUI.PowerBar.Set(frame, unit)
+            end
         end
         srslylawlUI.Frame_UpdateVisibility()
 end
@@ -776,8 +783,9 @@ function srslylawlUI.RegisterEvents(buttonFrame)
     local unit = buttonFrame:GetAttribute("unit")
     buttonFrame:RegisterUnitEvent("UNIT_HEALTH", unit)
     buttonFrame:RegisterUnitEvent("UNIT_MAXHEALTH", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_POWER_UPDATE", unit)
+    buttonFrame:RegisterUnitEvent("UNIT_POWER_FREQUENT", unit)
     buttonFrame:RegisterUnitEvent("UNIT_DISPLAYPOWER", unit)
+    buttonFrame:RegisterUnitEvent("UNIT_MAXPOWER", unit)
     buttonFrame:RegisterUnitEvent("UNIT_NAME_UPDATE", unit)
     buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
     buttonFrame:RegisterUnitEvent("UNIT_CONNECTION", unit)
@@ -821,7 +829,7 @@ function srslylawlUI.Frame_MakeFrameMoveable(frame)
     frame:SetMovable(true)
     frame:EnableMouse(true)
 end
-function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
+function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
     local unit = self:GetAttribute("unit")
     local unitExists = UnitExists(unit)
     local unitsType = self:GetAttribute("unitsType")
@@ -846,23 +854,24 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
             else
                 self.unit.selected:Hide()
             end
-        elseif unitsType == "mainUnits" and unit == "target" then
-            self.portrait:PortraitUpdate()
+        elseif unitsType == "mainUnits" and unit == "target" or unit == "targettarget" then
+            if unit == "target" then
+                if self.CastBar then
+                    self.CastBar:Hide()
+                    self.CastBar:Show()
+                end
+                self.portrait:PortraitUpdate()
+            end
             srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
             srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
             srslylawlUI.Frame_HandleAuras(self.unit, unit)
-            if self.CastBar then
-                self.CastBar:Hide()
-                self.CastBar:Show()
-            end
-            
         end
     elseif event == "PARTY_LEADER_CHANGED" then
         self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
     elseif event == "READY_CHECK" then
             srslylawlUI.Frame_ReadyCheck(self, arg1 == UnitName(unit) and "ready" or "start")
     elseif event == "READY_CHECK_CONFIRM" then
-            srslylawlUI.Frame_ReadyCheck(self, select(1, ...) and "ready" or "notready")
+            srslylawlUI.Frame_ReadyCheck(self, arg2 and "ready" or "notready")
     elseif event == "READY_CHECK_FINISHED" then
             srslylawlUI.Frame_ReadyCheck(self, "end")
     elseif arg1 and UnitIsUnit(unit, arg1) and arg1 ~= "nameplate1" then
@@ -879,8 +888,17 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, ...)
         elseif event == "UNIT_DISPLAYPOWER" then
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
         elseif event == "UNIT_POWER_FREQUENT" then
-            self.unit.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
-            self.unit.powerBar:SetValue(UnitPower(unit))
+            if unit == "player" and unitsType == "mainUnits" then
+                srslylawlUI.PowerBar.Update(self, arg2)
+            else
+                self.unit.powerBar:SetValue(UnitPower(unit))
+            end
+        elseif event == "UNIT_MAXPOWER" then
+            if unit == "player" and unitsType == "mainUnits" then
+                srslylawlUI.PowerBar.UpdateMax(self, arg2)
+            else
+                self.unit.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
+            end
         elseif event == "UNIT_NAME_UPDATE" then
             srslylawlUI.Frame_ResetName(self.unit, unit)
         elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
@@ -995,6 +1013,9 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     button.healthBar:SetMinMaxValues(0, healthMax)
     button.healthBar:SetValue(health)
     button.healthBar:SetStatusBarColor(unpack(SBColor))
+    if button:GetAttribute("unitsType") ~= "fauxUnits" then
+        button.healthBar.effectiveHealthFrame.texture:SetVertexColor(unpack(SBColor))
+    end
 end
 function srslylawlUI.Frame_ResetPowerBar(button, unit)
     local powerType, powerToken = UnitPowerType(unit)
@@ -1010,9 +1031,12 @@ function srslylawlUI.Frame_ResetPowerBar(button, unit)
     button.powerBar:SetValue(UnitPower(unit))
 end
 function srslylawlUI.Frame_GetCustomPowerBarColor(powerToken)
+    if type(powerToken) == "string" then
+        powerToken = string.upper(powerToken)
+    end
     local color = PowerBarColor[powerToken]
-    if powerToken == "MANA" then
-        color.r, color.g, color.b = 0.349, 0.522, 0.953
+    if powerToken == "MANA" or powerToken == 0 then
+        color = {r=0.349, g=0.522, b=0.953}
     end
     return color
 end
@@ -1115,6 +1139,20 @@ function srslylawlUI.Frame_UpdateCombatIcon(self, elapsed)
 	if self.timer <= .5 then return end
 	self.timer = self.timer - .5
     srslylawlUI.Frame_SetCombatIcon(self)
+end
+function srslylawlUI.CreateBackground(frame, customSize)
+    customSize = customSize or 1
+    local background = CreateFrame("Frame", "$parent_background", frame)
+    local t = background:CreateTexture(nil, "BACKGROUND")
+    t:SetColorTexture(0, 0, 0, .5)
+    t:SetAllPoints()
+    srslylawlUI.Utils_SetPointPixelPerfect(background, "TOPLEFT", frame, "TOPLEFT", -customSize, customSize)
+    srslylawlUI.Utils_SetPointPixelPerfect(background, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", customSize, -customSize)
+    background.texture = t
+    background:Show()
+    background:SetFrameStrata("BACKGROUND")
+    background:SetFrameLevel(frame:GetFrameLevel()-1)
+    frame.background = background
 end
 
 --config

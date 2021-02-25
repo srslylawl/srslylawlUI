@@ -141,15 +141,15 @@ local mainUnitsTable = srslylawlUI.mainUnitsTable
 local partyUnitsTable = srslylawlUI.partyUnitsTable
 local debugString = ""
 
--- TODO:
 
---[[
+--[[ TODO:
 
+even pointbars are not pixel perfect
+stagger
+powerbars not updating correctly on stance swap (druid rage etc)
 old debuffs still not properly hiding
-ehealth on target wrong color
-fix castbars: spell name length limit, duration number fixate, fix absorbframe layerlevel/bg layerlevel
-absorbauras not scaling with non party units (probably more)
-playerpet
+fix castbars: spell name length limit, duration number fixate
+fix absorbframe layerlevel/bg layerlevel
 powerbars
 alt powerbar
 buffs/debuffs for player/target
@@ -160,8 +160,8 @@ config window:
     faux frames absorb auras
     faux frames for target/player/targettarget/pet
     settings for player/target/targettarget/pet/buffs/debuffs
-resizing infight still happens and taints
 revisit some of the sorting/resize logic, probably firing way more often than necessary
+enable/disable sorting? maybe enable manual sorting by hand?
 ]]
 
 
@@ -440,9 +440,7 @@ function srslylawlUI.Debug()
         editBox:SetMultiLine(true)
         editBox:SetFontObject(ChatFontNormal)
         srslylawlUI.DebugWindow.EditBox = editBox
-        srslylawlUI.DebugWindow.CloseButton = CreateFrame("Button", "srslylawlUI_DebugWindow_CloseButton",
-                                     srslylawlUI.DebugWindow,
-                                     "UIPanelCloseButton")
+        srslylawlUI.DebugWindow.CloseButton = CreateFrame("Button", "srslylawlUI_DebugWindow_CloseButton", srslylawlUI.DebugWindow, "UIPanelCloseButton")
         srslylawlUI.DebugWindow.CloseButton:SetPoint("BOTTOMLEFT", srslylawlUI.DebugWindow, "TOPRIGHT", 0, 0)
     end
 
@@ -471,8 +469,6 @@ function srslylawlUI.Debug()
 
         text = text .. s .. "\n\n"
     end
-
-
 
     debugString = text
     srslylawlUI.DebugWindow.EditBox:SetText(debugString)
@@ -1536,9 +1532,17 @@ function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
     srslylawlUI.Log(str .. " blacklisted, will no longer be shown.")
 end
 function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
-    local height = srslylawlUI.settings.party.hp.height*0.7
-    local width = srslylawlUI.settings.party.hp.width
-    local _, highestMaxHP = srslylawlUI.GetPartyHealth()
+    local height, width
+    local _, highestMaxHP
+    if unitsType == "partyUnits" then
+        height = srslylawlUI.settings.party.hp.height*0.7
+        width = srslylawlUI.settings.party.hp.width
+        _, highestMaxHP = srslylawlUI.GetPartyHealth()
+    elseif unitsType == "mainUnits" then
+        height = srslylawlUI.settings.player[unit.."Frame"].hp.height*0.7
+        width = srslylawlUI.settings.player[unit.."Frame"].hp.width
+        highestMaxHP = UnitHealthMax(unit)
+    end
     local pixelPerHp = width / highestMaxHP
     local playerCurrentHP = UnitHealth(unit)
     local currentBarLength = (playerCurrentHP * pixelPerHp) + 1
@@ -1579,7 +1583,7 @@ function srslylawlUI.Auras_HandleAbsorbFrames(trackedAurasByIndex, unit, unitsTy
         while absorbAmount > 0 do
             overlapAmount = 0
             barWidth = pixelPerHp * absorbAmount
-            allowedWidth = srslylawlUI.settings.party.hp.width * overlapBarIndex
+            allowedWidth = width * overlapBarIndex
             --caching the index so we display the segment correctly
             local oIndex = overlapBarIndex
 
@@ -1766,6 +1770,7 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit, unit
     local showFrames = false
     if hasDefensive then
         local width = srslylawlUI.Utils_PixelFromScreenToCode(hpBar:GetWidth()) --need to convert here since we will later reapply the pixel scaling
+        local height = srslylawlUI.Utils_PixelFromScreenToCode(hpBar:GetHeight())
         local playerHealthMax = UnitHealthMax(unit)
         local playerCurrentHP = UnitHealth(unit)
         local pixelPerHp = width / playerHealthMax
@@ -1789,7 +1794,7 @@ function srslylawlUI.Auras_HandleEffectiveHealth(trackedAurasByIndex, unit, unit
         end
         showFrames = barWidth >= 2
         if showFrames then
-            srslylawlUI.Frame_ChangeAbsorbSegment(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], barWidth, eHealth, srslylawlUI.settings.party.hp.height)
+            srslylawlUI.Frame_ChangeAbsorbSegment(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], barWidth, eHealth, height)
         end
         srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:SetShown(showFrames)
     else
@@ -1896,20 +1901,6 @@ function srslylawlUI.SaveSettings()
     end
     
     srslylawlUI.RemoveDirtyFlag()
-end
-function srslylawlUI.CreateBackground(frame, customSize)
-    customSize = customSize or 1
-    local background = CreateFrame("Frame", "$parent_background", frame)
-    local t = background:CreateTexture(nil, "BACKGROUND")
-    t:SetColorTexture(0, 0, 0, .5)
-    t:SetAllPoints()
-    srslylawlUI.Utils_SetPointPixelPerfect(background, "TOPLEFT", frame, "TOPLEFT", -customSize, customSize)
-    srslylawlUI.Utils_SetPointPixelPerfect(background, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", customSize, -customSize)
-    background.texture = t
-    background:Show()
-    background:SetFrameStrata("BACKGROUND")
-    background:SetFrameLevel(frame:GetFrameLevel()-1)
-    frame.background = background
 end
 function srslylawlUI.SetDirtyFlag()
     if srslylawlUI.unsaved.flag == true then return end
