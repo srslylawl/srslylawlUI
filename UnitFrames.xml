@@ -64,7 +64,7 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 				<HighlightTexture name="$parent_Highlight" file="Interface\AddOns\srslylawlUI\media\healthBarHighlight" alphaMode="ADD"/>
 			</Button>
 			<!-- PET -->
-			<Button name="$parent_Pet" parentKey="pet" inherits="SecureHandlerShowHideTemplate,SecureUnitButtonTemplate" emableMouse="true">
+			<Button name="$parent_Pet" parentKey="pet" inherits="SecureHandlerShowHideTemplate,SecureUnitButtonTemplate" registerForClicks="AnyUp" emableMouse="true">
 				<Size x="15" y="35"/>
 				<Anchors>
 					<Anchor relativePoint="TOPRIGHT">
@@ -86,6 +86,7 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 					<Attribute name="useparent-unit" type="boolean" value="true"/>
 					<Attribute name="unitsuffix" type="string" value="pet"/>
 					<Attribute name="*type1" type="string" value="target"/>
+					<Attribute name="type2" type="string" value="togglemenu"/>
 				</Attributes>
 			</Button>
 		</Frames>
