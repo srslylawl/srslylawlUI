@@ -151,6 +151,7 @@ powerbar text
 old debuffs still not properly hiding
 alt powerbar
 buffs/debuffs for player/target
+fontsizes
 UnitHasIncomingResurrection(unit)
 incoming summon
 more sort methods?

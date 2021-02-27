@@ -1203,7 +1203,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
                 self:FadeOut()
             elseif self.pushback == 0 then
                 -- no pushback
-	    		self.StatusBar.Timer:SetText(srslylawlUI.Utils_DecimalRound(self.elapsed, 1))
+	    		self.StatusBar.Timer:SetFormattedText("%.1f", self.elapsed)
 	    	else
                 -- has pushback, display it
                 self.StatusBar.Timer:SetText("|cffff0000".."+"..srslylawlUI.Utils_DecimalRound(self.pushback, 1).."|r".." "..srslylawlUI.Utils_DecimalRound(self.elapsed, 1))
@@ -1215,7 +1215,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
                 self.StatusBar:SetValue(self.endSeconds)
             elseif self.pushback == 0 then
                 -- no pushback
-	    		self.StatusBar.Timer:SetText(srslylawlUI.Utils_DecimalRound(timeLeft, 1))
+	    		self.StatusBar.Timer:SetFormattedText("%.1f", timeLeft, 1)
 	    	else
                 -- has pushback, display pushback
 	    		self.StatusBar.Timer:SetText("|cffff0000".."+"..srslylawlUI.Utils_DecimalRound(self.pushback, 1).."|r".." "..srslylawlUI.Utils_DecimalRound(timeLeft, 1))

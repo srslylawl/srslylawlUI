@@ -127,23 +127,23 @@ srslylawlUI.PowerBar.TokenToPowerBarColor = {
 }
 
 srslylawlUI.PowerBar.BarDefaults = {
-    Mana = {hideWhenInactive = true, inActiveState = "FULL"},
-    Rage = {hideWhenInactive = true, inActiveState = "EMPTY"},
-    Focus = {hideWhenInactive = true, inActiveState = "FULL"},
-    Energy = {hideWhenInactive = true, inActiveState = "FULL"},
-    ComboPoints  = {hideWhenInactive = true, inActiveState = "EMPTY", alwaysShowInCombat = false},
-    Runes = {hideWhenInactive = true},
-    RunicPower = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    Mana = {hideWhenInactive = true, inactiveState = "FULL"},
+    Rage = {hideWhenInactive = true, inactiveState = "EMPTY"},
+    Focus = {hideWhenInactive = true, inactiveState = "FULL"},
+    Energy = {hideWhenInactive = true, inactiveState = "FULL"},
+    ComboPoints  = {hideWhenInactive = true, inactiveState = "EMPTY", alwaysShowInCombat = false},
+    Runes = {hideWhenInactive = true, inactiveState = "FULL"},
+    RunicPower = {hideWhenInactive = true, inactiveState = "EMPTY"},
     SoulShards = {hideWhenInactive = false},
-    LunarPower = {hideWhenInactive = true, inActiveState = "EMPTY"},
-    HolyPower  = {hideWhenInactive = true, inActiveState = "EMPTY"},
-    Maelstrom  = {hideWhenInactive = true, inActiveState = "EMPTY"},
-    Insanity  = {hideWhenInactive = true, inActiveState = "EMPTY"},
-    Chi  = {hideWhenInactive = true, inActiveState = "EMPTY"},
-    ArcaneCharges = {hideWhenInactive = true, inActiveState = "EMPTY"},
-    Fury  = {hideWhenInactive = true, inActiveState = "EMPTY"},
-    Pain  = {hideWhenInactive = true, inActiveState = "EMPTY"},
-    Stagger = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    LunarPower = {hideWhenInactive = true, inactiveState = "EMPTY"},
+    HolyPower  = {hideWhenInactive = true, inactiveState = "EMPTY"},
+    Maelstrom  = {hideWhenInactive = true, inactiveState = "EMPTY"},
+    Insanity  = {hideWhenInactive = true, inactiveState = "EMPTY"},
+    Chi  = {hideWhenInactive = true, inactiveState = "EMPTY"},
+    ArcaneCharges = {hideWhenInactive = true, inactiveState = "EMPTY"},
+    Fury  = {hideWhenInactive = true, inactiveState = "EMPTY"},
+    Pain  = {hideWhenInactive = true, inactiveState = "EMPTY"},
+    Stagger = {hideWhenInactive = true, inactiveState = "EMPTY"},
 }
 
 function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken)
@@ -157,7 +157,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     frame.unit = parent:GetAttribute("unit")
     frame.pointFrames = {}
     frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
-    frame.inActiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inActiveState
+    frame.inactiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inactiveState
     frame.alwaysShowInCombat = srslylawlUI.PowerBar.BarDefaults[powerToken].alwaysShowInCombat
 
     local function CreatePointFrame(parent, i)
@@ -228,7 +228,11 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         end
         srslylawlUI.Utils_SetSizePixelPerfect(self, totalSize+diff, height)
 
-        self:Update()
+        if self.powerToken == 5 then --is a runebar
+            self:RuneUpdate()
+        else
+            self:Update()
+        end
     end
     function frame:Update()
         local displayCount = UnitPower(self.unit, self.powerToken)
@@ -240,9 +244,9 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         if self.hideWhenInactive then
             if self.alwaysShowInCombat and InCombatLockdown() then
                 visible = true
-            elseif self.inActiveState == "EMPTY" and displayCount == 0 then
+            elseif self.inactiveState == "EMPTY" and displayCount == 0 then
                 visible = false
-            elseif self.inActiveState == "FULL" and displayCount == self.desiredButtonCount then
+            elseif self.inactiveState == "FULL" and displayCount == self.desiredButtonCount then
                 visible = false
             end
         end
@@ -276,7 +280,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
                 progress = current/duration
                 progress = progress > 1 and 1 or progress
                 self:SetValue(progress)
-                self.text:SetText(srslylawlUI.Utils_DecimalRoundWithZero(duration-current, 1))
+                self.text:SetFormattedText("%.1f", duration-current, 1)
 
                 if progress == 1 then
                     self:SetScript("OnUpdate", nil)
@@ -299,7 +303,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             table.insert(runeTable, #runeTable + 1, runeObject)
 
             if runeReady then
-                runesReady = runeReady + 1
+                runesReady = runesReady + 1
             end
 
             index = index + 1
@@ -320,11 +324,12 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             UpdateRuneTimer(rune, unpack(runeTable[i]))
         end
 
+
         local visible = true
         if self.hideWhenInactive then
             if self.alwaysShowInCombat and InCombatLockdown() then
-                return
-            elseif self.inActiveState == "FULL" and runesReady == #runeTable then
+                visible = true
+            elseif self.inactiveState == "FULL" and runesReady == #runeTable then
                 visible = false
             end
         end
@@ -359,7 +364,7 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
     frame.statusBar.rightText:SetPoint("CENTER", frame.statusBar, "CENTER", 0, 0)
 
     frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
-    frame.inActiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inActiveState
+    frame.inactiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inactiveState
     frame.hideInCombat = srslylawlUI.PowerBar.BarDefaults[powerToken].hideInCombat
 
     function frame:SetColor(color)
@@ -375,9 +380,9 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
         if self.hideWhenInactive then
             if self.alwaysShowInCombat and InCombatLockdown() then
                 return
-            elseif self.inActiveState == "EMPTY" and amount < 1 then
+            elseif self.inactiveState == "EMPTY" and amount < 1 then
                 visible = false
-            elseif self.inActiveState == "FULL" and abs(self.max - amount) < 1 then
+            elseif self.inactiveState == "FULL" and abs(self.max - amount) < 1 then
                 visible = false
             end
         end
@@ -587,9 +592,9 @@ function srslylawlUI.PowerBar.SetupStaggerBar(bar)
         if self.hideWhenInactive then
             if self.alwaysShowInCombat and InCombatLockdown() then
                 return
-            elseif self.inActiveState == "EMPTY" and amount < 1 then
+            elseif self.inactiveState == "EMPTY" and amount < 1 then
                 visible = false
-            elseif self.inActiveState == "FULL" and abs(self.max - amount) < 1 then
+            elseif self.inactiveState == "FULL" and abs(self.max - amount) < 1 then
                 visible = false
             end
         end
