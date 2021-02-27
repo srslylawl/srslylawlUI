@@ -1515,6 +1515,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         for _, v in pairs(bh.bars) do
             if v.bar == bar then
                 v.priority = priority
+                self:SortBars()
                 return
             end
         end
@@ -1530,9 +1531,11 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         if not bar:GetScript("OnHide") then
             bar:SetScript("OnHide", function() self:SetPoints() end)
         else
-            bar:HookScript("OnHide", function() print("hide") self:SetPoints() end)
+            bar:HookScript("OnHide", function() self:SetPoints() end)
         end
-        
+
+        bar.isUnparented = false
+
         bar:SetScript("OnHide", function() self:SetPoints() end)
 
         self:SortBars()
@@ -1542,14 +1545,14 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         for k, v in pairs(bh.bars) do
             if v.bar == bar then
                 found = k
-                return
             end
         end
         if not found then
-            return 
+            return
         end
 
         table.remove(bh.bars, found)
+        bar.isUnparented = true
         bar:Hide()
         self:SortBars()
     end

@@ -566,6 +566,8 @@ function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
     if specID ~= 102 then
         parent:UnregisterBar(astralPowerBar)
     end
+    parent:UnregisterBar(rageBar) --since rage gets reset to 25 on shift anyway, we dont care about tracking it
+
 
     if currentStance == nil or currentStance == 31 then
         --human/owl
@@ -675,7 +677,11 @@ end
 function srslylawlUI.PowerBar.Update(parent, powerToken)
     local eventToToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
     powerToken = eventToToken and eventToToken or powerToken
-    srslylawlUI.PowerBar.GetBar(parent, nil, powerToken):Update()
+    local bar = srslylawlUI.PowerBar.GetBar(parent, nil, powerToken)
+    if not bar.isUnparented then
+        --since bars we dont want to see can still get events(druid's rage in other forms, since it gets reset to 25 anyway), check for that here
+        bar:Update()
+    end
 end
 function srslylawlUI.PowerBar.UpdateMax(parent, powerToken)
     local eventToToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
