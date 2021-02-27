@@ -145,9 +145,6 @@ local debugString = ""
 --[[ TODO:
 
 
-castbar order
-powerbar hide/show/dynamic ordering
-cp bar visibility wrong (druid cat)
 combaticon position
 ccdurbar on player/target/targettarget
 powerbar text
@@ -160,12 +157,14 @@ incoming summon
 more sort methods?
 totem bar?
 focus frame
+better immunity texture
 config window:
     faux frames absorb auras
     faux frames for target/player/targettarget/pet
     settings for player/target/targettarget/pet/buffs/debuffs/powerbars
 revisit some of the sorting/resize logic, probably firing way more often than necessary
 enable/disable sorting? maybe enable manual sorting by hand?
+update show faux frames button when closing config
 ]]
 
 
@@ -624,7 +623,7 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
             local frameName = "srslylawlUI_FAUX"..unit.."Aura"
             local parent = frame.unit
             for i = 1, 40 do
-                local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
+                local xOffset, yOffset = srslylawlUI.Party_GetBuffOffsets()
                 local anchor = srslylawlUI.settings.party.buffs.growthDir
                 local f = CreateFrame("Button", frameName .. i, frame.unit, "CompactBuffTemplate")
                 if (i == 1) then
@@ -644,7 +643,7 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
             frameName = "srslylawlUI_FAUX"..unit.."Debuff"
             parent = frame.unit
             for i = 1, 40 do
-                local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
+                local xOffset, yOffset = srslylawlUI.Party_GetDebuffOffsets()
                 local anchor = srslylawlUI.settings.party.debuffs.growthDir
                 local f = CreateFrame("Button", frameName .. i, frame.unit, "CompactDebuffTemplate")
                 if (i == 1) then
@@ -677,7 +676,7 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                         for i=1,40 do
                             self.buffs[i]:SetShown(i <= self.shownBuffs)
                             local size = srslylawlUI.settings.party.buffs.size
-                            local xOffset, yOffset = srslylawlUI.GetBuffOffsets()
+                            local xOffset, yOffset = srslylawlUI.Party_GetBuffOffsets()
                             local anchor = "CENTER"
                             self.buffs[i]:ClearAllPoints()
                             if (i == 1) then
@@ -706,7 +705,7 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                         for i=1,40 do
                             self.debuffs[i]:SetShown(i <= self.shownDebuffs)
                             local size = srslylawlUI.settings.party.debuffs.size
-                            local xOffset, yOffset = srslylawlUI.GetDebuffOffsets()
+                            local xOffset, yOffset = srslylawlUI.Party_GetDebuffOffsets()
                             local anchor = "CENTER"
                             self.debuffs[i]:ClearAllPoints()
                             if (i == 1) then
@@ -1873,7 +1872,7 @@ function srslylawlUI.LoadSettings(reset, announce)
     if srslylawlUI_PartyHeader then
         srslylawlUI_PartyHeader:ClearAllPoints()
         srslylawlUI_PartyHeader:SetPoint(srslylawlUI.settings.party.header.anchor,srslylawlUI.settings.party.header.xOffset,srslylawlUI.settings.party.header.yOffset)
-        srslylawlUI.SetBuffFrames()
+        srslylawlUI.Party_SetBuffFrames()
         srslylawlUI.Frame_UpdateVisibility()
         srslylawlUI.RemoveDirtyFlag()
     end
@@ -1954,8 +1953,8 @@ local function Initialize()
     end
     srslylawlUI.LoadSettings()
     srslylawlUI.FrameSetup()
-    srslylawlUI.SetBuffFrames()
-    srslylawlUI.SetDebuffFrames()
+    srslylawlUI.Party_SetBuffFrames()
+    srslylawlUI.Party_SetDebuffFrames()
     CreateSlashCommands()
 end
 srslylawlUI_EventFrame = CreateFrame("Frame")

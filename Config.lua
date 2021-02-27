@@ -541,19 +541,19 @@ function srslylawlUI.CreateConfigWindow()
         local buffAnchor = CreateCustomDropDown("Anchor", 75, buffFrame, "TOPLEFT",
             "TOPLEFT", -10, -20, srslylawlUI.settings.party.buffs.anchor, srslylawlUI.anchorTable, function(newValue)
                 srslylawlUI.settings.party.buffs.anchor = newValue
-                srslylawlUI.SetBuffFrames()
+                srslylawlUI.Party_SetBuffFrames()
         end, function(self) return self.value == srslylawlUI.settings.party.buffs.anchor end)
         local buffGrowthDir = CreateCustomDropDown("Growth Direction", 125, buffAnchor, "TOPLEFT",
             "TOPRIGHT", -25, 0, srslylawlUI.settings.party.buffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
                 srslylawlUI.settings.party.buffs.growthDir = newValue
-                srslylawlUI.SetBuffFrames()
+                srslylawlUI.Party_SetBuffFrames()
         end, function(self) return self.value == srslylawlUI.settings.party.buffs.growthDir end)
         local buffAnchorXOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffGrowthDir, srslylawlUI.settings.party.buffs.xOffset,
         function(self)
             local n = self:GetNumber()
             if srslylawlUI.settings.party.buffs.xOffset == n then return end
             srslylawlUI.settings.party.buffs.xOffset = n
-            srslylawlUI.SetBuffFrames()
+            srslylawlUI.Party_SetBuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         buffAnchorXOffset.title = buffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
@@ -566,7 +566,7 @@ function srslylawlUI.CreateConfigWindow()
             local n = self:GetNumber()
             if srslylawlUI.settings.party.buffs.yOffset == n then return end
             srslylawlUI.settings.party.buffs.yOffset = n
-            srslylawlUI.SetBuffFrames()
+            srslylawlUI.Party_SetBuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         buffAnchorYOffset.title = buffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
@@ -580,7 +580,7 @@ function srslylawlUI.CreateConfigWindow()
             local n = self:GetNumber()
             if srslylawlUI.settings.party.buffs.size == n then return end
             srslylawlUI.settings.party.buffs.size = n
-            srslylawlUI.SetBuffFrames()
+            srslylawlUI.Party_SetBuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         cFrame.editBoxes.buffIconSize = buffIconSize
@@ -645,19 +645,19 @@ function srslylawlUI.CreateConfigWindow()
         local debuffAnchor = CreateCustomDropDown("Anchor", 75, debuffFrame, "TOPLEFT",
             "TOPLEFT", -10, -20, srslylawlUI.settings.party.debuffs.anchor, srslylawlUI.anchorTable, function(newValue)
                 srslylawlUI.settings.party.debuffs.anchor = newValue
-                srslylawlUI.SetDebuffFrames()
+                srslylawlUI.Party_SetDebuffFrames()
         end, function(self) return self.value == srslylawlUI.settings.party.debuffs.anchor end)
         local debuffGrowthDir = CreateCustomDropDown("Growth Direction", 125, debuffAnchor, "TOPLEFT",
             "TOPRIGHT", -25, 0, srslylawlUI.settings.party.debuffs.growthDir, {"LEFT", "RIGHT"}, function(newValue)
                 srslylawlUI.settings.party.debuffs.growthDir = newValue
-                srslylawlUI.SetDebuffFrames()
+                srslylawlUI.Party_SetDebuffFrames()
         end, function(self) return self.value == srslylawlUI.settings.party.debuffs.growthDir end)
         local debuffAnchorXOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffGrowthDir, srslylawlUI.settings.party.debuffs.xOffset,
         function(self)
             local n = self:GetNumber()
             if srslylawlUI.settings.party.debuffs.xOffset == n then return end
             srslylawlUI.settings.party.debuffs.xOffset = n
-            srslylawlUI.SetDebuffFrames()
+            srslylawlUI.Party_SetDebuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         debuffAnchorXOffset.title = debuffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
@@ -670,7 +670,7 @@ function srslylawlUI.CreateConfigWindow()
             local n = self:GetNumber()
             if srslylawlUI.settings.party.debuffs.yOffset == n then return end
             srslylawlUI.settings.party.debuffs.yOffset = n
-            srslylawlUI.SetDebuffFrames()
+            srslylawlUI.Party_SetDebuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         debuffAnchorYOffset.title = debuffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
@@ -684,7 +684,7 @@ function srslylawlUI.CreateConfigWindow()
             local n = self:GetNumber()
             if srslylawlUI.settings.party.debuffs.size == n then return end
             srslylawlUI.settings.party.debuffs.size = n
-            srslylawlUI.SetDebuffFrames()
+            srslylawlUI.Party_SetDebuffFrames()
             srslylawlUI.SetDirtyFlag()
         end)
         cFrame.editBoxes.debuffIconSize = debuffIconSize

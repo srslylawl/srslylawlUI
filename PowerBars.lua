@@ -106,28 +106,67 @@ srslylawlUI.PowerBar.EventToTokenTable = {
     FURY = "Fury",
     PAIN = "Pain",
 }
+srslylawlUI.PowerBar.TokenToPowerBarColor = {
+    --used for powerbarcolor
+    [0] = "MANA",
+    [1] = "RAGE",
+    [2] = "FOCUS",
+    [3] = "ENERGY",
+    [4] = "CHI",
+    [5] = "RUNES",
+    [6] = "RUNIC_POWER",
+    [7] = "SOUL_SHARDS",
+    [8] = "LUNAR_POWER",
+    [9] = "HOLY_POWER",
+    [11] = "MAELSTROM",
+    [12] = "CHI",
+    [13] = "INSANITY",
+    [16] = "ARCANE_CHARGES",
+    [17] = "FURY",
+    [18] = "PAIN",
+}
+
+srslylawlUI.PowerBar.BarDefaults = {
+    Mana = {hideWhenInactive = true, inActiveState = "FULL"},
+    Rage = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    Focus = {hideWhenInactive = true, inActiveState = "FULL"},
+    Energy = {hideWhenInactive = true, inActiveState = "FULL"},
+    ComboPoints  = {hideWhenInactive = true, inActiveState = "EMPTY", alwaysShowInCombat = false},
+    Runes = {hideWhenInactive = true},
+    RunicPower = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    SoulShards = {hideWhenInactive = false},
+    LunarPower = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    HolyPower  = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    Maelstrom  = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    Insanity  = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    Chi  = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    ArcaneCharges = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    Fury  = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    Pain  = {hideWhenInactive = true, inActiveState = "EMPTY"},
+    Stagger = {hideWhenInactive = true, inActiveState = "EMPTY"},
+}
 
 function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken)
     if amount < 1 then error("Param1 'Amount' must be 1 or higher") return end
     local frame = CreateFrame("Frame", "$parent_PointResourceBar_"..powerToken, parent)
     frame.padding = padding
     frame.desiredButtonCount = amount
-    frame.sizeX = sizeX
-    frame.sizeY = sizeY
     srslylawlUI.CreateBackground(frame, 1)
     frame:SetAttribute("type", "pointBar")
     frame.powerToken = Enum.PowerType[powerToken]
     frame.unit = parent:GetAttribute("unit")
-
     frame.pointFrames = {}
+    frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
+    frame.inActiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inActiveState
+    frame.alwaysShowInCombat = srslylawlUI.PowerBar.BarDefaults[powerToken].alwaysShowInCombat
 
     local function CreatePointFrame(parent, i)
         local pointFrame = CreateFrame("StatusBar", "$parent_PointBar"..i, parent)
         pointFrame:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
         pointFrame:SetMinMaxValues(0, 1)
         pointFrame:SetValue(1)
-        pointFrame.text = pointFrame:CreateFontString("$parent_point"..i, "ARTWORK", "GameFontWhiteTiny")
-        pointFrame.text:SetPoint("LEFT", pointFrame, "CENTER", 0, 0)
+        pointFrame.text = pointFrame:CreateFontString("$parent_point"..i, "ARTWORK", "GameTooltipTextSmall")
+        pointFrame.text:SetPoint("CENTER", pointFrame, "CENTER", 0, 0)
         return pointFrame
     end
     function frame:SetColor(color)
@@ -141,8 +180,6 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         self:SetPoints()
     end
     function frame:SetPoints(x, y)
-        self.sizeX = x and x or self.sizeX
-        self.sizeY = y and y or self.sizeY
         if self.desiredButtonCount > #self.pointFrames then
             local index = #self.pointFrames
             while self.desiredButtonCount > index do
@@ -151,13 +188,13 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             end
         end
 
-        if not self.sizeX or not self.sizeY then
-            self.sizeX, self.sizeY = srslylawlUI.Utils_PixelFromScreenToCode(self:GetWidth(), self:GetHeight())
+        if not x or not y then
+            x, y = srslylawlUI.Utils_PixelFromScreenToCode(self:GetWidth(), self:GetHeight())
         end
 
-        local desiredSize = self.sizeX
-        local totalSize = self.sizeX
-        local height = self.sizeY
+        local desiredSize = x
+        local totalSize = x
+        local height = y
         local buttons = self.desiredButtonCount
         local totalpadding = (buttons-1)*self.padding
         totalSize = totalSize - totalpadding
@@ -187,10 +224,10 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
                 current:SetStatusBarColor(self.color.r, self.color.g, self.color.b)
             end
 
-            current.text:SetTextHeight(current:GetHeight())
+            -- current.text:SetTextHeight(current:GetHeight())
         end
         srslylawlUI.Utils_SetSizePixelPerfect(self, totalSize+diff, height)
-        --adjust middle bar
+
         self:Update()
     end
     function frame:Update()
@@ -198,53 +235,72 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         for i=1, self.desiredButtonCount do
             self.pointFrames[i]:SetShown(i <= displayCount)
         end
+
+        local visible = true
+        if self.hideWhenInactive then
+            if self.alwaysShowInCombat and InCombatLockdown() then
+                visible = true
+            elseif self.inActiveState == "EMPTY" and displayCount == 0 then
+                visible = false
+            elseif self.inActiveState == "FULL" and displayCount == self.desiredButtonCount then
+                visible = false
+            end
+        end
+        if self:IsShown() ~= visible then
+            self:SetShown(visible)
+        end
     end
     function frame:UpdateMax()
-        print("updatemax")
         local maxPoints = UnitPowerMax(self.unit, self.powerToken)
         self:SetButtonCount(maxPoints)
+        self:Update()
     end
     function frame:RuneUpdate()
         function UpdateRuneTimer(rune, cd, start, current, duration, runeReady)
-        if runeReady then
-            rune.cd = cd
-            rune:SetValue(1)
-            rune:SetAlpha(1)
-            rune:SetScript("OnUpdate", nil)
-            rune.text:SetText("")
-            return
-        end
-
-        local progress = current/duration
-        rune.cd = cd
-        rune:SetValue(progress)
-        rune:SetAlpha(.5)
-
-        rune:SetScript("OnUpdate", function(self, elapsed)
-            current = GetTime() - start
-            progress = current/duration
-            progress = progress > 1 and 1 or progress
-            self:SetValue(progress)
-            self.text:SetText(srslylawlUI.Utils_DecimalRoundWithZero(duration-current, 1))
-
-            if progress == 1 then
-                self:SetScript("OnUpdate", nil)
-                self:SetAlpha(1)
-                self.text:SetText("")
+            if runeReady then
+                rune.cd = cd
+                rune:SetValue(1)
+                rune:SetAlpha(1)
+                rune:SetScript("OnUpdate", nil)
+                rune.text:SetText("")
+                return
             end
-        end)
+
+            local progress = current/duration
+            rune.cd = cd
+            rune:SetValue(progress)
+            rune:SetAlpha(.5)
+
+            rune:SetScript("OnUpdate", function(self, elapsed)
+                current = GetTime() - start
+                progress = current/duration
+                progress = progress > 1 and 1 or progress
+                self:SetValue(progress)
+                self.text:SetText(srslylawlUI.Utils_DecimalRoundWithZero(duration-current, 1))
+
+                if progress == 1 then
+                    self:SetScript("OnUpdate", nil)
+                    self:SetAlpha(1)
+                    self.text:SetText("")
+                end
+            end)
         end
 
         local runeTable = {}
         local index = 1
         local current, cd, runeObject
         local start, duration, runeReady = GetRuneCooldown(index)
+        local runesReady = 0
         while start do
             --get data
             current = GetTime() - start
             cd = runeReady and 0 or duration-current
             runeObject = {cd, start, current, duration, runeReady}
             table.insert(runeTable, #runeTable + 1, runeObject)
+
+            if runeReady then
+                runesReady = runeReady + 1
+            end
 
             index = index + 1
             start, duration, runeReady = GetRuneCooldown(index)
@@ -263,7 +319,22 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             rune = self.pointFrames[i]
             UpdateRuneTimer(rune, unpack(runeTable[i]))
         end
+
+        local visible = true
+        if self.hideWhenInactive then
+            if self.alwaysShowInCombat and InCombatLockdown() then
+                return
+            elseif self.inActiveState == "FULL" and runesReady == #runeTable then
+                visible = false
+            end
+        end
+
+        if self:IsShown() ~= visible then
+            self:SetShown(visible)
+        end
     end
+
+    frame:SetPoints()
 
     return frame
 end
@@ -275,28 +346,45 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
     frame.statusBar:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
     srslylawlUI.Utils_SetPointPixelPerfect(frame.statusBar, "TOPLEFT", frame, "TOPLEFT", 0, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(frame.statusBar, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    frame.unit = parent:GetAttribute("unit")
     if powerToken == "Stagger" then
-        frame.powerToken = "Stagger"
+        -- frame.powerToken = "Stagger"
     else
         frame.powerToken = Enum.PowerType[powerToken]
+        frame.max = UnitPowerMax(frame.unit, frame.powerToken)
     end
     frame:SetAttribute("type", "statusBar")
-    frame.unit = parent:GetAttribute("unit")
     frame.statusBar.leftText = frame.statusBar:CreateFontString("$parent_LeftText", "ARTWORK", "GameTooltipTextSmall")
     frame.statusBar.rightText = frame.statusBar:CreateFontString("$parent_RightText", "ARTWORK", "GameTooltipTextSmall")
     frame.statusBar.rightText:SetPoint("CENTER", frame.statusBar, "CENTER", 0, 0)
-    frame.max = UnitPowerMax(frame.unit, frame.powerToken)
+
+    frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
+    frame.inActiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inActiveState
+    frame.hideInCombat = srslylawlUI.PowerBar.BarDefaults[powerToken].hideInCombat
 
     function frame:SetColor(color)
-        if color then
-            self.statusBar:SetStatusBarColor(color.r, color.g, color.b)
-        end
+        self.statusBar:SetStatusBarColor(color.r, color.g, color.b)
     end
     function frame:Update()
         local amount = UnitPower(self.unit, self.powerToken)
-        
-        self.statusBar.rightText:SetText(ceil(amount/self.max*100).."%")
+        -- self.statusBar.rightText:SetText(ceil(amount/self.max*100).."%")
+        self.statusBar.rightText:SetText(amount > 0 and amount or "")
         self.statusBar:SetValue(amount)
+
+        local visible = true
+        if self.hideWhenInactive then
+            if self.alwaysShowInCombat and InCombatLockdown() then
+                return
+            elseif self.inActiveState == "EMPTY" and amount < 1 then
+                visible = false
+            elseif self.inActiveState == "FULL" and abs(self.max - amount) < 1 then
+                visible = false
+            end
+        end
+
+        if self:IsShown() ~= visible then
+            self:SetShown(visible)
+        end
     end
     function frame:UpdateMax()
         self.max = UnitPowerMax(self.unit, self.powerToken)
@@ -304,11 +392,11 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
         self:Update()
     end
     function frame:SetPoints()
-        local h = self.statusBar:GetHeight()
-        if h > 0 then
-            self.statusBar.rightText:SetTextHeight(h)
-            self.statusBar.leftText:SetTextHeight(h)
-        end
+        -- local h = self.statusBar:GetHeight()
+        -- if h > 0 then
+        --     self.statusBar.rightText:SetTextHeight(h)
+        --     self.statusBar.leftText:SetTextHeight(h)
+        -- end
     end
     if frame.powerToken then
         frame:UpdateMax()
@@ -317,21 +405,18 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
     return frame
 end
 function srslylawlUI.PowerBar.Set(parent, unit)
-    local function HideActiveBars()
-        if not parent.powerBars then
-            parent.powerBars = {}
-        end
-        for _, bar in pairs(parent.powerBars) do
-            bar:Hide()
-        end
-    end
+    local height = 40
     local function DisplayMainBar(parent)
         local _, powerToken = UnitPowerType("player")
         powerToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
         local bar = srslylawlUI.PowerBar.GetBar(parent, "resource", powerToken)
-        srslylawlUI.PowerBar.PlaceBar(bar, parent, 1)
+        parent:RegisterBar(bar, 3, height)
+        -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 1)
     end
-    HideActiveBars()
+    if not parent.powerBars then
+        parent.powerBars = {}
+    end
+    -- HideActiveBars()
     local barType = srslylawlUI.PowerBar.GetType()
     if barType == srslylawlUI.PowerBar.Type.None then
         --No Additional Bar
@@ -345,21 +430,21 @@ function srslylawlUI.PowerBar.Set(parent, unit)
         if token == "Stagger" then
             srslylawlUI.PowerBar.SetupStaggerBar(bar, parent)
         end
-        srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
+        parent:RegisterBar(bar, 5, height*.7)
+        -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
     elseif barType == srslylawlUI.PowerBar.Type.PointBar then
         --Point Bar
         DisplayMainBar(parent)
         local specID = srslylawlUI.GetSpecID()
         local bar = srslylawlUI.PowerBar.GetBar(parent, "point", srslylawlUI.PowerBar.GetPowerToken())
-        srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
-        if specID >= 250 or specID <= 252 then --dk spec, use rune update
-            if not bar.isRegistered then
-                bar:RegisterEvent("RUNE_POWER_UPDATE")
-                bar:SetScript("OnEvent", function(self, event, ...)
-                    self:RuneUpdate()
-                end)
-                bar.isRegistered = true
-            end
+        parent:RegisterBar(bar, 5, height*.7)
+        -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
+        if specID >= 250 or specID <= 252 and not bar.isRegistered then --dk spec, use rune update
+            bar:RegisterEvent("RUNE_POWER_UPDATE")
+            bar:SetScript("OnEvent", function(self, event, ...)
+                self:RuneUpdate()
+            end)
+            bar.isRegistered = true
         end
 
     elseif barType == srslylawlUI.PowerBar.Type.Special then
@@ -380,31 +465,16 @@ function srslylawlUI.PowerBar.GetType()
     return srslylawlUI.PowerBar.SpecBarTypeTable[specID]
 end
 function srslylawlUI.PowerBar.SetColorByToken(bar, powerToken)
-    local color = srslylawlUI.Frame_GetCustomPowerBarColor(powerToken)
-    bar:SetColor(color)
+    local colortoken = srslylawlUI.PowerBar.TokenToPowerBarColor[powerToken]
+    local color = srslylawlUI.Frame_GetCustomPowerBarColor(colortoken)
+    if color then
+        bar:SetColor(color)
+    end
 end
 function srslylawlUI.PowerBar.GetPowerToken()
     return srslylawlUI.PowerBar.SpecToPowerType[srslylawlUI.GetSpecID()]
 end
-function srslylawlUI.PowerBar.PlaceBar(bar, parent, index, height)
-    if not parent.activePowerBars then
-        parent.activePowerBars = {}
-    end
-    index = index == nil and 1 or index
-    height = height or 20
-    height = height / index
-    local localParent = index == 1 and parent.unit or parent.activePowerBars[index-1]
-    srslylawlUI.Utils_SetPointPixelPerfect(bar, "TOPLEFT", localParent, "BOTTOMLEFT", 0, -1) -- -1)
-    -- srslylawlUI.Utils_SetPointPixelPerfect(bar, "BOTTOMRIGHT", localParent, "BOTTOMRIGHT", 0, -height) -- -1-height)
-    parent.activePowerBars[index] = bar
-    if bar:GetAttribute("type") == "pointBar" then
-        bar:SetPoints(srslylawlUI.Utils_PixelFromScreenToCode(localParent:GetWidth()), height)
-    else
-        bar:SetPoints()
-        srslylawlUI.Utils_SetPointPixelPerfect(bar, "BOTTOMRIGHT", localParent, "BOTTOMRIGHT", 0, -height) -- -1-height)
-    end
-    bar:Show()
-end
+
 function srslylawlUI.PowerBar.GetBar(parent, type, token)
     if not parent.powerBars[token] then
         if token == "Stagger" then
@@ -417,6 +487,7 @@ function srslylawlUI.PowerBar.GetBar(parent, type, token)
             parent.powerBars[token] = srslylawlUI.PowerBar.CreatePointBar(maxPoints, parent, 1, token)
         end
         srslylawlUI.PowerBar.SetColorByToken(parent.powerBars[token], Enum.PowerType[token])
+        parent.powerBars[token]:SetAttribute("powerToken", token)
     end
     return parent.powerBars[token]
 end
@@ -427,7 +498,6 @@ function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
     local rageBar = srslylawlUI.PowerBar.GetBar(parent, "resource", "Rage")
     local astralPowerBar = srslylawlUI.PowerBar.GetBar(parent, "resource", "LunarPower")
     local specID = srslylawlUI.GetSpecID()
-    local unitHasCP = UnitPower(unit, 4) > 0
     --[[
     102 -> Balance
     103 -> Feral
@@ -447,62 +517,61 @@ function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
         Tree of Life - 2
     ]]
 
+    if specID ~= 102 then
+        parent:UnregisterBar(astralPowerBar)
+    end
+
     if currentStance == nil or currentStance == 31 then
         --human/owl
         if specID == 102 then -- balance
             -- main bar is now astral power, show mana and cp if needed
-            srslylawlUI.PowerBar.PlaceBar(astralPowerBar, parent, 1)
-            srslylawlUI.PowerBar.PlaceBar(manaBar, parent, 2)
-            srslylawlUI.PowerBar.PlaceBar(cpBar, parent, 3)
+            parent:RegisterBar(astralPowerBar, 1)
+            parent:RegisterBar(manaBar, 2)
+            parent:RegisterBar(cpBar, 3)
         elseif specID == 103 then -- feral
-            srslylawlUI.PowerBar.PlaceBar(astralPowerBar, parent, 1)
-            srslylawlUI.PowerBar.PlaceBar(manaBar, parent, 2)
-            srslylawlUI.PowerBar.PlaceBar(cpBar, parent, 3)
+            parent:RegisterBar(energyBar, 1)
+            parent:RegisterBar(cpBar, 2)
+            parent:RegisterBar(manaBar, 3)
         else
-            srslylawlUI.PowerBar.PlaceBar(manaBar, parent, 1)
-            srslylawlUI.PowerBar.PlaceBar(cpBar, parent, 2)
+            parent:RegisterBar(manaBar, 1)
+            parent:RegisterBar(cpBar, 2)
         end
     elseif currentStance == 3 or currentStance == 4 or currentStance == 27 or currentStance == 29 then
         --travelforms, default main bar is now mana
         if specID == 102 then -- balance
-            srslylawlUI.PowerBar.PlaceBar(astralPowerBar, parent, 1)
-            srslylawlUI.PowerBar.PlaceBar(manaBar, parent, 2)
-            srslylawlUI.PowerBar.PlaceBar(cpBar, parent, 3)
+            parent:RegisterBar(astralPowerBar, 1)
+            parent:RegisterBar(manaBar, 2)
+            parent:RegisterBar(cpBar, 3)
         elseif specID == 103 then -- feral
-            srslylawlUI.PowerBar.PlaceBar(energyBar, parent, 1)
-            local index = 2
-            if unitHasCP then
-                srslylawlUI.PowerBar.PlaceBar(cpBar, parent, index)
-                index = index +1
-            end
-            srslylawlUI.PowerBar.PlaceBar(manaBar, parent, index)
+            parent:RegisterBar(energyBar, 1)
+            parent:RegisterBar(cpBar, 2)
+            parent:RegisterBar(manaBar, 3)
         else
-            srslylawlUI.PowerBar.PlaceBar(manaBar, parent, 1)
-            srslylawlUI.PowerBar.PlaceBar(cpBar, parent, 2)
+            parent:RegisterBar(manaBar, 1)
+            parent:RegisterBar(cpBar, 2)
         end
     elseif currentStance == 1 then
         --cat form, default is energy
-        srslylawlUI.PowerBar.PlaceBar(energyBar, parent, 1)
-        srslylawlUI.PowerBar.PlaceBar(cpBar, parent, 2)
+        parent:RegisterBar(energyBar, 1)
+        parent:RegisterBar(cpBar, 2)
         local index = 3
         if specID == 102 then -- balance
-            srslylawlUI.PowerBar.PlaceBar(astralPowerBar, parent, index)
+            parent:RegisterBar(astralPowerBar, index)
             index = index + 1
         end
-        srslylawlUI.PowerBar.PlaceBar(manaBar, parent, index)
+        parent:RegisterBar(manaBar, index)
     elseif currentStance == 5 then
         --bear, default is rage
-        srslylawlUI.PowerBar.PlaceBar(rageBar, parent, 1)
+        parent:RegisterBar(rageBar, 1)
         local index = 2
         if specID == 102 then -- balance
-            srslylawlUI.PowerBar.PlaceBar(astralPowerBar, parent, index)
+            parent:RegisterBar(astralPowerBar, index)
             index = index + 1
         end
-        srslylawlUI.PowerBar.PlaceBar(manaBar, parent, index)
+        parent:RegisterBar(manaBar, index)
         index = index + 1
-        srslylawlUI.PowerBar.PlaceBar(cpBar, parent, index)
+        parent:RegisterBar(cpBar, index)
     end
-    cpBar:SetShown(unitHasCP)
 end
 function srslylawlUI.PowerBar.SetupStaggerBar(bar)
     function bar:UpdateMax()
@@ -513,8 +582,27 @@ function srslylawlUI.PowerBar.SetupStaggerBar(bar)
 
     function bar:Update()
         local amount = UnitStagger(self.unit)
+
+        local visible = true
+        if self.hideWhenInactive then
+            if self.alwaysShowInCombat and InCombatLockdown() then
+                return
+            elseif self.inActiveState == "EMPTY" and amount < 1 then
+                visible = false
+            elseif self.inActiveState == "FULL" and abs(self.max - amount) < 1 then
+                visible = false
+            end
+        end
+
+        if self:IsShown() ~= visible then
+            self:SetShown(visible)
+        end
+
+        if not self:IsShown() then
+            return
+        end
         self.statusBar:SetValue(amount)
-        -- self.statusBar.rightText:SetText(ceil(amount/self.max*100).."%")
+        self.statusBar.rightText:SetText(amount)
 	    local percent = amount/self.max
 	    local color = percent < STAGGER_YELLOW_TRANSITION and {0.662, 1, 0.541}
         or percent < STAGGER_RED_TRANSITION and {0.945, 0.933, 0.074}
