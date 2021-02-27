@@ -958,7 +958,7 @@ function srslylawlUI.Frame_ResetName(button, unit)
     --         return
     --     end
     -- end
-    srslylawlUI.Utils_SetLimitedText(button.healthBar.name, button.healthBar:GetWidth()*0.3, name)
+    srslylawlUI.Utils_SetLimitedText(button.healthBar.name, button.healthBar:GetWidth()*0.3, name, true)
 end
 function srslylawlUI.Frame_ResetPetButton(button, unit)
     if UnitExists(unit) then
@@ -1239,7 +1239,8 @@ function srslylawlUI.CreateCastBar(parent, unit)
             return
         end
 
-	    self.StatusBar.SpellName:SetText(spell)
+	    -- self.StatusBar.SpellName:SetText(spell)
+        
 	    self.Icon:SetTexture(icon)
 	    self.Icon:Show()
 
@@ -1260,6 +1261,8 @@ function srslylawlUI.CreateCastBar(parent, unit)
         self:SetAlpha(1)
         --trigger hook functions, such as bar ordering
         self:GetScript("OnShow")(self)
+        srslylawlUI.Utils_SetLimitedText(self.StatusBar.SpellName, self.StatusBar:GetWidth()*0.8, spell, true)
+
         
         self:SetScript("OnUpdate", CastOnUpdate)
     

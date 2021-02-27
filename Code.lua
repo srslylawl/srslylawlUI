@@ -149,7 +149,6 @@ combaticon position
 ccdurbar on player/target/targettarget
 powerbar text
 old debuffs still not properly hiding
-fix castbars: spell name length limit, duration number fixate
 alt powerbar
 buffs/debuffs for player/target
 UnitHasIncomingResurrection(unit)
@@ -399,14 +398,16 @@ function srslylawlUI.Utils_TranslateTexX(texture, amount, isTiledTexture)
 
     texture:SetTexCoord(unpack(coords))
 end
-function srslylawlUI.Utils_SetLimitedText(fontstring, maxPixels, text)
+function srslylawlUI.Utils_SetLimitedText(fontstring, maxPixels, text, addDots)
     local substring
+    local wasShortened = false
     for length = #text, 1, -1 do
         substring = srslylawlUI.Utils_ShortenString(text, 1, length)
-        fontstring:SetText(substring)
+        fontstring:SetText(wasShortened and addDots and substring..".." or substring)
         if fontstring:GetStringWidth() <= maxPixels then
             return
         end
+        wasShortened = true
     end
 end
 function srslylawlUI.ShortenNumber(number)
