@@ -54,8 +54,7 @@ srslylawlUI.settings = {
                 maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
             power = {width = 15},
         }
-    },
-    frameOnUpdateInterval = 0.1
+    }
 }
 srslylawlUI.buffs = {
     known = {},
@@ -990,7 +989,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(i, unit)
-            if srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.settings.party.buffs.maxBuffs then
+            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.settings.party.buffs.maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
                 f:Show()
@@ -1051,7 +1050,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 }
                 table.insert(appliedCC, cc)
             end
-            if srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= srslylawlUI.settings.party.debuffs.maxDebuffs then
+            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= srslylawlUI.settings.party.debuffs.maxDebuffs then
                 f.icon:SetTexture(icon)
                 if ( count > 1 ) then
 		            local countText = count;
@@ -1253,7 +1252,7 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
-
+    
     local function NotDefault(bool)
         return bool ~= srslylawlUI.settings.party.debuffs.showDefault
     end
@@ -1925,6 +1924,69 @@ function srslylawlUI.RemoveDirtyFlag()
     srslylawlUI.unsaved.flag = false
     for _, v in ipairs(srslylawlUI.unsaved.buttons) do v:Disable() end
 end
+function srslylawlUI.GetSetting(path)
+    function SplitStringAtChar(str, splitChar)
+        local t = {}
+        local curr = ""
+        for i=1, string.len(str) do 
+           local c = string.sub(str, i, i)
+           if c == splitChar then
+              table.insert(t, curr)
+              curr = ""
+           else
+              curr = curr .. c
+           end
+        end
+        if curr ~= "" then
+           table.insert(t, curr)
+        end
+   return t
+    end
+    function FindInTable(obj, path)
+        if path and #path > 0 then
+            local entry = obj[path[1]]
+            if entry and type(entry) == "table" then
+                table.remove(path, 1)
+                return FindInTable(entry, path)
+            else
+                return entry
+            end
+        else
+            return obj
+        end
+    end
+    function CreateValueAtPath(value, path, tableObject)
+        local subTable = tableObject[path[1]]
+        if subTable and type(subTable) == "table" and #path > 1 then
+            table.remove(path, 1)
+            CreateValueAtPath(value, path, subTable)
+        elseif not subTable and #path > 1 then
+            local path1 = path[1]
+            print("subtable created: "..path1)
+            table.remove(path, 1)
+            tableObject[path1] = {}
+            CreateValueAtPath(value, path, tableObject[path1])
+        elseif #path == 1 then
+            tableObject[path[1]] = value
+        end
+    end
+    local pathTable = SplitStringAtChar(path, ".")
+    local variable = FindInTable(srslylawl_saved.settings, pathTable)
+    if not variable then
+        variable = FindInTable(srslylawlUI.settings, pathTable)
+
+        if not variable then
+            error("setting doesnt exist")
+            return
+        else
+            srslylawlUI.Log("Variable not found in saved settings:" .. path .. ". Default value used instead. If you see this message after updating your addon, it can probably be ignored. Probably.")
+            pathTable = table.remove(pathTable, #pathTable)
+            CreateValueAtPath(variable, pathTable, srslylawl_saved)
+        end
+    end
+
+    return variable
+end
 
 
 local function Initialize()
@@ -1959,6 +2021,7 @@ local function Initialize()
     srslylawlUI.FrameSetup()
     srslylawlUI.Party_SetBuffFrames()
     srslylawlUI.Party_SetDebuffFrames()
+    srslylawlUI.Frame_Main_SetBuffFrames()
     CreateSlashCommands()
 end
 srslylawlUI_EventFrame = CreateFrame("Frame")

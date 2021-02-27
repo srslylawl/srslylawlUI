@@ -65,8 +65,7 @@ srslylawl_saved = {
                     maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
                 power = {width = 20},
         }
-    },
-        frameOnUpdateInterval = 0.1
+        },
     },
     buffs = {
         known = {

@@ -1236,7 +1236,7 @@ function srslylawlUI.CreateConfigWindow()
 
     CreateSaveLoadButtons(cFrame)
 
-    local generalTab, framesTab, buffsTab, debuffsTab = SetTabs(cFrame.body, "General", "Frames", "Buffs", "Debuffs")
+    local generalTab, playerFrames, partyFramesTab, buffsTab, debuffsTab = SetTabs(cFrame.body, "General", "Player Frames", "Party Frames", "Buffs", "Debuffs")
 
     -- Create General Tab
     Mixin(generalTab, BackdropTemplateMixin)
@@ -1249,14 +1249,14 @@ function srslylawlUI.CreateConfigWindow()
     FillGeneralTab(generalTab)
 
     -- Create Frames Tab
-    Mixin(framesTab, BackdropTemplateMixin)
-    framesTab:SetBackdrop({
+    Mixin(partyFramesTab, BackdropTemplateMixin)
+    partyFramesTab:SetBackdrop({
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 10,
         insets = {left = 4, right = 4, top = 4, bottom = 4}})
-    framesTab:SetBackdropColor(0, 0, 0, .4)
-    local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", framesTab, "UIPanelScrollFrameTemplate")
+    partyFramesTab:SetBackdropColor(0, 0, 0, .4)
+    local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", partyFramesTab, "UIPanelScrollFrameTemplate")
     ScrollFrame:SetClipsChildren(true)
     ScrollFrame:SetAllPoints(true)
     ScrollFrame:SetScript("OnMouseWheel", function(self, delta)
@@ -1273,7 +1273,7 @@ function srslylawlUI.CreateConfigWindow()
     ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 20)
     ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", ScrollFrame)
     ScrollFrame.child:SetAllPoints(true)
-    ScrollFrame.child:SetSize(framesTab:GetWidth()-30, 10000)
+    ScrollFrame.child:SetSize(partyFramesTab:GetWidth()-30, 10000)
     ScrollFrame:SetScrollChild(ScrollFrame.child)
     FillFramesTab(ScrollFrame.child)
 
