@@ -1043,6 +1043,7 @@ function srslylawlUI.Frame_GetCustomPowerBarColor(powerToken)
     if powerToken == "MANA" or powerToken == 0 then
         color = {r=0.349, g=0.522, b=0.953}
     end
+    color = color or {r=1, g=1, b=1}
     return color
 end
 function srslylawlUI.Frame_ResizeHealthBarScale()

@@ -145,19 +145,21 @@ local debugString = ""
 --[[ TODO:
 
 
+buffs/debuffs for player/target
 combaticon position
 ccdurbar on player/target/targettarget
 powerbar text
 old debuffs still not properly hiding
 alt powerbar
-buffs/debuffs for player/target
 fontsizes
+hide blizzard default frames
 UnitHasIncomingResurrection(unit)
 incoming summon
 more sort methods?
 totem bar?
 focus frame
 better immunity texture
+astral power bar color is too similar to mana
 config window:
     faux frames absorb auras
     faux frames for target/player/targettarget/pet

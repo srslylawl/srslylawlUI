@@ -172,7 +172,9 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     function frame:SetColor(color)
         self.color = color
         for i=1, #self.pointFrames do
-            self.pointFrames[i]:SetStatusBarColor(color.r, color.g, color.b)
+            if not self.pointFrames[i].isCharged then
+                self.pointFrames[i]:SetStatusBarColor(color.r, color.g, color.b)
+            end
         end
     end
     function frame:SetButtonCount(newCount)
@@ -220,10 +222,6 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             pixelPerfectCompensation = i == middleFrame and diff or 0
             srslylawlUI.Utils_SetSizePixelPerfect(current, barSize+pixelPerfectCompensation, height)
 
-            if self.color then
-                current:SetStatusBarColor(self.color.r, self.color.g, self.color.b)
-            end
-
             -- current.text:SetTextHeight(current:GetHeight())
         end
         srslylawlUI.Utils_SetSizePixelPerfect(self, totalSize+diff, height)
@@ -237,7 +235,18 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     function frame:Update()
         local displayCount = UnitPower(self.unit, self.powerToken)
         for i=1, self.desiredButtonCount do
-            self.pointFrames[i]:SetShown(i <= displayCount)
+            if not self.pointFrames[i].isCharged then
+                self.pointFrames[i]:SetShown(i <= displayCount)
+            else
+                local show = i <= displayCount
+                if show then
+                    self.pointFrames[i]:Show()
+                    self.pointFrames[i]:SetAlpha(1)
+                else
+                    self.pointFrames[i]:Show()
+                    self.pointFrames[i]:SetAlpha(.4)
+                end
+            end
         end
 
         local visible = true
@@ -250,9 +259,11 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
                 visible = false
             end
         end
+        visible = self.hasChargedPoint or visible
         if self:IsShown() ~= visible then
             self:SetShown(visible)
         end
+
     end
     function frame:UpdateMax()
         local maxPoints = UnitPowerMax(self.unit, self.powerToken)
@@ -336,6 +347,30 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
 
         if self:IsShown() ~= visible then
             self:SetShown(visible)
+        end
+    end
+    function frame:OnComboPointCharged()
+        --rogue animacharge
+        local chargedPointsTable = GetUnitChargedPowerPoints(self.unit)
+        if chargedPointsTable then
+            self.hasChargedPoint = true
+            for _, pointIndex in pairs(chargedPointsTable) do
+                self.pointFrames[pointIndex]:SetStatusBarColor(0.713, 0.101, 1)
+                self.pointFrames[pointIndex].isCharged = true
+                if not self.pointFrames[pointIndex]:IsShown() then
+                    self.pointFrames[pointIndex]:Show()
+                    self.pointFrames[pointIndex]:SetAlpha(.4)
+                else
+                    self.pointFrames[pointIndex]:SetAlpha(1)
+                end
+            end
+        elseif self.hasChargedPoint then
+            self.hasChargedPoint = nil
+            for i=1, #self.pointFrames do
+                self.pointFrames[i]:SetAlpha(1)
+                self.pointFrames[i].isCharged = nil
+            end
+            self:SetColor(self.color)
         end
     end
 
@@ -444,10 +479,16 @@ function srslylawlUI.PowerBar.Set(parent, unit)
         local bar = srslylawlUI.PowerBar.GetBar(parent, "point", srslylawlUI.PowerBar.GetPowerToken())
         parent:RegisterBar(bar, 5, height*.7)
         -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
-        if specID >= 250 or specID <= 252 and not bar.isRegistered then --dk spec, use rune update
+        if specID >= 250 and specID <= 252 and not bar.isRegistered then --dk spec, use rune update
             bar:RegisterEvent("RUNE_POWER_UPDATE")
             bar:SetScript("OnEvent", function(self, event, ...)
                 self:RuneUpdate()
+            end)
+            bar.isRegistered = true
+        elseif specID >= 259 and specID <= 261 and not bar.isRegistered then --is rogue, check for kyrian ability cp chargedPointsTable
+            bar:RegisterEvent("UNIT_POWER_POINT_CHARGE")
+            bar:SetScript("OnEvent", function(self, event, ...)
+                self:OnComboPointCharged()
             end)
             bar.isRegistered = true
         end
