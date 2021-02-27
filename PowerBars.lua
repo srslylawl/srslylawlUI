@@ -512,6 +512,9 @@ function srslylawlUI.PowerBar.GetType()
 end
 function srslylawlUI.PowerBar.SetColorByToken(bar, powerToken)
     local colortoken = srslylawlUI.PowerBar.TokenToPowerBarColor[powerToken]
+    if powerToken == 4 then -- for some reason cp get converted to chi
+        colortoken = "COMBO_POINTS"
+    end
     local color = srslylawlUI.Frame_GetCustomPowerBarColor(colortoken)
     if color then
         bar:SetColor(color)
@@ -566,6 +569,10 @@ function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
     if specID ~= 102 then
         parent:UnregisterBar(astralPowerBar)
     end
+
+    if specID ~= 103 then
+        parent:UnregisterBar(energyBar)
+    end
     parent:UnregisterBar(rageBar) --since rage gets reset to 25 on shift anyway, we dont care about tracking it
 
 
@@ -614,6 +621,9 @@ function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
         local index = 2
         if specID == 102 then -- balance
             parent:RegisterBar(astralPowerBar, index)
+            index = index + 1
+        elseif specID == 103 then
+            parent:RegisterBar(energyBar, index)
             index = index + 1
         end
         parent:RegisterBar(manaBar, index)

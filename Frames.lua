@@ -1042,6 +1042,8 @@ function srslylawlUI.Frame_GetCustomPowerBarColor(powerToken)
     local color = PowerBarColor[powerToken]
     if powerToken == "MANA" or powerToken == 0 then
         color = {r=0.349, g=0.522, b=0.953}
+    elseif powerToken == "LUNAR_POWER" or powerToken == "MAELSTROM" then
+        color = {r=0, g=0, b=1}
     end
     color = color or {r=1, g=1, b=1}
     return color
