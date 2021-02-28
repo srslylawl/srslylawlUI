@@ -2005,7 +2005,6 @@ function srslylawlUI.ChangeSetting(path, variable)
     srslylawlUI.SetDirtyFlag()
 end
 
-
 local function Initialize()
     local function CreateSlashCommands()
         -- Setting Slash Commands
@@ -2039,6 +2038,7 @@ local function Initialize()
     srslylawlUI.Party_SetBuffFrames()
     srslylawlUI.Party_SetDebuffFrames()
     srslylawlUI.Frame_Main_SetBuffFrames()
+    srslylawlUI.Frame_Main_SetDebuffFrames()
     CreateSlashCommands()
 end
 srslylawlUI_EventFrame = CreateFrame("Frame")

@@ -606,7 +606,6 @@ end
 function srslylawlUI.Frame_Main_SetBuffFrames()
     for _, unit in pairs(srslylawlUI.mainUnitsTable) do
         local unitFrame = srslylawlUI.mainUnits[unit].unitFrame
-        local unitsType = unitFrame:GetAttribute("unitsType")
         local buffFrames = srslylawlUI.mainUnits[unit].buffFrames
         local buffSize = srslylawlUI.GetSetting("player."..unit.."Frame.buffs.size")
         local maxRowLength = srslylawlUI.GetSetting("player."..unit.."Frame.hp.width")
@@ -632,6 +631,38 @@ function srslylawlUI.Frame_Main_SetBuffFrames()
                     end
                 end
                 srslylawlUI.Utils_SetSizePixelPerfect(frame, buffSize, buffSize)
+            end
+        end
+    end
+end
+function srslylawlUI.Frame_Main_SetDebuffFrames()
+    for _, unit in pairs(srslylawlUI.mainUnitsTable) do
+        local unitFrame = srslylawlUI.mainUnits[unit].unitFrame
+        local debuffFrames = srslylawlUI.mainUnits[unit].debuffFrames
+        local debuffSize = srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.size")
+        local maxRowLength = srslylawlUI.GetSetting("player."..unit.."Frame.hp.width")
+        local rowAnchors = {}
+        local currentRow = 1
+        local currentRowLength = 0
+        if unit ~= "targettarget" then
+            for i=1, #debuffFrames do
+                local frame = debuffFrames[i]
+                frame:ClearAllPoints()
+                if i == 1 then
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame, "BOTTOMRIGHT", srslylawlUI.mainUnits[unit].buffFrames[1], "TOPRIGHT", 0, 1)
+                    rowAnchors[currentRow] = frame
+                    currentRowLength = debuffSize
+                else
+                    if currentRowLength + debuffSize + 1 > maxRowLength then
+                        srslylawlUI.Utils_SetPointPixelPerfect(frame, "BOTTOMRIGHT", rowAnchors[currentRow], "TOPRIGHT", 0, 1)
+                        currentRow = currentRow + 1
+                        currentRowLength = debuffSize
+                    else
+                        srslylawlUI.Utils_SetPointPixelPerfect(frame, "BOTTOMRIGHT", debuffFrames[i-1], "BOTTOMLEFT", -1, 0)
+                        currentRowLength = debuffSize + 1
+                    end
+                end
+                srslylawlUI.Utils_SetSizePixelPerfect(frame, debuffSize, debuffSize)
             end
         end
     end
