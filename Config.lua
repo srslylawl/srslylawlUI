@@ -3,7 +3,8 @@ function srslylawlUI.CreateConfigWindow()
         if srslylawlUI_ConfigFrame.fakeFramesToggled == bool then
             return
         end
-        srslylawlUI_ConfigFrame.lockFramesButton:SetChecked(bool)
+        srslylawlUI_ConfigFrame.lockFramesButton1:SetChecked(bool)
+        srslylawlUI_ConfigFrame.lockFramesButton2:SetChecked(bool)
 
         srslylawlUI_ConfigFrame.fakeFramesToggled = bool
         srslylawlUI_PartyHeader:SetMovable(bool)
@@ -449,7 +450,7 @@ function srslylawlUI.CreateConfigWindow()
 
 
     end
-    local function FillFramesTab(tab)
+    local function FillPartyFramesTab(tab)
         -- HP Bar Sliders
         local cFrame = srslylawlUI_ConfigFrame
         cFrame.fakeFramesToggled = false
@@ -457,7 +458,7 @@ function srslylawlUI.CreateConfigWindow()
         cFrame.sliders = {}
 
         local lockFrames = CreateCheckButton("Preview settings and make frames moveable", tab)
-        cFrame.lockFramesButton = lockFrames
+        cFrame.lockFramesButton1 = lockFrames
         lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
         lockFrames:SetScript("OnClick", function(self)
             ToggleFakeFrames(self:GetChecked())
@@ -679,6 +680,21 @@ function srslylawlUI.CreateConfigWindow()
             srslylawlUI.ChangeSetting("party.debuffs.maxDebuffs", value)
         end)
         AddTooltip(cFrame.sliders.maxDebuffs, "Requires UI Reload")
+    end
+    local function FillPlayerFramesTab(tab)
+        local cFrame = srslylawlUI_ConfigFrame
+        cFrame.fakeFramesToggled = false
+        cFrame.editBoxes = {}
+        cFrame.sliders = {}
+
+        local lockFrames = CreateCheckButton("Preview settings and make frames moveable", tab)
+        cFrame.lockFramesButton2 = lockFrames
+        lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
+        lockFrames:SetScript("OnClick", function(self)
+            ToggleFakeFrames(self:GetChecked())
+            cFrame.fakeFramesToggled = self:GetChecked()
+        end)
+
     end
     local function Tab_OnClick(self)
         local parent = self:GetParent()
@@ -1229,7 +1245,36 @@ function srslylawlUI.CreateConfigWindow()
     generalTab:SetBackdropColor(0, 0, 0, .4)
     FillGeneralTab(generalTab)
 
-    -- Create Frames Tab
+    -- Create Player Frames Tab
+    Mixin(playerFrames, BackdropTemplateMixin)
+    playerFrames:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 10,
+        insets = {left = 4, right = 4, top = 4, bottom = 4}})
+    playerFrames:SetBackdropColor(0, 0, 0, .4)
+    local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", playerFrames, "UIPanelScrollFrameTemplate")
+    ScrollFrame:SetClipsChildren(true)
+    ScrollFrame:SetAllPoints(true)
+    ScrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local newValue = self:GetVerticalScroll() - (delta * 20)
+        if newValue < 0 then
+            newValue = 0
+        elseif newValue > self:GetVerticalScrollRange() then
+            newValue = self:GetVerticalScrollRange()
+        end
+        self:SetVerticalScroll(newValue)
+    end)
+    ScrollFrame.ScrollBar:ClearAllPoints()
+    ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -22, -20)
+    ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 20)
+    ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", ScrollFrame)
+    ScrollFrame.child:SetAllPoints(true)
+    ScrollFrame.child:SetSize(playerFrames:GetWidth()-30, 10000)
+    ScrollFrame:SetScrollChild(ScrollFrame.child)
+    FillPlayerFramesTab(ScrollFrame.child)
+
+    -- Create Party Frames Tab
     Mixin(partyFramesTab, BackdropTemplateMixin)
     partyFramesTab:SetBackdrop({
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
@@ -1256,7 +1301,7 @@ function srslylawlUI.CreateConfigWindow()
     ScrollFrame.child:SetAllPoints(true)
     ScrollFrame.child:SetSize(partyFramesTab:GetWidth()-30, 10000)
     ScrollFrame:SetScrollChild(ScrollFrame.child)
-    FillFramesTab(ScrollFrame.child)
+    FillPartyFramesTab(ScrollFrame.child)
 
     -- Create Buffs Tab
     buffsTab:ClearAllPoints()

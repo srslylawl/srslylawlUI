@@ -48,10 +48,6 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = {relative = "TOPLEFT", anchor = "TOPRIGHT", offsetX = 0, offsetY = 0},
             hp = {width = 100, height = 50},
-            buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", perRow = 5,
-                showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-            debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", perRow = 5, showCastByPlayer = true,
-                maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
             power = {width = 15},
         }
     }
@@ -93,7 +89,11 @@ srslylawlUI.textures = {
     HealthBar = "Interface/AddOns/srslylawlUI/media/powerBarSprite",--"Interface/Addons/srslylawlUI/media/healthBar",
     EffectiveHealth = "Interface/AddOns/srslylawlUI/media/eHealthBar",
     Immunity = "Interface/AddOns/srslylawlUI/media/healthBarImmune",
-    PowerBarSprite = "Interface/AddOns/srslylawlUI/media/powerBarSprite"
+    PowerBarSprite = "Interface/AddOns/srslylawlUI/media/powerBarSprite",
+    AuraBorder32 = "Interface/AddOns/srslylawlUI/media/auraBorder_32",
+    AuraBorder64 = "Interface/AddOns/srslylawlUI/media/auraBorder_64",
+    AuraSwipe32 = "Interface/AddOns/srslylawlUI/media/auraSwipe_32",
+    AuraSwipe64 = "Interface/AddOns/srslylawlUI/media/auraSwipe_64",
 }
 srslylawlUI.unsaved = {flag = false, buttons = {}}
 srslylawlUI.keyPhrases = {
@@ -145,7 +145,10 @@ local debugString = ""
 --[[ TODO:
 
 
+
 buffs/debuffs for player/target
+anchor debuffs to buffs (for anchorbuffs, set onhide to resort)
+stealable indicator on enemy absorbframes
 combaticon position
 ccdurbar on player/target/targettarget
 powerbar text
@@ -979,6 +982,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     end
     -- process buffs on unit
     local currentBuffFrame = 1
+    local maxBuffs = unitsType == "partyUnits" and srslylawlUI.GetSetting("party.buffs.maxBuffs") or srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
     for i = 1, 40 do
         -- loop through all buffs and assign them to frames
         local f = srslylawlUI[unitsType][unit].buffFrames[currentBuffFrame]
@@ -988,7 +992,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(i, unit)
-            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.GetSetting("party.buffs.maxBuffs") then
+            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
                 f:Show()
@@ -1028,6 +1032,8 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
 
     local appliedCC = {}
     currentDebuffFrame = 1
+
+    local maxDebuffs = unitsType == "partyUnits" and srslylawlUI.GetSetting("party.buffs.maxBuffs") or srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
     for i = 1, 40 do
         local f = srslylawlUI[unitsType][unit].debuffFrames[currentDebuffFrame]
         local name, icon, count, debuffType, duration, expirationTime, source,
@@ -1049,7 +1055,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 }
                 table.insert(appliedCC, cc)
             end
-            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= srslylawlUI.GetSetting("party.debuffs.maxDebuffs") then
+            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= maxDebuffs then
                 f.icon:SetTexture(icon)
                 if ( count > 1 ) then
 		            local countText = count;
