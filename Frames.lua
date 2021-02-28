@@ -512,8 +512,8 @@ end
 
 --main
 function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
-    srslylawlUI.SetupUnitFrame(buttonFrame)
     local unit = buttonFrame:GetAttribute("unit")
+    srslylawlUI.SetupUnitFrame(buttonFrame, unit)
     
     srslylawlUI.RegisterEvents(buttonFrame)
     RegisterUnitWatch(buttonFrame)
@@ -890,7 +890,7 @@ function srslylawlUI.Party_GetDebuffOffsets()
     end
     return xOffset, yOffset
 end
-function srslylawlUI.SetupUnitFrame(buttonFrame)
+function srslylawlUI.SetupUnitFrame(buttonFrame, unit)
     buttonFrame.unit:SetFrameLevel(8)
     buttonFrame.pet:SetFrameLevel(4)
     buttonFrame.pet.healthBar:SetFrameLevel(4)
@@ -900,7 +900,11 @@ function srslylawlUI.SetupUnitFrame(buttonFrame)
     buttonFrame.unit:SetAttribute("unit", buttonFrame:GetAttribute("unit"))
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
     buttonFrame.unit.powerBar:ClearAllPoints()
-    srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.name,"BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 12, 2)
+    if unit == "target" then
+        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.name,"BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
+    else
+        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.name,"BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 12, 2)
+    end
     buttonFrame.unit.healthBar.text:SetPoint("BOTTOMRIGHT", 0, srslylawlUI.Utils_PixelFromCodeToScreen(2))
     buttonFrame.unit.healthBar.text:SetDrawLayer("OVERLAY", 7)
 end
@@ -999,8 +1003,10 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
     elseif arg1 and UnitIsUnit(unit, arg1) and arg1 ~= "nameplate1" then
         if event == "UNIT_MAXHEALTH" then
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
+                if unit ~= "targettarget" then
+                    srslylawlUI.HandleAuras(self.unit, unit)
+                end
                 srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
-                srslylawlUI.HandleAuras(self.unit, unit)
             end
             self.unit.healthBar:SetMinMaxValues(0, UnitHealthMax(unit))
             self.unit.healthBar:SetValue(UnitHealth(unit))
@@ -1027,7 +1033,11 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                 self.unit.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
             end
         elseif event == "UNIT_NAME_UPDATE" then
-            srslylawlUI.Frame_ResetName(self.unit, unit)
+            if unit == "target" then
+                srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
+            else
+                srslylawlUI.Frame_ResetName(self.unit, unit)
+            end
         elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
             local status = UnitThreatSituation(unit)
             if status and status > 0 then
@@ -1071,6 +1081,10 @@ function srslylawlUI.Frame_ResetUnitButton(button, unit)
     end
 end
 function srslylawlUI.Frame_ResetName(button, unit)
+    if unit == "target" then
+        srslylawlUI.Frame_ResetHealthBar(button, unit)
+        return
+    end
     local name = UnitName(unit) or UNKNOWN
     srslylawlUI.Utils_SetLimitedText(button.healthBar.name, button.healthBar:GetWidth()*0.3, name, true)
 end
@@ -1127,7 +1141,14 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local health = UnitHealth(unit)
     local healthMax = UnitHealthMax(unit)
     local healthPercent = ceil(health / healthMax * 100)
-    srslylawlUI.Utils_SetLimitedText(button.healthBar.text, button.healthBar:GetWidth()*0.5, srslylawlUI.ShortenNumber(health) .. " " .. healthPercent .. "%")
+    if unit == "target" then
+        local name = UnitName(unit) or UNKNOWN
+        srslylawlUI.Utils_SetLimitedText(button.healthBar.name, button.healthBar:GetWidth()*0.5, healthPercent .. "%".." ".. name, true)
+        button.healthBar.text:SetText("")
+    else
+    srslylawlUI.Utils_SetLimitedText(button.healthBar.text, button.healthBar:GetWidth()*0.5, srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%")
+
+    end
     -- button.healthBar.text:SetText(srslylawlUI.ShortenNumber(health) .. " " .. healthPercent .. "%")
     button.healthBar:SetMinMaxValues(0, healthMax)
     button.healthBar:SetValue(health)

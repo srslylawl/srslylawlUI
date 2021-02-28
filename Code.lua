@@ -26,10 +26,10 @@ srslylawlUI.defaultSettings = {
         playerFrame = {
             enabled = true,
             position = {},
-            hp = {width = 100, height = 50},
-            buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", perRow = 5,
+            hp = {width = 300, height = 80},
+            buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5,
                 showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-            debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", perRow = 5, showCastByPlayer = true,
+            debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5, showCastByPlayer = true,
                 maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
             pet = {width = 20},
             power = {width = 15},
@@ -38,9 +38,9 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = {relative = "TOPLEFT", anchor = "CENTER", offsetX = 0, offsetY = 0},
             hp = {width = 100, height = 50},
-            buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", perRow = 5,
+            buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5,
                 showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-            debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", perRow = 5, showCastByPlayer = true,
+            debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5, showCastByPlayer = true,
                 maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
             power = {width = 15},
         },
@@ -153,6 +153,7 @@ combaticon position
 ccdurbar on player/target/targettarget
 powerbar text
 old debuffs still not properly hiding
+absorb anchor sometimes not moving
 alt powerbar
 fontsizes
 hide blizzard default frames
@@ -160,6 +161,7 @@ UnitHasIncomingResurrection(unit)
 incoming summon
 more sort methods?
 totem bar?
+purge resources on loadscreen
 focus frame
 better immunity texture
 astral power bar color is too similar to mana
