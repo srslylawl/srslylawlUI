@@ -235,6 +235,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     function frame:Update()
         local displayCount = UnitPower(self.unit, self.powerToken)
         for i=1, self.desiredButtonCount do
+            -- print(i, self.pointFrames[i].isCharged)
             if not self.pointFrames[i].isCharged then
                 self.pointFrames[i]:SetShown(i <= displayCount)
             else

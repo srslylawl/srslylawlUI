@@ -981,6 +981,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         v["checkedThisEvent"] = false
     end
     -- process buffs on unit
+    local buffBaseColor = {0.960, 0.952, 0.760}
+    local buffIsStealableColor = {0.760, 1, 0.984}
+    local buffIsEnemyColor = {0.603, 0.137, 0.1521}
     local currentBuffFrame = 1
     local maxBuffs = unitsType == "partyUnits" and srslylawlUI.GetSetting("party.buffs.maxBuffs") or srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
     for i = 1, 40 do
@@ -990,10 +993,17 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
             UnitAura(unit, i, "HELPFUL")
-        if name then -- if aura on this index exists, assign it
+            if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(i, unit)
             if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
+                if isStealable then
+	                f.border:SetVertexColor(unpack(buffIsStealableColor))
+                elseif source and UnitIsEnemy(source, "player") then
+                    f.border:SetVertexColor(unpack(buffIsEnemyColor))
+                else
+                    f.border:SetVertexColor(unpack(buffBaseColor))
+                end
                 f:SetID(i)
                 f:Show()
                 currentBuffFrame = currentBuffFrame + 1
