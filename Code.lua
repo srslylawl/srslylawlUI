@@ -1,6 +1,6 @@
 srslylawlUI = srslylawlUI or {}
 
-srslylawlUI.settings = {
+srslylawlUI.defaultSettings = {
     party = {
         header = {anchor = "CENTER", xOffset = 10, yOffset = 10},
         hp = {width = 100, height = 50, minWidthPercent = 0.55},
@@ -56,6 +56,7 @@ srslylawlUI.settings = {
         }
     }
 }
+srslylawlUI.loadedSettings = {}
 srslylawlUI.buffs = {
     known = {},
     absorbs = {},
@@ -502,8 +503,6 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
     srslylawlUI_FAUX_PartyHeader:SetShown(visible)
     srslylawlUI_PartyHeader_player:SetShown(not visible)
 
-    srslylawlUI.Log((visible and "Fake frames now visible." or "Fake frames now hidden."))
-
     if not srslylawlUI_FAUX_PartyHeader.initiated then
         local lastFrame
         local class = select(2, UnitClass("player")) or "WARRIOR"
@@ -594,7 +593,7 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                         expirationTime = GetTime()+duration
                     end
                 end)
-            frame.unit.CCDurBar:SetShown(srslylawlUI.settings.party.ccbar.enabled)
+            frame.unit.CCDurBar:SetShown(srslylawlUI.GetSetting("party.ccbar.enabled"))
             frame.unit.CCDurBar.icon:SetTexture(fauxUnit.CCIcon)
             local color = DebuffTypeColor[fauxUnit.CCColor]
             frame.unit.CCDurBar:SetStatusBarColor(color.r, color.g, color.b)
@@ -627,12 +626,12 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
             local parent = frame.unit
             for i = 1, 40 do
                 local xOffset, yOffset = srslylawlUI.Party_GetBuffOffsets()
-                local anchor = srslylawlUI.settings.party.buffs.growthDir
+                local anchor = srslylawlUI.GetSetting("party.buffs.growthDir")
                 local f = CreateFrame("Button", frameName .. i, frame.unit, "CompactBuffTemplate")
                 if (i == 1) then
-                    xOffset = srslylawlUI.settings.party.buffs.xOffset
-                    yOffset = srslylawlUI.settings.party.buffs.yOffset
-                    f:SetPoint(srslylawlUI.settings.party.buffs.anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
+                    xOffset = srslylawlUI.GetSetting("party.buffs.xOffset")
+                    yOffset = srslylawlUI.GetSetting("party.buffs.yOffset")
+                    f:SetPoint(srslylawlUI.GetSetting("party.buffs.anchor"), srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                 else
                     srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
                 end
@@ -647,13 +646,13 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
             parent = frame.unit
             for i = 1, 40 do
                 local xOffset, yOffset = srslylawlUI.Party_GetDebuffOffsets()
-                local anchor = srslylawlUI.settings.party.debuffs.growthDir
+                local anchor = srslylawlUI.GetSetting("party.debuffs.growthDir")
                 local f = CreateFrame("Button", frameName .. i, frame.unit, "CompactDebuffTemplate")
                 if (i == 1) then
-                    anchor = srslylawlUI.settings.party.debuffs.anchor
-                    xOffset = srslylawlUI.settings.party.debuffs.xOffset
-                    yOffset = srslylawlUI.settings.party.debuffs.yOffset
-                    f:SetPoint(srslylawlUI.settings.party.debuffs.anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
+                    anchor = srslylawlUI.GetSetting("party.debuffs.anchor")
+                    xOffset = srslylawlUI.GetSetting("party.debuffs.xOffset")
+                    yOffset = srslylawlUI.GetSetting("party.debuffs.yOffset")
+                    f:SetPoint(srslylawlUI.GetSetting("party.debuffs.anchor"), srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                 else
                     srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
                 end
@@ -670,87 +669,87 @@ function srslylawlUI_Frame_ToggleFauxFrames(visible)
                 function(self, elapsed)
                 timerFrame = timerFrame + elapsed
                 if timerFrame > 0.1 then
-                    local countChanged = self.shownBuffs ~= srslylawlUI.settings.party.buffs.maxBuffs
-                    local anchorChanged = self.buffs.anchor ~= srslylawlUI.settings.party.buffs.anchor or self.buffs.xOffset ~= srslylawlUI.settings.party.buffs.xOffset or self.buffs.yOffset ~= srslylawlUI.settings.party.buffs.yOffset
-                    local sizeChanged = self.buffs.size ~= srslylawlUI.settings.party.buffs.size
-                    local growthDirChanged = self.buffs.growthDir ~= srslylawlUI.settings.party.buffs.growthDir
+                    local countChanged = self.shownBuffs ~= srslylawlUI.GetSetting("party.buffs.maxBuffs")
+                    local anchorChanged = self.buffs.anchor ~= srslylawlUI.GetSetting("party.buffs.anchor") or self.buffs.xOffset ~= srslylawlUI.GetSetting("party.buffs.xOffset") or self.buffs.yOffset ~= srslylawlUI.GetSetting("party.buffs.yOffset")
+                    local sizeChanged = self.buffs.size ~= srslylawlUI.GetSetting("party.buffs.size")
+                    local growthDirChanged = self.buffs.growthDir ~= srslylawlUI.GetSetting("party.buffs.growthDir")
                     if countChanged or anchorChanged or sizeChanged or growthDirChanged then
-                        self.shownBuffs = srslylawlUI.settings.party.buffs.maxBuffs
+                        self.shownBuffs = srslylawlUI.GetSetting("party.buffs.maxBuffs")
                         for i=1,40 do
                             self.buffs[i]:SetShown(i <= self.shownBuffs)
-                            local size = srslylawlUI.settings.party.buffs.size
+                            local size = srslylawlUI.GetSetting("party.buffs.size")
                             local xOffset, yOffset = srslylawlUI.Party_GetBuffOffsets()
                             local anchor = "CENTER"
                             self.buffs[i]:ClearAllPoints()
                             if (i == 1) then
-                                anchor = srslylawlUI.settings.party.buffs.anchor
-                                xOffset = srslylawlUI.settings.party.buffs.xOffset
-                                yOffset = srslylawlUI.settings.party.buffs.yOffset
+                                anchor = srslylawlUI.GetSetting("party.buffs.anchor")
+                                xOffset = srslylawlUI.GetSetting("party.buffs.xOffset")
+                                yOffset = srslylawlUI.GetSetting("party.buffs.yOffset")
                                 self.buffs[i]:SetParent(self.unit.auraAnchor)
                                 self.buffs[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                                 self.buffs.anchor = anchor
                                 self.buffs.xOffset = xOffset
                                 self.buffs.yOffset = yOffset
                                 self.buffs.size = size
-                                self.buffs.growthDir = srslylawlUI.settings.party.buffs.growthDir
+                                self.buffs.growthDir = srslylawlUI.GetSetting("party.buffs.growthDir")
                             else
                                 srslylawlUI.Utils_SetPointPixelPerfect(self.buffs[i], anchor, self.buffs[i-1], anchor, xOffset, yOffset)
                             end
                             srslylawlUI.Utils_SetSizePixelPerfect(self.buffs[i], size, size)
                         end
                     end
-                    countChanged = self.shownDebuffs ~= srslylawlUI.settings.party.debuffs.maxDebuffs
-                    sizeChanged = self.debuffs.size ~= srslylawlUI.settings.party.debuffs.size
-                    anchorChanged = self.debuffs.anchor ~= srslylawlUI.settings.party.debuffs.anchor or self.debuffs.xOffset ~= srslylawlUI.settings.party.debuffs.xOffset or self.debuffs.yOffset ~= srslylawlUI.settings.party.debuffs.yOffset
-                    growthDirChanged = self.debuffs.growthDir ~= srslylawlUI.settings.party.debuffs.growthDir
+                    countChanged = self.shownDebuffs ~= srslylawlUI.GetSetting("party.debuffs.maxDebuffs")
+                    sizeChanged = self.debuffs.size ~= srslylawlUI.GetSetting("party.debuffs.size")
+                    anchorChanged = self.debuffs.anchor ~= srslylawlUI.GetSetting("party.debuffs.anchor") or self.debuffs.xOffset ~= srslylawlUI.GetSetting("party.debuffs.xOffset") or self.debuffs.yOffset ~= srslylawlUI.GetSetting("party.debuffs.yOffset")
+                    growthDirChanged = self.debuffs.growthDir ~= srslylawlUI.GetSetting("party.debuffs.growthDir")
                     if countChanged or anchorChanged or sizeChanged or growthDirChanged then
-                        self.shownDebuffs = srslylawlUI.settings.party.debuffs.maxDebuffs
+                        self.shownDebuffs = srslylawlUI.GetSetting("party.debuffs.maxDebuffs")
                         for i=1,40 do
                             self.debuffs[i]:SetShown(i <= self.shownDebuffs)
-                            local size = srslylawlUI.settings.party.debuffs.size
+                            local size = srslylawlUI.GetSetting("party.debuffs.size")
                             local xOffset, yOffset = srslylawlUI.Party_GetDebuffOffsets()
                             local anchor = "CENTER"
                             self.debuffs[i]:ClearAllPoints()
                             if (i == 1) then
-                                anchor = srslylawlUI.settings.party.debuffs.anchor
-                                xOffset = srslylawlUI.settings.party.debuffs.xOffset
-                                yOffset = srslylawlUI.settings.party.debuffs.yOffset
+                                anchor = srslylawlUI.GetSetting("party.debuffs.anchor")
+                                xOffset = srslylawlUI.GetSetting("party.debuffs.xOffset")
+                                yOffset = srslylawlUI.GetSetting("party.debuffs.yOffset")
                                 self.debuffs[i]:SetParent(self.unit.auraAnchor)
                                 self.debuffs[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                                 self.debuffs.anchor = anchor
                                 self.debuffs.xOffset = xOffset
                                 self.debuffs.yOffset = yOffset
                                 self.debuffs.size = size
-                                self.debuffs.growthDir = srslylawlUI.settings.party.debuffs.growthDir
+                                self.debuffs.growthDir = srslylawlUI.GetSetting("party.debuffs.growthDir")
                             else
                                 srslylawlUI.Utils_SetPointPixelPerfect(self.debuffs[i], anchor, self.debuffs[i-1], anchor, xOffset, yOffset)
                             end
                             srslylawlUI.Utils_SetSizePixelPerfect(self.debuffs[i], size, size)
                         end
                     end
-                    local h = srslylawlUI.settings.party.hp.height
-                    local lowerCap = srslylawlUI.settings.party.hp.minWidthPercent
+                    local h = srslylawlUI.GetSetting("party.hp.height")
+                    local lowerCap = srslylawlUI.GetSetting("party.hp.minWidthPercent")
                     local health = UnitHealthMax("player")
-                    local pixelPerHp = srslylawlUI.settings.party.hp.width / health
+                    local pixelPerHp = srslylawlUI.GetSetting("party.hp.width") / health
                     local minWidth = floor(health * pixelPerHp * lowerCap)
                     local scaledWidth = (self:GetAttribute("hpMax") * pixelPerHp)
                     scaledWidth = scaledWidth < minWidth and minWidth or scaledWidth
-                    srslylawlUI.Utils_SetSizePixelPerfect(self, srslylawlUI.settings.party.hp.width+2, h+2)
-                    srslylawlUI.Utils_SetSizePixelPerfect(self.unit, srslylawlUI.settings.party.hp.width, h)
+                    srslylawlUI.Utils_SetSizePixelPerfect(self, srslylawlUI.GetSetting("party.hp.width")+2, h+2)
+                    srslylawlUI.Utils_SetSizePixelPerfect(self.unit, srslylawlUI.GetSetting("party.hp.width"), h)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.auraAnchor, scaledWidth, h)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.healthBar, scaledWidth, h)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.unit.powerBar, h)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.pet.healthBar, h)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.pet, h)
-                    local h2 = h*srslylawlUI.settings.party.ccbar.heightPercent
-                    local w = srslylawlUI.settings.party.ccbar.width
+                    local h2 = h*srslylawlUI.GetSetting("party.ccbar.heightPercent")
+                    local w = srslylawlUI.GetSetting("party.ccbar.width")
                     local iconSize = (w > h2 and h2) or w
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar, w, h2)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar.icon, iconSize, iconSize)
                     srslylawlUI.Frame_ResetDimensions_Pet(self)
                     srslylawlUI.Frame_ResetDimensions_PowerBar(self)
 
-                    self.unit.CCDurBar:SetShown(srslylawlUI.settings.party.ccbar.enabled)
+                    self.unit.CCDurBar:SetShown(srslylawlUI.GetSetting("party.ccbar.enabled"))
 
                     timerFrame = 0
                 end
@@ -989,7 +988,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(i, unit)
-            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.settings.party.buffs.maxBuffs then
+            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= srslylawlUI.GetSetting("party.buffs.maxBuffs") then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 f:SetID(i)
                 f:Show()
@@ -1050,7 +1049,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 }
                 table.insert(appliedCC, cc)
             end
-            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= srslylawlUI.settings.party.debuffs.maxDebuffs then
+            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= srslylawlUI.GetSetting("party.debuffs.maxDebuffs") then
                 f.icon:SetTexture(icon)
                 if ( count > 1 ) then
 		            local countText = count;
@@ -1086,7 +1085,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     end
 
     --see if we want to display our cced frame
-    local displayCC = #appliedCC > 0 and srslylawlUI.settings.party.ccbar.enabled
+    local displayCC = #appliedCC > 0 and srslylawlUI.GetSetting("party.ccbar.enabled")
     if displayCC then
         --Decide which cc to display
         table.sort(appliedCC, function(a, b) return b.remaining < a.remaining end)
@@ -1207,7 +1206,7 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
     local function NotDefault(bool)
-        return bool ~= srslylawlUI.settings.party.buffs.showDefault
+        return bool ~= srslylawlUI.GetSetting("party.buffs.showDefault")
     end
     if srslylawlUI.buffs.whiteList[spellId] ~= nil then
         --always show whitelisted spells
@@ -1226,27 +1225,27 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
 
     if srslylawlUI.buffs.defensives[spellId] ~= nil then
         --its a defensive spell
-        return srslylawlUI.settings.party.buffs.showDefensives
+        return srslylawlUI.GetSetting("party.buffs.showDefensives")
     end
 
     if duration == 0 then
-        return srslylawlUI.settings.party.buffs.showInfiniteDuration
+        return srslylawlUI.GetSetting("party.buffs.showInfiniteDuration")
     end
     
-    if duration > srslylawlUI.settings.party.buffs.maxDuration then
+    if duration > srslylawlUI.GetSetting("party.buffs.maxDuration") then
         if NotDefault(srslylawlUI.buffs.showLongDuration) then
             return srslylawlUI.buffs.showLongDuration
         end
     end
     
     if source == "player" and castByPlayer then
-        if NotDefault(srslylawlUI.settings.party.buffs.showCastByPlayer) then
-            return srslylawlUI.settings.party.buffs.showCastByPlayer
+        if NotDefault(srslylawlUI.GetSetting("party.buffs.showCastByPlayer")) then
+            return srslylawlUI.GetSetting("party.buffs.showCastByPlayer")
         end
     end
     
 
-    return srslylawlUI.settings.party.buffs.showDefault
+    return srslylawlUI.GetSetting("party.buffs.showDefault")
 end
 function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
@@ -1254,7 +1253,7 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
     
     local function NotDefault(bool)
-        return bool ~= srslylawlUI.settings.party.debuffs.showDefault
+        return bool ~= srslylawlUI.GetSetting("party.debuffs.showDefault")
     end
     if srslylawlUI.debuffs.whiteList[spellId] ~= nil then
         --always show whitelisted spells
@@ -1267,25 +1266,25 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     end
     
     if source == "player" and castByPlayer then
-        if NotDefault(srslylawlUI.settings.party.debuffs.showCastByPlayer) then
-            return srslylawlUI.settings.party.debuffs.showCastByPlayer
+        if NotDefault(srslylawlUI.GetSetting("party.debuffs.showCastByPlayer")) then
+            return srslylawlUI.GetSetting("party.debuffs.showCastByPlayer")
         end
     end
     
     if duration == 0 then
-        if NotDefault(srslylawlUI.settings.party.debuffs.showInfiniteDuration) then
-            return srslylawlUI.settings.party.debuffs.showInfiniteDuration
+        if NotDefault(srslylawlUI.GetSetting("party.debuffs.showInfiniteDuration")) then
+            return srslylawlUI.GetSetting("party.debuffs.showInfiniteDuration")
         end
     end
     
-    if duration > srslylawlUI.settings.party.debuffs.maxDuration then
-        if NotDefault(srslylawlUI.settings.party.debuffs.showLongDuration) then
-            return srslylawlUI.settings.party.debuffs.showLongDuration 
+    if duration > srslylawlUI.GetSetting("party.debuffs.maxDuration") then
+        if NotDefault(srslylawlUI.GetSetting("party.debuffs.showLongDuration")) then
+            return srslylawlUI.GetSetting("party.debuffs.showLongDuration")
         end
     end
 
 
-    return srslylawlUI.settings.party.debuffs.showDefault
+    return srslylawlUI.GetSetting("party.debuffs.showDefault")
 end
 function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
     local function GetPercentValue(tooltipText)
@@ -1546,12 +1545,12 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     local height, width
     local _, highestMaxHP
     if unitsType == "partyUnits" then
-        height = srslylawlUI.settings.party.hp.height*0.7
-        width = srslylawlUI.settings.party.hp.width
+        height = srslylawlUI.GetSetting("party.hp.height")*0.7
+        width = srslylawlUI.GetSetting("party.hp.width")
         _, highestMaxHP = srslylawlUI.GetPartyHealth()
     elseif unitsType == "mainUnits" then
-        height = srslylawlUI.settings.player[unit.."Frame"].hp.height*0.7
-        width = srslylawlUI.settings.player[unit.."Frame"].hp.width
+        height = srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")*0.7
+        width = srslylawlUI.GetSetting("player."..unit.."Frame.hp.width")
         highestMaxHP = UnitHealthMax(unit)
     end
     local pixelPerHp = width / highestMaxHP
@@ -1831,12 +1830,14 @@ function srslylawlUI.ToggleConfigVisible(visible)
 end
 function srslylawlUI.LoadSettings(reset, announce)
     if announce then srslylawlUI.Log("Settings Loaded") end
-    if srslylawl_saved.settings.party ~= nil then
-        srslylawlUI.settings.party = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings.party)
-    end
-    if srslylawl_saved.settings.player ~= nil then
-        srslylawlUI.settings.player = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings.player)
-    end
+
+    srslylawlUI.loadedSettings = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings)
+    -- if srslylawl_saved.settings.party ~= nil then
+    --     srslylawlUI.settings.party = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings.party)
+    -- end
+    -- if srslylawl_saved.settings.player ~= nil then
+    --     srslylawlUI.settings.player = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings.player)
+    -- end
     --buffs
     if srslylawl_saved.buffs == nil then
         srslylawl_saved.buffs = srslylawlUI.buffs
@@ -1852,7 +1853,6 @@ function srslylawlUI.LoadSettings(reset, announce)
 
     local c = srslylawlUI_ConfigFrame
     if c then
-        local s = srslylawlUI.settings.party
         for k, v in pairs(c.sliders) do
             local default = v:GetAttribute("defaultValue")
             if default then
@@ -1874,13 +1874,13 @@ function srslylawlUI.LoadSettings(reset, announce)
     end
     if srslylawlUI_PartyHeader then
         srslylawlUI_PartyHeader:ClearAllPoints()
-        srslylawlUI_PartyHeader:SetPoint(srslylawlUI.settings.party.header.anchor,srslylawlUI.settings.party.header.xOffset,srslylawlUI.settings.party.header.yOffset)
+        srslylawlUI_PartyHeader:SetPoint(srslylawlUI.GetSetting("party.header.anchor"), srslylawlUI.GetSetting("party.header.xOffset"),srslylawlUI.GetSetting("party.header.yOffset"))
         srslylawlUI.Party_SetBuffFrames()
         srslylawlUI.Frame_UpdateVisibility()
         srslylawlUI.RemoveDirtyFlag()
     end
     for _, unit in pairs(mainUnitsTable) do
-        local a = srslylawlUI.settings.player[unit.."Frame"].position
+        local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
         local frame = mainUnits[unit].unitFrame
         if frame then
             if a and #a > 1 then
@@ -1898,10 +1898,9 @@ function srslylawlUI.LoadSettings(reset, announce)
 end
 function srslylawlUI.SaveSettings()
     srslylawlUI.Log("Settings Saved")
-    srslylawl_saved.settings.party = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.settings.party)
-    srslylawl_saved.settings.player = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.settings.player)
-    srslylawl_saved.buffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.buffs)
-    srslylawl_saved.debuffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.debuffs)
+    srslylawl_saved.settings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.loadedSettings)
+    -- srslylawl_saved.buffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.buffs)
+    -- srslylawl_saved.debuffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.debuffs)
 
     for k, v in pairs(srslylawlUI_ConfigFrame.editBoxes) do
         v:SetAttribute("defaultValue", v:GetText())
@@ -1924,68 +1923,86 @@ function srslylawlUI.RemoveDirtyFlag()
     srslylawlUI.unsaved.flag = false
     for _, v in ipairs(srslylawlUI.unsaved.buttons) do v:Disable() end
 end
-function srslylawlUI.GetSetting(path)
-    function SplitStringAtChar(str, splitChar)
-        local t = {}
-        local curr = ""
-        for i=1, string.len(str) do 
-           local c = string.sub(str, i, i)
-           if c == splitChar then
-              table.insert(t, curr)
-              curr = ""
-           else
-              curr = curr .. c
-           end
-        end
-        if curr ~= "" then
-           table.insert(t, curr)
-        end
-   return t
+local function CreateValueAtPath(value, path, tableObject)
+    local subTable = tableObject[path[1]]
+    if subTable and type(subTable) == "table" and #path > 1 then
+        table.remove(path, 1)
+        CreateValueAtPath(value, path, subTable)
+    elseif not subTable and #path > 1 then
+        local path1 = path[1]
+        table.remove(path, 1)
+        print(tostring(path1) .. "created")
+        tableObject[path1] = {}
+        CreateValueAtPath(value, path, tableObject[path1])
+    elseif #path == 1 then
+        tableObject[path[1]] = value
     end
-    function FindInTable(obj, path)
+end
+local function FindInTable(obj, path, debugEnabled)
         if path and #path > 0 then
             local entry = obj[path[1]]
             if entry and type(entry) == "table" then
+                if debugEnabled then print(path[1], "found") end
                 table.remove(path, 1)
-                return FindInTable(entry, path)
+                return FindInTable(entry, path, debugEnabled)
             else
+                if debugEnabled then print(entry, "found") end
                 return entry
             end
         else
+            if debugEnabled then print(obj, "obj found") end
             return obj
         end
+end
+local function SplitStringAtChar(str, splitChar)
+    local t = {}
+    local curr = ""
+    for i=1, string.len(str) do 
+       local c = string.sub(str, i, i)
+       if c == splitChar then
+          table.insert(t, curr)
+          curr = ""
+       else
+          curr = curr .. c
+       end
     end
-    function CreateValueAtPath(value, path, tableObject)
-        local subTable = tableObject[path[1]]
-        if subTable and type(subTable) == "table" and #path > 1 then
-            table.remove(path, 1)
-            CreateValueAtPath(value, path, subTable)
-        elseif not subTable and #path > 1 then
-            local path1 = path[1]
-            print("subtable created: "..path1)
-            table.remove(path, 1)
-            tableObject[path1] = {}
-            CreateValueAtPath(value, path, tableObject[path1])
-        elseif #path == 1 then
-            tableObject[path[1]] = value
-        end
+    if curr ~= "" then
+       table.insert(t, curr)
     end
+    return t
+end
+function srslylawlUI.GetSetting(path, canBeNil)
     local pathTable = SplitStringAtChar(path, ".")
-    local variable = FindInTable(srslylawl_saved.settings, pathTable)
-    if not variable then
-        variable = FindInTable(srslylawlUI.settings, pathTable)
-
-        if not variable then
-            error("setting doesnt exist")
-            return
+    local variable = FindInTable(srslylawlUI.loadedSettings, {unpack(pathTable)})
+    if variable == nil then
+        variable = FindInTable(srslylawl_saved.settings, {unpack(pathTable)})
+        if variable == nil then
+            variable = FindInTable(srslylawlUI.defaultSettings, {unpack(pathTable)}, true)
+            if variable == nil then
+                if canBeNil then
+                    return nil
+                else
+                    error("setting "..path.." does not exist")
+                end
+                return
+            else
+                local printVar = type(variable) ~= "table" and ": "..tostring(variable).." " or " "
+                srslylawlUI.Log("Variable not found in saved settings: " .. path .. ". Default value"..printVar.."used instead. If you see this message after updating your addon, it can probably be ignored. Probably.")
+                CreateValueAtPath(variable, pathTable, srslylawl_saved.settings)
+            end
         else
-            srslylawlUI.Log("Variable not found in saved settings:" .. path .. ". Default value used instead. If you see this message after updating your addon, it can probably be ignored. Probably.")
-            pathTable = table.remove(pathTable, #pathTable)
-            CreateValueAtPath(variable, pathTable, srslylawl_saved)
+            -- print("var", variable, "found in saved settings")
         end
+    else
+        -- print(path .. " = "..(type(variable) ~= "table" and tostring(variable) or "tableobject").. " (found in loaded settings)")
     end
 
     return variable
+end
+function srslylawlUI.ChangeSetting(path, variable)
+    local pathTable = SplitStringAtChar(path, ".")
+    CreateValueAtPath(variable, pathTable, srslylawlUI.loadedSettings)
+    srslylawlUI.SetDirtyFlag()
 end
 
 
