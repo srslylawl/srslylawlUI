@@ -1525,14 +1525,6 @@ function srslylawlUI.LoadSettings(reset, announce)
     end
     srslylawlUI.loadedSettings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI_Saved.settings)
 
-    -- if srslylawlUI_Saved.buffs == nil then
-    --     srslylawlUI_Saved.buffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.buffs)
-    -- end
-    -- --debuffs
-    -- if srslylawlUI_Saved.debuffs == nil then
-    --     srslylawlUI_Saved.debuffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.debuffs)
-    -- end
-
     local c = srslylawlUI_ConfigFrame
     if c then
         for k, v in pairs(c.sliders) do
@@ -1674,55 +1666,6 @@ function srslylawlUI.ChangeSetting(path, variable)
     local pathTable = SplitStringAtChar(path, ".")
     CreateValueAtPath(variable, pathTable, srslylawlUI.loadedSettings)
     srslylawlUI.SetDirtyFlag()
-end
-function srslylawlUI.CreateSettingsObjects()
-    local function CreateIt(settingTable, target)
-        for name, value in pairs(settingTable) do
-            if type(value) == "table" then
-                target[name] = {}
-                CreateIt(value, target[name])
-            else
-                target[name] = {
-                    onChangeFunc = 0,
-                    useParentOnChange = true,
-                    value = value,
-                    type = type(value)
-                }
-                local settingsObject = target[name]
-                local type = type(value)
-                if type == "boolean" then
-                elseif type == "number" then
-                    settingsObject.attributes = {
-                        min = 0,
-                        max = value,
-                        step = 1
-                    }
-                elseif type == "string" then
-                    settingsObject.attributes = "anchorTable"
-                end
-            end
-        end
-    end
-    srslylawlUI_Saved.TEST = {}
-    CreateIt(srslylawlUI.defaultSettings, srslylawlUI_Saved.TEST)
-    print("done")
-end
-function srslylawlUI.GetSettingsObject(path)
-    --[[
-        //primitive types: anchor(dropdown), value(min,max, step slider with editbox), boolean (checkbutton)
-        //compound types: anchorpoint(ownAnchorpoint, relativetoframe(optional, needs list of parentable frames), relativeToAnchorPoint, valueoffsetx, valueoffsety  )
-        basic anatomy:
-    { Name(of setting) = xxx,
-        type = "xxx",
-        onchangefunc = xxx(),
-        parentsetting = table,
-        useparentonchangefunc = bool,
-        value = x (of setting)
-
-    }
-    ]]
-
-
 end
 
 local function Initialize()

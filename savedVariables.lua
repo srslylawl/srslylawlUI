@@ -1,7 +1,7 @@
 srslylawlUI = srslylawlUI or {}
 
 srslylawlUI_Saved = {
-    ["buffs"] = {
+    buffs = {
         ["known"] = {
             [118038] = {
 				["autoDetect"] = false,
