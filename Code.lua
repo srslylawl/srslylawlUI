@@ -2,9 +2,15 @@ srslylawlUI = srslylawlUI or {}
 
 srslylawlUI.defaultSettings = {
     party = {
-        header = {anchor = "LEFT", xOffset = 250, yOffset = 200},
-        hp = {width = 300, height = 60, minWidthPercent = 0.55},
-        power = {width = 15},
+        header = {
+            anchor = "LEFT", xOffset = 250, yOffset = 200
+        },
+        hp = {
+            width = 300, height = 60, minWidthPercent = 0.55
+        },
+        power = {
+            width = 15
+        },
         pet = {width = 15},
         buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT",
                 showCastByPlayer = true, maxBuffs = 5, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
@@ -1756,6 +1762,66 @@ function srslylawlUI.ChangeSetting(path, variable)
     local pathTable = SplitStringAtChar(path, ".")
     CreateValueAtPath(variable, pathTable, srslylawlUI.loadedSettings)
     srslylawlUI.SetDirtyFlag()
+end
+function srslylawlUI.CreateSettingsObjects()
+    local function CreateIt(settingTable, target)
+        for name, value in pairs(settingTable) do
+            if type(value) == "table" then
+                print(name)
+                target[name] = {}
+                CreateIt(value, target[name])
+            else
+                target[name] = {
+                    name = name,
+                    onChangeFunc = nil,
+                    parent = target,
+                    useParentOnChange = true,
+                    value = value,
+                    type = type(value)
+                }
+                local settingsObject = target[name]
+                setmetatable(settingsObject, {
+                    __newindex = function(self, key, val)
+                        if key == "parent" then
+                            val.parent = self
+                        end
+                        rawset(self, key, val)
+                    end
+                })
+                local type = type(value)
+                if type == "boolean" then
+                elseif type == "number" then
+                    settingsObject.attributes = {
+                        min = 0,
+                        max = value,
+                        step = 1
+                    }
+                elseif type == "string" then
+                    settingsObject.attributes = srslylawlUI.anchorTable
+                end
+            end
+        end
+    end
+
+    -- srslylawl_saved.TEST={}
+    CreateIt(srslylawlUI.defaultSettings, srslylawl_saved.TEST)
+end
+function srslylawlUI.GetSettingsObject(path)
+    --[[
+        //primitive types: anchor(dropdown), value(min,max, step slider with editbox), boolean (checkbutton)
+        //compound types: anchorpoint(ownAnchorpoint, relativetoframe(optional, needs list of parentable frames), relativeToAnchorPoint, valueoffsetx, valueoffsety  )
+        basic anatomy:
+    { Name(of setting) = xxx,
+        type = "xxx",
+        onchangefunc = xxx(),
+        parentsetting = table,
+        useparentonchangefunc = bool,
+        value = x (of setting)
+
+    }
+    ]]
+
+
 end
 
 local function Initialize()

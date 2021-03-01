@@ -17,7 +17,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
             ["CCColor"] = "none",
             ["CCMaxDur"] = 6
         }
-        for i,unit in pairs(partyUnitsTable) do
+        for i,unit in pairs(srslylawlUI.partyUnitsTable) do
             local frame = _G["srslylawlUI_FAUX_PartyHeader_"..unit]
 
             if unit == "party1" then
@@ -99,7 +99,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
             color = RAID_CLASS_COLORS[fauxUnit.class]
 
-            local hp = (fauxUnit.hp .. " " .. ceil(fauxUnit.hp / fauxUnit.hpmax * 100) .. "%")
+            local hp = (srslylawlUI.ShortenNumber(fauxUnit.hp) .. " " .. ceil(fauxUnit.hp / fauxUnit.hpmax * 100) .. "%")
 
             local powerToken = fauxUnit.powerToken
             local powerColor = srslylawlUI.Frame_GetCustomPowerBarColor(powerToken)
