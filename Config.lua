@@ -282,19 +282,19 @@ function srslylawlUI.CreateConfigWindow()
 
             local showParty = CreateCheckButton("Party", visibility)
             showParty:SetScript("OnClick", function(self)
-                srslylawlUI.ChangeSetting("party.showParty", self:GetChecked())
+                srslylawlUI.ChangeSetting("party.visibility.showParty", self:GetChecked())
                 srslylawlUI.Frame_UpdateVisibility()
             end)
-            local showPartyBool = srslylawlUI.GetSetting("party.showParty")
+            local showPartyBool = srslylawlUI.GetSetting("party.visibility.showParty")
             AddTooltip(showParty, "Show Frames while in a Party")
             showParty:SetPoint("TOPLEFT", visibility, "TOPLEFT")
             showParty:SetChecked(showPartyBool)
             showParty:SetAttribute("defaultValue", showPartyBool)
 
-            local showRaidBool = srslylawlUI.GetSetting("party.showRaid")
+            local showRaidBool = srslylawlUI.GetSetting("party.visibility.showRaid")
             local showRaid = CreateCheckButton("Raid", visibility)
             showRaid:SetScript("OnClick", function(self)
-                srslylawlUI.ChangeSetting("party.showRaid", self:GetChecked())
+                srslylawlUI.ChangeSetting("party.visibility.showRaid", self:GetChecked())
                 srslylawlUI.Frame_UpdateVisibility()
             end)
             showRaid:SetPoint("LEFT", showParty.text, "RIGHT")
@@ -302,10 +302,10 @@ function srslylawlUI.CreateConfigWindow()
             showRaid:SetChecked(showRaidBool)
             showRaid:SetAttribute("defaultValue", showRaidBool)
 
-            local showPlayerBool = srslylawlUI.GetSetting("party.showPlayer")
+            local showPlayerBool = srslylawlUI.GetSetting("party.visibility.showPlayer")
             local showPlayer = CreateCheckButton("Show Player", visibility)
             showPlayer:SetScript("OnClick", function(self)
-                srslylawlUI.ChangeSetting("party.showPlayer", self:GetChecked())
+                srslylawlUI.ChangeSetting("party.visibility.showPlayer", self:GetChecked())
                 srslylawlUI.Frame_UpdateVisibility()
             end)
             showPlayer:SetPoint("LEFT", showRaid.text, "RIGHT")
@@ -313,10 +313,10 @@ function srslylawlUI.CreateConfigWindow()
             showPlayer:SetChecked(showPlayerBool)
             showPlayer:SetAttribute("defaultValue", showPlayerBool)
 
-            local showSoloBool = srslylawlUI.GetSetting("party.showSolo")
+            local showSoloBool = srslylawlUI.GetSetting("party.visibility.showSolo")
             local showSolo = CreateCheckButton("Solo", visibility)
             showSolo:SetScript("OnClick", function(self)
-                srslylawlUI.ChangeSetting("party.showSolo", self:GetChecked())
+                srslylawlUI.ChangeSetting("party.visibility.showSolo", self:GetChecked())
                 srslylawlUI.Frame_UpdateVisibility()
             end)
             showSolo:SetPoint("LEFT", showPlayer.text, "RIGHT")
@@ -324,10 +324,10 @@ function srslylawlUI.CreateConfigWindow()
             showSolo:SetChecked(showSoloBool)
             showSolo:SetAttribute("defaultValue", showSoloBool)
 
-            local showArenaBool = srslylawlUI.GetSetting("party.showArena")
+            local showArenaBool = srslylawlUI.GetSetting("party.visibility.showArena")
             local showArena = CreateCheckButton("Arena", visibility)
             showArena:SetScript("OnClicK", function(self)
-                srslylawlUI.ChangeSetting("party.showArena",self:GetChecked())
+                srslylawlUI.ChangeSetting("party.visibility.showArena",self:GetChecked())
                 srslylawlUI.Frame_UpdateVisibility()
             end)
             showArena:SetPoint("LEFT", showSolo.text, "RIGHT")
@@ -744,7 +744,7 @@ function srslylawlUI.CreateConfigWindow()
 
         return unpack(contents)
     end
-    local function GenerateSpellList(spellListKey, filter, auratype)
+    local function GenerateSpellList(spellListKey, filter, auraType)
         local function startsWith(str, start)
             str = string.lower(str)
             start = string.lower(start)
@@ -756,8 +756,11 @@ function srslylawlUI.CreateConfigWindow()
             return string.match(str, pattern)
         end
         local filter = (filter ~= nil and filter) or ""
-        spellList = srslylawlUI[auratype][spellListKey]
-        if spellList == nil then error("spelllist nil "..spellListKey.. " "..auratype) end
+
+        spellList = srslylawlUI_Saved[auraType][spellListKey]
+
+        
+        if spellList == nil then error("spelllist nil "..spellListKey.. " "..auraType) end
         -- sort list
         local sortedSpellList = {}
         local exactMatch = nil
@@ -777,7 +780,7 @@ function srslylawlUI.CreateConfigWindow()
             table.insert(sortedSpellList, 1, exactMatch)
         end
 
-        srslylawlUI.sortedSpellLists[auratype][spellListKey] = sortedSpellList
+        srslylawlUI.sortedSpellLists[auraType][spellListKey] = sortedSpellList
     end
     local function OpenSpellAttributePanel(parentTab, spellId)
         --auraType "buffs" or "debuffs"
@@ -811,26 +814,21 @@ function srslylawlUI.CreateConfigWindow()
                     local id = self:GetParent():GetAttribute("spellId")
                     local checked = self:GetChecked()
 
-                    srslylawlUI[auraType].known[id][attribute] = checked
-                    srslylawl_saved[auraType].known[id][attribute] = checked
+                    srslylawlUI_Saved[auraType].known[id][attribute] = checked
 
                     if checked then
-                        srslylawlUI[auraType][category][id] = srslylawlUI[auraType].known[id]
-                        srslylawl_saved[auraType][category][id] = srslylawlUI[auraType].known[id]
+                        srslylawlUI_Saved[auraType][category][id] = srslylawlUI_Saved[auraType].known[id]
 
                         --remove from opposite list
                         if category == "whiteList" then
-                            srslylawlUI[auraType].blackList[id] = nil
-                            srslylawl_saved[auraType].blackList[id] = nil
+                            srslylawlUI_Saved[auraType].blackList[id] = nil
                             self:GetParent().isBlacklisted:SetChecked(not checked)
                         elseif category == "blackList" then
-                            srslylawlUI[auraType].whiteList[id] = nil
-                            srslylawl_saved[auraType].whiteList[id] = nil
+                            srslylawlUI_Saved[auraType].whiteList[id] = nil
                             self:GetParent().isWhitelisted:SetChecked(not checked)
                         end
                     else
-                        srslylawlUI[auraType][category][id] = nil
-                        srslylawl_saved[auraType][category][id] = nil
+                        srslylawlUI_Saved[auraType][category][id] = nil
                     end
 
 
@@ -870,8 +868,7 @@ function srslylawlUI.CreateConfigWindow()
                 local id = self:GetParent():GetAttribute("spellId")
                 local checked = self:GetChecked()
 
-                srslylawlUI[auraType].known[id].autoDetect = checked
-                srslylawl_saved[auraType].known[id].autoDetect = checked
+                srslylawlUI_Saved[auraType].known[id].autoDetect = checked
 
                 SetEnableButtons(attributePanel, auraType, checked)
             end)
@@ -898,12 +895,12 @@ function srslylawlUI.CreateConfigWindow()
                 attributePanel.DefensiveAmount:SetScript("OnEnterPressed", function (self)
                         local amount = self:GetNumber();
                         local id = self:GetParent():GetAttribute("spellId")
-                        local old = srslylawlUI.buffs.known[id].reductionAmount
-                        srslylawlUI.buffs.known[id].reductionAmount = amount
-                        srslylawlUI.buffs.defensives[id] = srslylawlUI.buffs.known[id]
+                        local old = srslylawlUI_Saved.buffs.known[id].reductionAmount
+                        srslylawlUI_Saved.buffs.known[id].reductionAmount = amount
+                        srslylawlUI_Saved.buffs.defensives[id] = srslylawlUI_Saved.buffs.known[id]
 
-                        srslylawl_saved.buffs.known[id].reductionAmount = amount
-                        srslylawl_saved.buffs.defensives[id] = srslylawlUI.buffs.known[id]
+                        srslylawlUI_Saved.buffs.known[id].reductionAmount = amount
+                        srslylawlUI_Saved.buffs.defensives[id] = srslylawlUI_Saved.buffs.known[id]
 
                         srslylawlUI.Log("Damage reduction amount for spell " .. GetSpellInfo(id) .. " set from " .. old .. "% to " .. amount .. "%!")
                     end)
@@ -956,7 +953,7 @@ function srslylawlUI.CreateConfigWindow()
         
         if spellId == nil then
             --only adjusting parenting (switched/opened tabs)
-            if not srslylawlUI[auraType].known[attributePanel:GetAttribute("spellId")] then
+            if not srslylawlUI_Saved[auraType].known[attributePanel:GetAttribute("spellId")] then
                 attributePanel:Hide()
             end
             return 
@@ -973,27 +970,26 @@ function srslylawlUI.CreateConfigWindow()
 
 
 
-        local isBlacklisted = srslylawlUI[auraType].blackList[spellId] ~= nil or false
-        local isWhitelisted = srslylawlUI[auraType].whiteList[spellId] ~= nil or false
-        local autoDetect = srslylawlUI[auraType].known[spellId].autoDetect == nil or srslylawlUI[auraType].known[spellId].autoDetect
-        AddTooltip(attributePanel.LastParsedText, srslylawlUI[auraType].known[spellId].text or "<Aura either has no tooltip or was never encountered>")
+        local isBlacklisted = srslylawlUI_Saved[auraType].blackList[spellId] ~= nil or false
+        local isWhitelisted = srslylawlUI_Saved[auraType].whiteList[spellId] ~= nil or false
+        local autoDetect = srslylawlUI_Saved[auraType].known[spellId].autoDetect == nil or srslylawlUI_Saved[auraType].known[spellId].autoDetect
+        AddTooltip(attributePanel.LastParsedText, srslylawlUI_Saved[auraType].known[spellId].text or "<Aura either has no tooltip or was never encountered>")
         attributePanel.AutoDetect:SetChecked(autoDetect)
         attributePanel.isBlacklisted:SetChecked(isBlacklisted)
         attributePanel.isWhitelisted:SetChecked(isWhitelisted)
         if auraType == "buffs" then
-            attributePanel.isDefensive:SetChecked(srslylawlUI.buffs.known[spellId].isDefensive)
-            attributePanel.isAbsorb:SetChecked(srslylawlUI.buffs.known[spellId].isAbsorb)
-            attributePanel.DefensiveAmount:SetNumber(srslylawlUI[auraType].known[spellId].reductionAmount or 0)
-            -- attributePanel.DefensiveAmount:SetShown(srslylawlUI.buffs.known[spellId].isDefensive and not autoDetect)
+            attributePanel.isDefensive:SetChecked(srslylawlUI_Saved.buffs.known[spellId].isDefensive)
+            attributePanel.isAbsorb:SetChecked(srslylawlUI_Saved.buffs.known[spellId].isAbsorb)
+            attributePanel.DefensiveAmount:SetNumber(srslylawlUI_Saved[auraType].known[spellId].reductionAmount or 0)
         elseif auraType == "debuffs" then
             --dropdown cctype
             local dropDown = attributePanel.CCType
-            UIDropDownMenu_SetText(attributePanel.CCType, "Crowd Control Type: " .. srslylawlUI.Utils_CCTableTranslation(srslylawlUI[auraType].known[spellId].crowdControlType))
+            UIDropDownMenu_SetText(attributePanel.CCType, "Crowd Control Type: " .. srslylawlUI.Utils_CCTableTranslation(srslylawlUI_Saved[auraType].known[spellId].crowdControlType))
             UIDropDownMenu_Initialize(dropDown, 
                 function(self)
                     local info = UIDropDownMenu_CreateInfo()
                     local checkFunc = function(self) 
-                        return self.value == srslylawlUI.Utils_CCTableTranslation(srslylawlUI[auraType].known[spellId].crowdControlType)
+                        return self.value == srslylawlUI.Utils_CCTableTranslation(srslylawlUI_Saved[auraType].known[spellId].crowdControlType)
                     end
                     info.func = self.SetValue
                     for k, v in pairs(srslylawlUI.crowdControlTable) do
@@ -1009,23 +1005,20 @@ function srslylawlUI.CreateConfigWindow()
                     UIDropDownMenu_AddButton(info)
                 end)
             function attributePanel.CCType:SetValue(newValue)
-                local spell = srslylawlUI[auraType].known[spellId]
+                local spell = srslylawlUI_Saved[auraType].known[spellId]
                 local old = spell.crowdControlType
                 UIDropDownMenu_SetText(attributePanel.CCType, "Crowd Control Type: " .. newValue)
                 newValue = srslylawlUI.Utils_CCTableTranslation(newValue)
 
                 if old ~= "none" then 
-                    srslylawlUI[auraType][old][spellId] = nil
-                    srslylawl_saved[auraType][old][spellId] = nil
+                    srslylawlUI_Saved[auraType][old][spellId] = nil
                 end
 
                 if newValue ~= "none" then
-                    srslylawlUI[auraType][newValue][spellId] = spell
-                    srslylawl_saved[auraType][newValue][spellId] = spell
+                    srslylawlUI_Saved[auraType][newValue][spellId] = spell
                 end
 
-                srslylawlUI[auraType].known[spellId].crowdControlType = newValue
-                srslylawl_saved[auraType].known[spellId].crowdControlType = newValue
+                srslylawlUI_Saved[auraType].known[spellId].crowdControlType = newValue
 
                 parentTab:Hide()
                 parentTab:Show()

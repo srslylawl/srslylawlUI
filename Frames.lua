@@ -311,7 +311,7 @@ function srslylawlUI.FrameSetup()
     end
     local header = CreateFrame("Frame", "srslylawlUI_PartyHeader", nil)
     header:SetSize(srslylawlUI.GetSetting("party.hp.width"), srslylawlUI.GetSetting("party.hp.height"))
-    header:SetPoint(srslylawlUI.GetSetting("party.header.anchor"), srslylawlUI.GetSetting("party.header.xOffset"), srslylawlUI.GetSetting("party.header.yOffset"))
+    header:SetPoint(unpack(srslylawlUI.GetSetting("party.header.position")))
     header:Show()
     --Create Unit Frames
     local fauxHeader = CreateFrame("Frame", "srslylawlUI_FAUX_PartyHeader", header)
@@ -459,10 +459,7 @@ end
 function srslylawlUI_PartyFrame_OnDragStop()
     if srslylawlUI_PartyHeader.isMoving then
         srslylawlUI_PartyHeader:StopMovingOrSizing()
-        local point, relativeTo, relativePoint, xOfs, yOfs = srslylawlUI_PartyHeader:GetPoint()
-        srslylawlUI.ChangeSetting("party.header.anchor", point)
-        srslylawlUI.ChangeSetting("party.header.xOffset", xOfs)
-        srslylawlUI.ChangeSetting("party.header.yOffset", yOfs)
+        srslylawlUI.ChangeSetting("party.header.point", srslylawlUI_PartyHeader:GetPoint())
     end
 end
 function srslylawlUI.Frame_IsHeaderVisible()
@@ -490,14 +487,14 @@ function srslylawlUI.Frame_UpdateVisibility()
     local isInRaid = IsInRaid() and not C_PvP.IsArena()
     
     if isInGroup then
-        UpdateHeaderVisible(srslylawlUI.GetSetting("party.showParty"))
+        UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showParty"))
     elseif isInRaid then
-        UpdateHeaderVisible(srslylawlUI.GetSetting("party.showRaid"))
+        UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showRaid"))
     elseif isInArena then
-        UpdateHeaderVisible(srslylawlUI.GetSetting("party.showArena"))
+        UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showArena"))
     else
         local frame = srslylawlUI_PartyHeader.player
-        if srslylawlUI.GetSetting("party.showSolo") then
+        if srslylawlUI.GetSetting("party.visibility.showSolo") then
             if not frame:IsShown() then
                 RegisterUnitWatch(frame)
             end
@@ -506,7 +503,7 @@ function srslylawlUI.Frame_UpdateVisibility()
                 UnregisterUnitWatch(frame)
             end
         end
-        UpdateHeaderVisible(srslylawlUI.GetSetting("party.showSolo"))
+        UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showSolo"))
     end
 end
 

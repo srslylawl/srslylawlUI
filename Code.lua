@@ -1,63 +1,5 @@
 srslylawlUI = srslylawlUI or {}
 
-srslylawlUI.defaultSettings = {
-    party = {
-        header = {
-            anchor = "LEFT", xOffset = 250, yOffset = 200
-        },
-        hp = {
-            width = 300, height = 60, minWidthPercent = 0.55
-        },
-        power = {
-            width = 15
-        },
-        pet = {width = 15},
-        buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT",
-                showCastByPlayer = true, maxBuffs = 5, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-        debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 16, growthDir = "LEFT", showCastByPlayer = true,
-                maxDebuffs = 5, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-        maxAbsorbFrames = 20,
-        ccbar = {
-            enabled = true,
-            width = 100,
-            heightPercent = 0.5
-        },
-        showArena = true,
-        showParty = true,
-        showSolo = true,
-        showRaid = false,
-        showPlayer = true,
-    },
-    player = {
-        playerFrame = {
-            enabled = true,
-            position = {},
-            hp = {width = 300, height = 80},
-            buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5,
-                showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-            debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5, showCastByPlayer = true,
-                maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-            pet = {width = 20},
-            power = {width = 15},
-        },
-        targetFrame = {
-            enabled = true,
-            position = {relative = "TOPLEFT", anchor = "CENTER", offsetX = 0, offsetY = 0},
-            hp = {width = 100, height = 50},
-            buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5,
-                showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-            debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5, showCastByPlayer = true,
-                maxDebuffs = 15, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
-            power = {width = 15},
-        },
-        targettargetFrame = {
-            enabled = true,
-            position = {relative = "TOPLEFT", anchor = "TOPRIGHT", offsetX = 0, offsetY = 0},
-            hp = {width = 100, height = 50},
-            power = {width = 15},
-        }
-    }
-}
 srslylawlUI.loadedSettings = {}
 srslylawlUI.buffs = {
     known = {},
@@ -216,7 +158,6 @@ function srslylawlUI.Utils_TableDeepCopy(orig)
         for orig_key, orig_value in next, orig, nil do
             copy[srslylawlUI.Utils_TableDeepCopy(orig_key)] = srslylawlUI.Utils_TableDeepCopy(orig_value)
         end
-        setmetatable(copy, srslylawlUI.Utils_TableDeepCopy(getmetatable(orig)))
     else -- number, string, boolean, etc
         copy = orig
     end
@@ -574,9 +515,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     local unitsType = unitbutton:GetAttribute("unitsType")
     local function GetTypeOfAuraID(spellId)
         local auraType = nil
-        if srslylawlUI.buffs.absorbs[spellId] ~= nil then
+        if srslylawlUI_Saved.buffs.absorbs[spellId] ~= nil then
             auraType = "absorb"
-        elseif srslylawlUI.buffs.defensives[spellId] ~= nil then
+        elseif srslylawlUI_Saved.buffs.defensives[spellId] ~= nil then
             auraType = "defensive"
         end
 
@@ -799,14 +740,14 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberDebuff(spellId, i, unit)
             --check if its CC
-            if srslylawlUI.debuffs.known[spellId] ~= nil and srslylawlUI.debuffs.known[spellId].crowdControlType ~= "none" and srslylawlUI.debuffs.blackList[spellId] == nil then
+            if srslylawlUI_Saved.debuffs.known[spellId] ~= nil and srslylawlUI_Saved.debuffs.known[spellId].crowdControlType ~= "none" and srslylawlUI_Saved.debuffs.blackList[spellId] == nil then
                 local cc = {
                     ["ID"] = spellId,
                     ["index"] = i,
                     ["expirationTime"] = expirationTime,
                     ["icon"] = icon,
                     ["debuffType"] = debuffType,
-                    ["ccType"] = srslylawlUI.debuffs.known[spellId].crowdControlType,
+                    ["ccType"] = srslylawlUI_Saved.debuffs.known[spellId].crowdControlType,
                     ["remaining"] = expirationTime-GetTime()
                 }
                 table.insert(appliedCC, cc)
@@ -970,22 +911,22 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
     local function NotDefault(bool)
         return bool ~= srslylawlUI.GetSetting("party.buffs.showDefault")
     end
-    if srslylawlUI.buffs.whiteList[spellId] ~= nil then
+    if srslylawlUI_Saved.buffs.whiteList[spellId] ~= nil then
         --always show whitelisted spells
         return true
     end
 
-    if srslylawlUI.buffs.blackList[spellId] ~= nil then
+    if srslylawlUI_Saved.buffs.blackList[spellId] ~= nil then
         --never show blacklisted spells
         return false
     end
 
-    if srslylawlUI.buffs.absorbs[spellId] ~= nil then
+    if srslylawlUI_Saved.buffs.absorbs[spellId] ~= nil then
         --dont show absorb spells unless whitelisted
         return false
     end
 
-    if srslylawlUI.buffs.defensives[spellId] ~= nil then
+    if srslylawlUI_Saved.buffs.defensives[spellId] ~= nil then
         --its a defensive spell
         return srslylawlUI.GetSetting("party.buffs.showDefensives")
     end
@@ -995,8 +936,8 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
     end
     
     if duration > srslylawlUI.GetSetting("party.buffs.maxDuration") then
-        if NotDefault(srslylawlUI.buffs.showLongDuration) then
-            return srslylawlUI.buffs.showLongDuration
+        if NotDefault(srslylawlUI.GetSetting("party.buffs.showLongDuration")) then
+            return srslylawlUI.GetSetting("party.buffs.showLongDuration")
         end
     end
     
@@ -1017,12 +958,12 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     local function NotDefault(bool)
         return bool ~= srslylawlUI.GetSetting("party.debuffs.showDefault")
     end
-    if srslylawlUI.debuffs.whiteList[spellId] ~= nil then
+    if srslylawlUI_Saved.debuffs.whiteList[spellId] ~= nil then
         --always show whitelisted spells
         return true
     end
 
-    if srslylawlUI.debuffs.blackList[spellId] ~= nil then
+    if srslylawlUI_Saved.debuffs.blackList[spellId] ~= nil then
         --never show blacklisted spells
         return false
     end
@@ -1072,12 +1013,11 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
         local keyWordAbsorb = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.absorbs) and ((arg1 ~= nil) and (arg1 > 1))
         local keyWordDefensive = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.defensive)
         local keyWordImmunity = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.immunity)
-        local isKnown = srslylawlUI.buffs.known[spellId] ~= nil
-        local autoDetectDisabled = isKnown and srslylawlUI.buffs.known[spellId].autoDetect ~= nil and srslylawlUI.buffs.known[spellId].autoDetect == false
+        local isKnown = srslylawlUI_Saved.buffs.known[spellId] ~= nil
+        local autoDetectDisabled = isKnown and srslylawlUI_Saved.buffs.known[spellId].autoDetect ~= nil and srslylawlUI_Saved.buffs.known[spellId].autoDetect == false
 
         if autoDetectDisabled then
-            srslylawlUI.buffs.known[spellId].text = buffText
-            srslylawl_saved.buffs.known[spellId].text = buffText
+            srslylawlUI_Saved.buffs.known[spellId].text = buffText
             return
         end
 
@@ -1090,26 +1030,24 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
         local link = GetSpellLink(spellId)
 
         if keyWordAbsorb then
-            if (srslylawlUI.buffs.absorbs[spellId] == nil) then
+            if (srslylawlUI_Saved.buffs.absorbs[spellId] == nil) then
                 -- first time entry
                 srslylawlUI.Log("new absorb spell " .. link .. " encountered!")
             else
                 -- srslylawlUI.Log("spell updated " .. spellName .. "!")
             end
 
-            srslylawlUI.buffs.absorbs[spellId] = spell
-            srslylawl_saved.buffs.absorbs[spellId] = spell
+            srslylawlUI_Saved.buffs.absorbs[spellId] = spell
         elseif keyWordImmunity then
             local log = "new defensive spell " .. link .. " encountered as immunity!"
 
             spell.reductionAmount = 100
 
-            if (srslylawlUI.buffs.defensives[spellId] == nil) then
+            if (srslylawlUI_Saved.buffs.defensives[spellId] == nil) then
                 -- first time entry
                 srslylawlUI.Log(log)
             end
-            srslylawlUI.buffs.defensives[spellId] = spell
-            srslylawl_saved.buffs.defensives[spellId] = spell
+            srslylawlUI_Saved.buffs.defensives[spellId] = spell
         elseif keyWordDefensive then
             local amount = GetPercentValue(buffLower)
             local log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "%!"
@@ -1125,27 +1063,24 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             else
                 error("reduction amount is 0 " .. spellName .. " " .. buffText)
             end
-            if (srslylawlUI.buffs.defensives[spellId] == nil) then
+            if (srslylawlUI_Saved.buffs.defensives[spellId] == nil) then
                 -- first time entry
                 srslylawlUI.Log(log)
             else
                 -- srslylawlUI.Log("spell updated " .. spellName .. "!")
             end
-            srslylawlUI.buffs.defensives[spellId] = spell
-            srslylawl_saved.buffs.defensives[spellId] = spell
+            srslylawlUI_Saved.buffs.defensives[spellId] = spell
         end
 
         if isKnown then
             -- make sure not to replace any other keys
             for key, _ in pairs(spell) do
-                srslylawlUI.buffs.known[spellId][key] = spell[key]
-                srslylawl_saved.buffs.known[spellId][key] = spell[key]
+                srslylawlUI_Saved.buffs.known[spellId][key] = spell[key]
             end
         else
             --srslylawlUI.Log("new spell encountered: " .. spellName .. "!")
             -- Add spell to known spell list
-            srslylawlUI.buffs.known[spellId] = spell
-            srslylawl_saved.buffs.known[spellId] = spell
+            srslylawlUI_Saved.buffs.known[spellId] = spell
         end
     end
 
@@ -1177,13 +1112,12 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
         local debuffLower = debuffText ~= nil and string.lower(debuffText) or ""
 
         local CCType = GetCrowdControlType(debuffLower)
-        local isKnown = srslylawlUI.debuffs.known[spellId] ~= nil
-        local autoDetectDisabled = isKnown and srslylawlUI.debuffs.known[spellId].autoDetect ~= nil and srslylawlUI.debuffs.known[spellId].autoDetect == false
+        local isKnown = srslylawlUI_Saved.debuffs.known[spellId] ~= nil
+        local autoDetectDisabled = isKnown and srslylawlUI_Saved.debuffs.known[spellId].autoDetect ~= nil and srslylawlUI_Saved.debuffs.known[spellId].autoDetect == false
 
         if autoDetectDisabled then
             --only update last parsed text
-            srslylawlUI.debuffs.known[spellId].text = debuffText
-            srslylawl_saved.debuffs.known[spellId].text = debuffText
+            srslylawlUI_Saved.debuffs.known[spellId].text = debuffText
             return
         end
 
@@ -1195,28 +1129,25 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
         local link = GetSpellLink(spellId)
 
         if CCType ~= "none" then
-            if srslylawlUI.debuffs.known[spellId] == nil then
+            if srslylawlUI_Saved.debuffs.known[spellId] == nil then
                 -- first time entry
                 srslylawlUI.Log("new crowd control spell " .. link .. " encountered!")
             else
                 -- srslylawlUI.Log("spell updated " .. spellName .. "!")
             end
 
-            srslylawlUI.debuffs[CCType][spellId] = spell
-            srslylawl_saved.debuffs[CCType][spellId] = spell
+            srslylawlUI_Saved.debuffs[CCType][spellId] = spell
         end
 
         if isKnown then
             -- make sure not to replace any other keys
             for key, _ in pairs(spell) do
-                srslylawlUI.debuffs.known[spellId][key] = spell[key]
-                srslylawl_saved.debuffs.known[spellId][key] = spell[key]
+                srslylawlUI_Saved.debuffs.known[spellId][key] = spell[key]
             end
         else
             --srslylawlUI.Log("new spell encountered: " .. spellName .. "!")
             -- Add spell to known spell list
-            srslylawlUI.debuffs.known[spellId] = spell
-            srslylawl_saved.debuffs.known[spellId] = spell
+            srslylawlUI_Saved.debuffs.known[spellId] = spell
         end
     end
 
@@ -1235,7 +1166,7 @@ function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
 
     local link = GetSpellLink(spellId)
 
-    local isKnown = srslylawlUI[auraType].known[spellId] ~= nil
+    local isKnown = srslylawlUI_Saved[auraType].known[spellId] ~= nil
 
     if isKnown then
         srslylawlUI.Log(link .. " is already known.")
@@ -1253,21 +1184,19 @@ function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
         end
 
 
-        srslylawlUI[auraType].known[spellId] = spell
-        srslylawl_saved[auraType].known[spellId] = spell
+        srslylawlUI_Saved[auraType].known[spellId] = spell
         srslylawlUI.Log("New spell added: " .. link .. "!")
     end
 end
 function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
 
-    srslylawlUI[auraType].known[spellId] = nil
-    srslylawl_saved[auraType].known[spellId] = nil
+    srslylawlUI_Saved[auraType].known[spellId] = nil
     local link = GetSpellLink(spellId)
 
-    for k, category in pairs(srslylawlUI[auraType]) do
+    for k, category in pairs(srslylawlUI_Saved[auraType]) do
         if category[spellId] ~= nil then
             category[spellId] = nil
-            srslylawl_saved[auraType][k][spellId] = nil
+            srslylawlUI_Saved[auraType][k][spellId] = nil
             srslylawlUI.Log(link .. " removed from "..k.."!")
         end
     end
@@ -1289,15 +1218,13 @@ function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
     -- end
 end
 function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
-    local spell = srslylawlUI[auraType].known[spellId]
+    local spell = srslylawlUI_Saved[auraType].known[spellId]
     local str = spell.name
 
-    srslylawlUI[auraType].blackList[spellId] = spell
-    srslylawl_saved[auraType].blackList[spellId] = spell
+    srslylawlUI_Saved[auraType].blackList[spellId] = spell
 
-    if srslylawlUI[auraType].whiteList[spellId] ~= nil then
-        srslylawlUI[auraType].whiteList[spellId] = nil
-        srslylawl_saved[auraType].whiteList[spellID] = nil
+    if srslylawlUI_Saved[auraType].whiteList[spellId] ~= nil then
+        srslylawlUI_Saved[auraType].whiteList[spellID] = nil
         str = str .. " removed from whitelist and "
     end
     
@@ -1531,7 +1458,7 @@ function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
         local reducAmount
         for _, v in ipairs(srslylawlUI[unitsType][unit].effectiveHealthSegments) do
             stackMultiplier = v.stacks > 1 and v.stacks or 1
-            reducAmount = srslylawlUI.buffs.known[v.spellId].reductionAmount / 100
+            reducAmount = srslylawlUI_Saved.buffs.known[v.spellId].reductionAmount / 100
     
             effectiveHealthMod = effectiveHealthMod * (1 - (reducAmount * stackMultiplier))
         end
@@ -1578,7 +1505,6 @@ function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
     end
 end
 
-
 --Config
 function srslylawlUI.ToggleConfigVisible(visible)
     if visible then
@@ -1593,25 +1519,19 @@ end
 function srslylawlUI.LoadSettings(reset, announce)
     if announce then srslylawlUI.Log("Settings Loaded") end
 
-    srslylawlUI.loadedSettings = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings)
-    -- if srslylawl_saved.settings.party ~= nil then
-    --     srslylawlUI.settings.party = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings.party)
-    -- end
-    -- if srslylawl_saved.settings.player ~= nil then
-    --     srslylawlUI.settings.player = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.settings.player)
-    -- end
-    --buffs
-    if srslylawl_saved.buffs == nil then
-        srslylawl_saved.buffs = srslylawlUI.buffs
-    else
-        srslylawlUI.buffs = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.buffs)
+    if not srslylawlUI_Saved.settings or not srslylawlUI_Saved.settings.player then
+        srslylawlUI_Saved.settings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.defaultSettings)
+        srslylawlUI.Log("No saved settings found, default settings loaded.")
     end
-    --debuffs
-    if srslylawl_saved.debuffs == nil then
-        srslylawl_saved.debuffs = srslylawlUI.debuffs
-    else
-        srslylawlUI.debuffs = srslylawlUI.Utils_TableDeepCopy(srslylawl_saved.debuffs)
-    end
+    srslylawlUI.loadedSettings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI_Saved.settings)
+
+    -- if srslylawlUI_Saved.buffs == nil then
+    --     srslylawlUI_Saved.buffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.buffs)
+    -- end
+    -- --debuffs
+    -- if srslylawlUI_Saved.debuffs == nil then
+    --     srslylawlUI_Saved.debuffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.debuffs)
+    -- end
 
     local c = srslylawlUI_ConfigFrame
     if c then
@@ -1636,7 +1556,7 @@ function srslylawlUI.LoadSettings(reset, announce)
     end
     if srslylawlUI_PartyHeader then
         srslylawlUI_PartyHeader:ClearAllPoints()
-        srslylawlUI_PartyHeader:SetPoint(srslylawlUI.GetSetting("party.header.anchor"), srslylawlUI.GetSetting("party.header.xOffset"),srslylawlUI.GetSetting("party.header.yOffset"))
+        srslylawlUI_PartyHeader:SetPoint(unpack(srslylawlUI.GetSetting("party.header.position")))
         srslylawlUI.Party_SetBuffFrames()
         srslylawlUI.Frame_UpdateVisibility()
         srslylawlUI.RemoveDirtyFlag()
@@ -1660,9 +1580,7 @@ function srslylawlUI.LoadSettings(reset, announce)
 end
 function srslylawlUI.SaveSettings()
     srslylawlUI.Log("Settings Saved")
-    srslylawl_saved.settings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.loadedSettings)
-    -- srslylawl_saved.buffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.buffs)
-    -- srslylawl_saved.debuffs = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.debuffs)
+    srslylawlUI_Saved.settings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.loadedSettings)
 
     for k, v in pairs(srslylawlUI_ConfigFrame.editBoxes) do
         v:SetAttribute("defaultValue", v:GetText())
@@ -1693,16 +1611,15 @@ local function CreateValueAtPath(value, path, tableObject)
     elseif not subTable and #path > 1 then
         local path1 = path[1]
         table.remove(path, 1)
-        print(tostring(path1) .. "created")
         tableObject[path1] = {}
         CreateValueAtPath(value, path, tableObject[path1])
     elseif #path == 1 then
         tableObject[path[1]] = value
     end
 end
-local function FindInTable(obj, path)
+local function FindInTable(tableObject, path)
         if path and #path > 0 then
-            local entry = obj[path[1]]
+            local entry = tableObject[path[1]]
             if entry and type(entry) == "table" then
                 table.remove(path, 1)
                 return FindInTable(entry, path)
@@ -1710,7 +1627,7 @@ local function FindInTable(obj, path)
                 return entry
             end
         else
-            return obj
+            return tableObject
         end
 end
 local function SplitStringAtChar(str, splitChar)
@@ -1734,26 +1651,21 @@ function srslylawlUI.GetSetting(path, canBeNil)
     local pathTable = SplitStringAtChar(path, ".")
     local variable = FindInTable(srslylawlUI.loadedSettings, {unpack(pathTable)})
     if variable == nil then
-        variable = FindInTable(srslylawl_saved.settings, {unpack(pathTable)})
+        variable = FindInTable(srslylawlUI_Saved.settings, {unpack(pathTable)})
         if variable == nil then
             variable = FindInTable(srslylawlUI.defaultSettings, {unpack(pathTable)})
-            if variable == nil then
-                if canBeNil then
-                    return nil
-                else
-                    error("setting "..path.." does not exist")
-                end
-                return
+        end
+        if variable == nil then
+            if canBeNil then
+                return nil
             else
-                local printVar = type(variable) ~= "table" and ": "..tostring(variable).." " or " "
-                srslylawlUI.Log("Variable not found in saved settings: " .. path .. ". Default value"..printVar.."used instead. If you see this message after updating your addon, it can probably be ignored. Probably.")
-                CreateValueAtPath(variable, pathTable, srslylawl_saved.settings)
+                error("setting "..path.." does not exist")
             end
         else
-            -- print("var", variable, "found in saved settings")
+            local printVar = type(variable) ~= "table" and ": "..tostring(variable).." " or " "
+            srslylawlUI.Log("Variable not found in saved settings: '" .. path .. "'. Default value"..printVar.."used instead. Seeing this message after updating this addon should be fine.")
+            CreateValueAtPath(variable, pathTable, srslylawlUI_Saved.settings)
         end
-    else
-        -- print(path .. " = "..(type(variable) ~= "table" and tostring(variable) or "tableobject").. " (found in loaded settings)")
     end
 
     return variable
@@ -1767,27 +1679,16 @@ function srslylawlUI.CreateSettingsObjects()
     local function CreateIt(settingTable, target)
         for name, value in pairs(settingTable) do
             if type(value) == "table" then
-                print(name)
                 target[name] = {}
                 CreateIt(value, target[name])
             else
                 target[name] = {
-                    name = name,
-                    onChangeFunc = nil,
-                    parent = target,
+                    onChangeFunc = 0,
                     useParentOnChange = true,
                     value = value,
                     type = type(value)
                 }
                 local settingsObject = target[name]
-                setmetatable(settingsObject, {
-                    __newindex = function(self, key, val)
-                        if key == "parent" then
-                            val.parent = self
-                        end
-                        rawset(self, key, val)
-                    end
-                })
                 local type = type(value)
                 if type == "boolean" then
                 elseif type == "number" then
@@ -1797,14 +1698,14 @@ function srslylawlUI.CreateSettingsObjects()
                         step = 1
                     }
                 elseif type == "string" then
-                    settingsObject.attributes = srslylawlUI.anchorTable
+                    settingsObject.attributes = "anchorTable"
                 end
             end
         end
     end
-
-    -- srslylawl_saved.TEST={}
-    CreateIt(srslylawlUI.defaultSettings, srslylawl_saved.TEST)
+    srslylawlUI_Saved.TEST = {}
+    CreateIt(srslylawlUI.defaultSettings, srslylawlUI_Saved.TEST)
+    print("done")
 end
 function srslylawlUI.GetSettingsObject(path)
     --[[

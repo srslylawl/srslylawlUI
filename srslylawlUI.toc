@@ -3,11 +3,12 @@
 ## Author: srslylawl
 ## Interface: 90002
 ## X-Category: UnitFrame
-## SavedVariables: srslylawl_saved
+## SavedVariables: srslylawlUI_Saved
 
 UnitFrames.xml
+Defaults.lua
+SavedVariables.lua
 Code.lua
-savedVariables.lua
 Config.lua
 PowerBars.lua
 Frames.lua

@@ -1,19 +1,20 @@
-srslylawl_saved = {
-    settings = srslylawlUI.defaultSettings,
-    buffs = {
-        known = {
-            	[118038] = {
+srslylawlUI = srslylawlUI or {}
+
+srslylawlUI_Saved = {
+    ["buffs"] = {
+        ["known"] = {
+            [118038] = {
 				["autoDetect"] = false,
 				["isAbsorb"] = false,
 				["name"] = "Die by the Sword",
 				["text"] = "Parry chance increased by 100%.\r\nDamage taken reduced by 30%.",
 				["isDefensive"] = true,
 				["reductionAmount"] = 30,
-			}
+			},
         },
         absorbs = {},
         defensives = {
-            	[118038] = {
+            [118038] = {
 				["autoDetect"] = false,
 				["isAbsorb"] = false,
 				["name"] = "Die by the Sword",
@@ -42,5 +43,5 @@ srslylawl_saved = {
         incaps = {},
         silences = {},
         disorients = {},
-    }
+    },
 }
