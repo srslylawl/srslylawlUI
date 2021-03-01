@@ -13,7 +13,7 @@ function srslylawlUI.CreateConfigWindow()
         srslylawlUI.mainUnits.targettarget.unitFrame:SetMovable(bool)
         srslylawlUI.Log((bool and "Frames can now be moved." or "Frames can no longer be moved."))
 
-        srslylawlUI_Frame_ToggleFauxFrames(bool)
+        srslylawlUI.ToggleFauxFrames(bool)
     end
     local function CreateEditBox(name, parent, defaultValue, funcOnTextChanged,
                                  point, xOffset, yOffset, isNumeric)

@@ -5,9 +5,10 @@
 ## X-Category: UnitFrame
 ## SavedVariables: srslylawl_saved
 
-savedVariables.lua
 UnitFrames.xml
 Code.lua
+savedVariables.lua
 Config.lua
 PowerBars.lua
 Frames.lua
+FauxFrames.lua
