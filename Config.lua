@@ -1,3 +1,13 @@
+srslylawlUI = srslylawlUI or {}
+
+
+srslylawlUI.ConfigElements = {
+    EditBoxes = {},
+    Sliders = {},
+    Dropdowns = {},
+    CheckButtons = {}
+}
+
 function srslylawlUI.CreateConfigWindow()
     local function ToggleFakeFrames(bool)
         if srslylawlUI_ConfigFrame.fakeFramesToggled == bool then
@@ -15,68 +25,99 @@ function srslylawlUI.CreateConfigWindow()
 
         srslylawlUI.ToggleFauxFrames(bool)
     end
-    local function CreateEditBox(name, parent, defaultValue, funcOnTextChanged,
-                                 point, xOffset, yOffset, isNumeric)
-        local editBox = CreateFrame("EditBox", name, parent, "BackdropTemplate")
+    local function CreateEditBox(parent, valuePath, isNumeric, onChangeFunc)
+        local bounds = CreateFrame("Frame", nil, parent)
+        srslylawlUI:Utils_SetSizePixelPerfect(bounds, 100, 50)
+        local editBox = CreateFrame("EditBox", nil, bounds, "BackdropTemplate")
+        editBox.bounds = bounds
         editBox:SetBackdrop({
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 12,
         insets = {left = 4, right = 4, top = 4, bottom = 4}
         })
+        editBox:SetPoint("CENTER")
         editBox:SetBackdropColor(0.05, 0.05, .05, .5)
         editBox:SetTextInsets(5, 5, 0, 0)
-        editBox:SetSize(50, 25)
-        editBox:SetPoint(point or "RIGHT", xOffset or 55, yOffset or 0)
+        srslylawlUI:Utils_SetSizePixelPerfect(editBox, 75, 35)
         editBox:SetAutoFocus(false)
         editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
-        editBox:SetNumeric(isNumeric or false)    
+        editBox:SetNumeric(isNumeric or false)
         if isNumeric then
-        editBox:SetNumber(defaultValue)
+            editBox:SetNumber(srslylawlUI.GetSetting(valuePath))
+            editBox:SetScript("OnTextChanged", function(self)
+                srslylawlUI.ChangeSetting(valuePath, self:GetNumber())
+                if onChangeFunc then
+                    onChangeFunc()
+                end
+             end)
         else
-        editBox:SetText(defaultValue)
+            editBox:SetText(srslylawlUI.GetSetting(valuePath))
+            editBox:SetScript("OnTextChanged", function(self)
+                srslylawlUI.ChangeSetting(valuePath, self:GetText())
+                if onChangeFunc then
+                    onChangeFunc()
+                end
+             end)
         end
-        editBox:SetMaxLetters(4)
-        editBox:SetScript("OnTextChanged", funcOnTextChanged)
-        editBox:SetAttribute("defaultValue", defaultValue)
+        editBox:SetAttribute("defaultValue", valuePath)
+        table.insert(srslylawlUI.ConfigElements.EditBoxes, editBox)
+
+        function editBox:SetTitle(title)
+            if not self.title then
+                self.title = self:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+                self.title:SetPoint("TOP", 0, 12)
+                srslylawlUI.Utils_SetHeightPixelPerfect(self.bounds, 62)
+            end
+            self.title:SetText(title)
+        end
         return editBox
     end
-    local function CreateCustomSlider(name, min, max, defaultValue, parent, offset, valueStep, isNumeric, decimals)
+    local function CreateCustomSlider(name, parent, min, max, valuePath, valueStep, decimals, onChangeFunc)
         local title = name
         name = "$parent_Slider"..name
-        local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
+        local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
+        local slider = CreateFrame("Slider", name, bounds, "OptionsSliderTemplate")
+        slider.bounds = bounds
+
+        local px = srslylawlUI.Utils_PixelFromCodeToScreen(1)
+
+        slider:SetPoint("LEFT", bounds, "LEFT", 0, 0)
+        local width, height = 250, 34
         name = slider:GetName()
         _G[name .. "Low"]:SetText(min)
         _G[name .. "High"]:SetText(max)
         _G[name .. "Text"]:SetText(title)
-        _G[name .. "Text"]:SetTextColor(1, 0.82, 0, 1)
+        _G[name .. "Text"]:SetTextColor(0.380, 0.705, 1, 1)
         _G[name .. "Text"]:SetPoint("TOP", 0, 15)
-        slider:SetPoint("TOP", 0, offset)
-        slider:SetSize(150, 16)
+        srslylawlUI.Utils_SetSizePixelPerfect(slider, width, height)
         slider:SetMinMaxValues(min, max)
-        slider:SetValue(defaultValue)
+        slider:SetValue(srslylawlUI.GetSetting(valuePath))
         slider:SetValueStep(valueStep)
         slider:SetObeyStepOnDrag(true)
         local editBox = CreateFrame("EditBox", name .. "_EditBox", slider, "BackdropTemplate")
         editBox:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-            edgeSize = 12,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
+            edgeSize = 25*px,
+            insets = {left = 4*px, right = 4*px, top = 4*px, bottom = 4*px}
         })
-        editBox:SetBackdropColor(0.2, 0.2, .2, 1)
+        editBox:SetBackdropColor(0, 0.254, 0.478, 1)
         editBox:SetTextInsets(5, 5, 0, 0)
-        editBox:SetSize(50, 25)
-        editBox:SetPoint("RIGHT", 55, 0)
+        srslylawlUI.Utils_SetSizePixelPerfect(editBox, 100, 35)
+        editBox:SetPoint("TOP", slider, "BOTTOM", 0, 0)
         editBox:SetAutoFocus(false)
         editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
         editBox:SetNumeric(isNumeric or false)
-        if isNumeric then
-            editBox:SetNumber(defaultValue)
-            editBox:SetScript("OnTextChanged",
-                          function(self) slider:SetValue(self:GetNumber()) end)
+        if not decimals or decimals == 0 then
+            editBox:SetNumber(srslylawlUI.GetSetting(valuePath))
+            editBox:SetScript("OnTextChanged", function(self) slider:SetValue(self:GetNumber()) end)
             slider:SetScript("OnValueChanged", function(self, value)
                 if editBox:GetNumber() == tonumber(value) then
+                    srslylawlUI.ChangeSetting(valuePath, value)
+                    if onChangeFunc then
+                        onChangeFunc()
+                    end
                     return
                 else
                     local index = string.find(tostring(value), "%p")
@@ -85,28 +126,39 @@ function srslylawlUI.CreateConfigWindow()
                     end
                     value = tonumber(value)
                     editBox:SetNumber(value)
+                    srslylawlUI.ChangeSetting(valuePath, value)
+                    if onChangeFunc then
+                        onChangeFunc()
+                    end
                 end
             end)
         else
-            editBox:SetText(defaultValue)
+            editBox:SetText(valuePath)
             editBox:SetScript("OnTextChanged", function(self) slider:SetValue(srslylawlUI.Utils_DecimalRound(self:GetText(), decimals)) end)
             slider:SetScript("OnValueChanged", function(self, value)
                 if editBox:GetText() == srslylawlUI.Utils_DecimalRound(value, decimals) then
                     return
                 else
                     editBox:SetText(srslylawlUI.Utils_DecimalRound(value, decimals))
+                    if onChangeFunc then
+                        onChangeFunc()
+                    end
                 end
             end)
         end
         editBox:SetMaxLetters(4)
-        slider:SetAttribute("defaultValue", defaultValue)
+
+        function slider:Reset()
+            self:SetValue(srslylawlUI.GetSetting(valuePath))
+        end
         slider.editbox = editBox
+        table.insert(srslylawlUI.ConfigElements.Sliders, slider)
+        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+25, 110)
         return slider
     end
-    local function CreateCustomDropDown(title, width, parent, anchor, relativePoint, xOffset, yOffset, valueRef, values, onChangeFunc, checkFunc)
+    local function CreateCustomDropDown(title, width, parent, valuePath, values, onChangeFunc)
         -- Create the dropdown, and configure its appearance
         local dropDown = CreateFrame("FRAME", "$parent_"..title, parent, "UIDropDownMenuTemplate")
-        dropDown:SetPoint(anchor, parent, relativePoint, xOffset, yOffset)
         UIDropDownMenu_SetWidth(dropDown, width)
         UIDropDownMenu_SetText(dropDown, title)
 
@@ -117,17 +169,106 @@ function srslylawlUI.CreateConfigWindow()
                 local value = v or k
                 info.text = value
                 info.arg1 = value
-                info.checked = checkFunc
+                info.checked = function(self) return self.value == srslylawlUI.GetSetting(valuePath) end
                 UIDropDownMenu_AddButton(info)
             end
         end)
 
         function dropDown:SetValue(newValue)
             UIDropDownMenu_SetText(dropDown, title)
-            onChangeFunc(newValue)
+            srslylawlUI.ChangeSetting(valuePath, newValue)
+            if onChangeFunc then
+                onChangeFunc()
+            end
         end
 
+        table.insert(srslylawlUI.ConfigElements.Dropdowns, dropDown)
         return dropDown
+    end
+    local function CreateConfigControl(parent, title)
+        local frame = CreateFrame("Frame", "$parent_"..title, parent, "BackdropTemplate")
+        local pixel = srslylawlUI.Utils_PixelFromCodeToScreen(1)
+        frame:SetBackdrop({
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = pixel*20,
+            insets = {left = pixel*8, right = pixel*8, top = pixel*8, bottom = pixel*8}
+        })
+        frame:SetBackdropColor(0, 0, 0, .4)
+        frame.title = frame:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        frame.title:SetText(title)
+        srslylawlUI.Utils_SetPointPixelPerfect(frame.title, "BOTTOMLEFT", frame, "TOPLEFT", 20, 0)
+
+        frame.elements = {}
+        frame.rowBounds = {}
+
+        function frame:ResizeElements()
+            local offset = 3
+            local availableWidth = srslylawlUI.Utils_PixelFromScreenToCode(self:GetParent():GetWidth())
+            local totalheight = 0
+
+            local function GetRowBounds(index)
+                if not self.rowBounds[index] then
+                    self.rowBounds[index] = CreateFrame("Frame", "$parent_Row"..index, self)
+
+                    if index == 1 then
+                        self.rowBounds[index]:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
+                    else
+                        self.rowBounds[index]:SetPoint("TOPLEFT", self.rowBounds[index-1], "BOTTOMLEFT", 0, -offset)
+                    end
+                    srslylawlUI.Utils_SetSizePixelPerfect(self.rowBounds[index], availableWidth, 1)
+                    self.rowBounds[index].height = 1
+                    self.rowBounds[index].currentOffset = 0
+                end
+
+                return self.rowBounds[index]
+            end
+            local function AdjustRowBounds(index, height)
+                local rB = GetRowBounds(index)
+
+                if height > rB.height then
+                    rB.height = height
+                    srslylawlUI.Utils_SetHeightPixelPerfect(rB, height)
+                end
+            end
+
+            local currentWidth = 0
+            local rowIndex = 1
+            local r = GetRowBounds(rowIndex)
+            r.height = 0
+            r.currentOffset = 0
+            for _, element in pairs(self.elements) do
+                local elementWidth = srslylawlUI.Utils_PixelFromScreenToCode(element.bounds:GetWidth())
+                local elementHeight = srslylawlUI.Utils_PixelFromScreenToCode(element.bounds:GetHeight())
+
+                if currentWidth + elementWidth + offset <= availableWidth then
+                    srslylawlUI.Utils_SetPointPixelPerfect(element.bounds, "TOPLEFT", GetRowBounds(rowIndex), "TOPLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
+                    currentWidth = currentWidth + elementWidth + offset
+                    self.rowBounds[rowIndex].currentOffset = currentWidth
+                    AdjustRowBounds(rowIndex, elementHeight)
+                else
+                    currentWidth = elementWidth + offset
+                    rowIndex = rowIndex + 1
+                    local rB = GetRowBounds(rowIndex)
+                    rB.height = elementHeight
+                    rB.currentOffset = currentWidth
+                    srslylawlUI.Utils_SetPointPixelPerfect(element.bounds, "TOPLEFT", rB, "BOTTOMLEFT", 0, 0)
+                end
+            end
+
+            for i=1, rowIndex do
+                totalheight = totalheight + self.rowBounds[i].height
+            end
+
+            srslylawlUI.Utils_SetSizePixelPerfect(self, availableWidth, totalheight + (rowIndex+1)*offset)
+        end
+
+        function frame:Add(element)
+            table.insert(frame.elements, element)
+            frame:ResizeElements()
+        end
+
+        return frame
     end
     local function CreateConfigBody(name, parent)
         local f = CreateFrame("Frame", name, parent, "BackdropTemplate")
@@ -237,10 +378,20 @@ function srslylawlUI.CreateConfigWindow()
     end
     local function CreateCheckButton(name, parent)
         local nameWithoutSpace = name:gsub(" ", "_")
-        local checkButton = CreateFrame("CheckButton","$parent_"..nameWithoutSpace,parent,"UICheckButtonTemplate")
-        if srslylawlUI_ConfigFrame.checkButtons == nil then srslylawlUI_ConfigFrame.checkButtons = {} end
-        srslylawlUI_ConfigFrame.checkButtons[name] = checkButton
+        local bounds = CreateFrame("Frame", "$parent_"..nameWithoutSpace.."_Bounds", parent)
+        local checkButton = CreateFrame("CheckButton","$parent_Button", bounds ,"UICheckButtonTemplate")
+        checkButton.bounds = bounds
+        checkButton:SetPoint("TOPLEFT", bounds, "TOPLEFT", 0, 0)
+        checkButton.text:SetTextColor(1,1,1,1)
+        table.insert(srslylawlUI.ConfigElements.CheckButtons, checkButton)
         checkButton.text:SetText(name)
+        local w = checkButton:GetWidth() + checkButton.text:GetStringWidth()
+        local h = checkButton:GetHeight()
+        bounds:SetSize(w, h)
+
+        function checkButton:Reset()
+            print("reset")
+        end
         return checkButton
     end
     local function CreateSaveLoadButtons(frame)
@@ -538,42 +689,15 @@ function srslylawlUI.CreateConfigWindow()
                 srslylawlUI.ChangeSetting("party.buffs.growthDir", newValue)
                 srslylawlUI.Party_SetBuffFrames()
         end, function(self) return self.value == srslylawlUI.GetSetting("party.buffs.growthDir") end)
-        local buffAnchorXOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffGrowthDir, srslylawlUI.GetSetting("party.buffs.xOffset"),
-        function(self)
-            local n = self:GetNumber()
-            if srslylawlUI.GetSetting("party.buffs.xOffset") == n then return end
-            srslylawlUI.ChangeSetting("party.buffs.xOffset", n)
-            srslylawlUI.Party_SetBuffFrames()
-        end)
-        buffAnchorXOffset.title = buffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-        buffAnchorXOffset.title:SetPoint("TOP", 0, 12)
-        buffAnchorXOffset.title:SetText("X-Offset")
-        buffAnchorXOffset:ClearAllPoints()
+        local buffAnchorXOffset = CreateEditBox(buffGrowthDir, "party.buffs.xOffset", srslylawlUI.Party_SetBuffFrames)
+        buffAnchorXOffset:SetTitle("X-Offset")
         buffAnchorXOffset:SetPoint("TOPLEFT", buffGrowthDir, "TOPRIGHT", -10, 0)
-        local buffAnchorYOffset = CreateEditBox("$parent_BuffAnchorXOffset", buffAnchorXOffset, srslylawlUI.GetSetting("party.buffs.xOffset"),
-        function(self)
-            local n = self:GetNumber()
-            if srslylawlUI.GetSetting("party.buffs.yOffset") == n then return end
-            srslylawlUI.ChangeSetting("party.buffs.yOffset", n)
-            srslylawlUI.Party_SetBuffFrames()
-        end)
-        buffAnchorYOffset.title = buffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-        buffAnchorYOffset.title:SetPoint("TOP", 0, 12)
-        buffAnchorYOffset.title:SetText("Y-Offset")
 
-        cFrame.editBoxes.buffAnchorXOffset = buffAnchorXOffset
-        cFrame.editBoxes.buffAnchorYOffset = buffAnchorYOffset
-        local buffIconSize = CreateEditBox("$parent_Icon Size", buffAnchorYOffset, srslylawlUI.GetSetting("party.buffs.size"),
-        function(self)
-            local n = self:GetNumber()
-            if srslylawlUI.GetSetting("party.buffs.size") == n then return end
-            srslylawlUI.ChangeSetting("party.buffs.size", n)
-            srslylawlUI.Party_SetBuffFrames()
-        end)
-        cFrame.editBoxes.buffIconSize = buffIconSize
-        buffIconSize.title = buffIconSize:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-        buffIconSize.title:SetPoint("TOP", 0, 12)
-        buffIconSize.title:SetText("Size")
+        local buffAnchorYOffset = CreateEditBox(buffAnchorXOffset, "party.buffs.xOffset", srslylawlUI.Party_SetBuffFrames)
+        buffAnchorYOffset:SetTitle("Y-Offset")
+
+        local buffIconSize = CreateEditBox(buffAnchorYOffset, "party.buffs.size", srslylawlUI.Party_SetBuffFrames)
+        buffIconSize:SetTitle("Size")
 
         cFrame.sliders.maxBuffs = CreateCustomSlider("Max Visible Buffs", 0, 40, srslylawlUI.GetSetting("party.buffs.maxBuffs"), buffAnchor, -50, 1, true, 0)
         cFrame.sliders.maxBuffs:SetPoint("TOPLEFT", buffAnchor, "BOTTOMLEFT", 20, -15)
@@ -684,8 +808,6 @@ function srslylawlUI.CreateConfigWindow()
     local function FillPlayerFramesTab(tab)
         local cFrame = srslylawlUI_ConfigFrame
         cFrame.fakeFramesToggled = false
-        cFrame.editBoxes = {}
-        cFrame.sliders = {}
 
         local lockFrames = CreateCheckButton("Preview settings and make frames moveable", tab)
         cFrame.lockFramesButton2 = lockFrames
@@ -694,6 +816,18 @@ function srslylawlUI.CreateConfigWindow()
             ToggleFakeFrames(self:GetChecked())
             cFrame.fakeFramesToggled = self:GetChecked()
         end)
+
+        local playerFrame = CreateConfigControl(tab, "Player Frame")
+        playerFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -50)
+        playerFrame:SetSize(200, 200)
+
+        local testButton = CreateCheckButton("Testing Stuff and stuff", playerFrame)
+        local hpWidth = CreateCustomSlider("Width", playerFrame, 1, 3000, "player.playerFrame.hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.player.unitFrame) end)
+        local hpHeight = CreateCustomSlider("Height", playerFrame, 1, 2000, "player.playerFrame.hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.player.unitFrame) end)
+
+        playerFrame:Add(testButton)
+        playerFrame:Add(hpWidth)
+        playerFrame:Add(hpHeight)
 
     end
     local function Tab_OnClick(self)
@@ -889,8 +1023,7 @@ function srslylawlUI.CreateConfigWindow()
                 AddTooltip(attributePanel.isDefensive, "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations.")
 
                 attributePanel.DefensiveAmount = CreateEditBox("Reduction Amount", attributePanel, 0,
-                    nil, "LEFT", 0, 0, true)
-                attributePanel.DefensiveAmount:ClearAllPoints(true)
+                    nil, true)
                 attributePanel.DefensiveAmount:SetPoint("LEFT", attributePanel.isDefensive.text, "RIGHT")
                 attributePanel.DefensiveAmount:SetScript("OnEnterPressed", function (self)
                         local amount = self:GetNumber();
@@ -1236,7 +1369,7 @@ function srslylawlUI.CreateConfigWindow()
         edgeSize = 10,
         insets = {left = 4, right = 4, top = 4, bottom = 4}})
     generalTab:SetBackdropColor(0, 0, 0, .4)
-    FillGeneralTab(generalTab)
+    -- FillGeneralTab(generalTab)
 
     -- Create Player Frames Tab
     Mixin(playerFrames, BackdropTemplateMixin)
@@ -1294,7 +1427,7 @@ function srslylawlUI.CreateConfigWindow()
     ScrollFrame.child:SetAllPoints(true)
     ScrollFrame.child:SetSize(partyFramesTab:GetWidth()-30, 10000)
     ScrollFrame:SetScrollChild(ScrollFrame.child)
-    FillPartyFramesTab(ScrollFrame.child)
+    -- FillPartyFramesTab(ScrollFrame.child)
 
     -- Create Buffs Tab
     buffsTab:ClearAllPoints()
@@ -1319,7 +1452,7 @@ function srslylawlUI.CreateConfigWindow()
     AddTooltip(blackList.tabButton, "Buffs that will not be displayed on the interface")
 
     Mixin(knownBuffs, BackdropTemplateMixin)
-    CreateBuffTabs(knownBuffs, absorbs, defensives, whiteList, blackList)
+    -- CreateBuffTabs(knownBuffs, absorbs, defensives, whiteList, blackList)
 
     -- Create Debuffs Tab
     debuffsTab:ClearAllPoints()
@@ -1336,7 +1469,7 @@ function srslylawlUI.CreateConfigWindow()
     
     local knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots = 
         SetTabs(debuffsTab, "Encountered", "Whitelist", "Blacklist", "Stuns", "Incapacitates", "Disorients", "Silences", "Roots")
-    CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots)
+    -- CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots)
     AddTooltip(knownDebuffs.tabButton, "List of all encountered debuffs.")
     AddTooltip(whiteList.tabButton, "Whitelisted debuffs will always be displayed.")
     AddTooltip(blackList.tabButton, "Blacklisted debuffs will never be displayed.")

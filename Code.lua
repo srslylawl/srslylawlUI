@@ -92,15 +92,9 @@ local debugString = ""
 
 --[[ TODO:
 
-
-
-buffs/debuffs for player/target
-anchor debuffs to buffs (for anchorbuffs, set onhide to resort)
-stealable indicator on enemy absorbframes
 combaticon position
 ccdurbar on player/target/targettarget
 powerbar text
-old debuffs still not properly hiding
 absorb anchor sometimes not moving
 alt powerbar
 fontsizes
@@ -109,17 +103,15 @@ UnitHasIncomingResurrection(unit)
 incoming summon
 more sort methods?
 totem bar?
-purge resources on loadscreen
+purge resources on loadscreen (arena)
 focus frame
 better immunity texture
-astral power bar color is too similar to mana
 config window:
     faux frames absorb auras
     faux frames for target/player/targettarget/pet
     settings for player/target/targettarget/pet/buffs/debuffs/powerbars
 revisit some of the sorting/resize logic, probably firing way more often than necessary
 enable/disable sorting? maybe enable manual sorting by hand?
-update show faux frames button when closing config
 ]]
 
 
@@ -1525,31 +1517,15 @@ function srslylawlUI.LoadSettings(reset, announce)
     end
     srslylawlUI.loadedSettings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI_Saved.settings)
 
-    local c = srslylawlUI_ConfigFrame
-    if c then
-        for k, v in pairs(c.sliders) do
-            local default = v:GetAttribute("defaultValue")
-            if default then
-                v:SetValue(default)
-            end
-        end
-        for k, v in pairs(c.editBoxes) do
-            local default = v:GetAttribute("defaultValue")
-            if default then
-                v:SetText(default)
-            end
-        end
-        for k, v in pairs(c.checkButtons) do
-            local default = v:GetAttribute("defaultValue")
-            if default ~= nil then
-                v:SetChecked(default)
-            end
+    for _, elementTable in pairs(srslylawlUI.ConfigElements) do
+        for _, element in pairs(elementTable) do
+            element:Reset()
         end
     end
+
     if srslylawlUI_PartyHeader then
         srslylawlUI_PartyHeader:ClearAllPoints()
         srslylawlUI_PartyHeader:SetPoint(unpack(srslylawlUI.GetSetting("party.header.position")))
-        srslylawlUI.Party_SetBuffFrames()
         srslylawlUI.Frame_UpdateVisibility()
         srslylawlUI.RemoveDirtyFlag()
     end
@@ -1573,17 +1549,6 @@ end
 function srslylawlUI.SaveSettings()
     srslylawlUI.Log("Settings Saved")
     srslylawlUI_Saved.settings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.loadedSettings)
-
-    for k, v in pairs(srslylawlUI_ConfigFrame.editBoxes) do
-        v:SetAttribute("defaultValue", v:GetText())
-    end
-    for k, v in pairs(srslylawlUI_ConfigFrame.sliders) do
-        v:SetAttribute("defaultValue", v:GetValue())
-    end
-    for k, v in pairs(srslylawlUI_ConfigFrame.checkButtons) do
-        v:SetAttribute("defaultValue", v:GetChecked())
-    end
-    
     srslylawlUI.RemoveDirtyFlag()
 end
 function srslylawlUI.SetDirtyFlag()
