@@ -371,7 +371,7 @@ function srslylawlUI.FrameSetup()
         end
         local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
         if a and #a > 1 then
-            srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], a[2], a[3], a[4], a[5])
+            srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
         elseif unit == "targettarget" then
             frame:SetPoint("TOPLEFT", srslylawlUI.mainUnits.target.unitFrame, "TOPRIGHT", 0, 0)
         elseif unit == "target" then
@@ -1599,14 +1599,23 @@ end
 function srslylawlUI.Frame_SetupTargetFrame(frame)
     frame:RegisterEvent("UNIT_PORTRAIT_UPDATE")
 	frame:RegisterEvent("UNIT_MODEL_CHANGED")
-    local portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame)
-    srslylawlUI.Utils_SetPointPixelPerfect(portrait, "TOPLEFT", frame.unit, "TOPRIGHT", 2, 0)
-    local height = srslylawlUI.Utils_PixelFromScreenToCode(frame.unit:GetHeight())
-    srslylawlUI.Utils_SetPointPixelPerfect(portrait, "BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", height+2, 0)
+    local portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame.unit)
+    srslylawlUI.Utils_SetPointPixelPerfect(portrait, "TOPLEFT", frame.unit, "TOPRIGHT", 1, 0)
+    local height = srslylawlUI.GetSetting("player.targetFrame.hp.height")
+    srslylawlUI.Utils_SetPointPixelPerfect(portrait, "BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", height+1, 0)
     portrait:SetAlpha(1)
     portrait:SetUnit("target")
     portrait:SetPortraitZoom(1)
     portrait:Show()
+
+    local oldSetSize = frame.SetSize
+    function frame:SetSize(x, y)
+        srslylawlUI.Utils_SetPointPixelPerfect(portrait, "TOPLEFT", frame.unit, "TOPRIGHT", 1, 0)
+        local height = srslylawlUI.GetSetting("player.targetFrame.hp.height")
+        srslylawlUI.Utils_SetPointPixelPerfect(portrait, "BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", height+1, 0)
+
+        oldSetSize(frame, x, y)
+    end
     srslylawlUI.CreateBackground(portrait)
     portrait.ModelUpdate = function(self)
         if not UnitIsVisible("target") or not UnitIsConnected("target") then

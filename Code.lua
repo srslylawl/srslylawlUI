@@ -77,6 +77,12 @@ srslylawlUI.anchorTable = {
     "TOP", "RIGHT", "BOTTOM", "LEFT", "CENTER", "TOPRIGHT", "TOPLEFT",
     "BOTTOMLEFT", "BOTTOMRIGHT"
 }
+srslylawlUI.FramesToAnchorTo = {
+    "Screen",
+    "PlayerFrame",
+    "TargetFrame",
+    "TargetFramePortrait"
+}
 srslylawlUI.unitHealthBars = {}
 local unitHealthBars = srslylawlUI.unitHealthBars
 srslylawlUI.sortTimerActive = false
@@ -93,10 +99,13 @@ local debugString = ""
 --[[ TODO:
 
 combaticon position
+healabsorb bar needs to be capped
+horde/ally symbol
 ccdurbar on player/target/targettarget
 powerbar text
 absorb anchor sometimes not moving
 alt powerbar
+effective health frame layer
 fontsizes
 hide blizzard default frames
 UnitHasIncomingResurrection(unit)
@@ -381,6 +390,33 @@ function srslylawlUI.ShortenNumber(number)
         end
     end
     return number
+end
+function srslylawlUI.TranslateFrameAnchor(anchor)
+    if type(anchor) == "string" then
+        if anchor == "Screen" then
+            return nil
+        elseif anchor == "PlayerFrame" then
+            return srslylawlUI.mainUnits.player.unitFrame
+        elseif anchor == "TargetFrame" then
+            return srslylawlUI.mainUnits.target.unitFrame
+        elseif anchor == "TargetFramePortrait" then
+            return srslylawlUI.mainUnits.target.unitFrame.portrait
+        end
+    elseif type(anchor) == "table" then
+        if anchor == srslylawlUI.mainUnits.player.unitFrame then
+            return "PlayerFrame"
+        elseif anchor == srslylawlUI.mainUnits.target.unitFrame then
+            return "TargetFrame"
+        elseif anchor == nil or UIParent then
+            return "Screen"
+        elseif anchor == srslylawlUI.mainUnits.target.unitFrame.portrait then
+            return "TargetFramePortrait"
+        end
+    elseif anchor == nil then
+        return "Screen"
+    end
+
+    print(anchor)
 end
 function srslylawlUI.Debug()
     if srslylawlUI.DebugWindow == nil then
@@ -1379,6 +1415,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     sortedAbsorbAuras = SortAbsorbBySpellIDDesc(trackedAurasByIndex)
     if healAbsorb > 0 then
         healAbsorbWidth = floor(healAbsorb * pixelPerHp)
+        
         if healAbsorbWidth > 2 then
             CalcSegment(healAbsorb, "healAbsorb", nil)
         end
@@ -1529,21 +1566,21 @@ function srslylawlUI.LoadSettings(reset, announce)
         srslylawlUI.Frame_UpdateVisibility()
         srslylawlUI.RemoveDirtyFlag()
     end
-    for _, unit in pairs(mainUnitsTable) do
-        local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
-        local frame = mainUnits[unit].unitFrame
-        if frame then
-            if a and #a > 1 then
-            srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], a[2], a[3], a[4], a[5])
-            elseif unit == "targettarget" then
-                frame:SetPoint("TOPLEFT", mainUnits.target.unitFrame, "TOPRIGHT", 0, 0)
-            elseif unit == "target" then
-                frame:SetPoint("TOPLEFT", nil, "CENTER", 0, 0)
-            elseif unit == "player" then
-                frame:SetPoint("TOPRIGHT", nil, "CENTER", 0, 0)
-            end
-        end
-    end
+    -- for _, unit in pairs(mainUnitsTable) do
+    --     local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
+    --     local frame = mainUnits[unit].unitFrame
+    --     if frame then
+    --         if a and #a > 1 then
+    --         srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], a[2], a[3], a[4], a[5])
+    --         elseif unit == "targettarget" then
+    --             frame:SetPoint("TOPLEFT", mainUnits.target.unitFrame, "TOPRIGHT", 0, 0)
+    --         elseif unit == "target" then
+    --             frame:SetPoint("TOPLEFT", nil, "CENTER", 0, 0)
+    --         elseif unit == "player" then
+    --             frame:SetPoint("TOPRIGHT", nil, "CENTER", 0, 0)
+    --         end
+    --     end
+    -- end
     if (reset) then srslylawlUI.UpdateEverything() end
 end
 function srslylawlUI.SaveSettings()
@@ -1571,21 +1608,32 @@ local function CreateValueAtPath(value, path, tableObject)
         tableObject[path1] = {}
         CreateValueAtPath(value, path, tableObject[path1])
     elseif #path == 1 then
-        tableObject[path[1]] = value
+        local n = tonumber(path[1])
+        if n then
+            tableObject[n] = value
+        else
+            tableObject[path[1]] = value
+        end
     end
 end
 local function FindInTable(tableObject, path)
-        if path and #path > 0 then
-            local entry = tableObject[path[1]]
-            if entry and type(entry) == "table" then
-                table.remove(path, 1)
-                return FindInTable(entry, path)
-            else
-                return entry
+    if path and #path > 0 then
+        if #path == 1 then
+            local n = tonumber(path[1])
+            if n then
+                return tableObject[n]
             end
-        else
-            return tableObject
         end
+        local entry = tableObject[path[1]]
+        if entry and type(entry) == "table" then
+            table.remove(path, 1)
+            return FindInTable(entry, path)
+        else
+            return entry
+        end
+    else
+        return tableObject
+    end
 end
 local function SplitStringAtChar(str, splitChar)
     local t = {}
@@ -1625,6 +1673,9 @@ function srslylawlUI.GetSetting(path, canBeNil)
         end
     end
 
+    if type(variable) == "table" then
+        variable = srslylawlUI.Utils_TableDeepCopy(variable)
+    end
     return variable
 end
 function srslylawlUI.ChangeSetting(path, variable)

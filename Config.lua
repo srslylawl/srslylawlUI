@@ -75,7 +75,7 @@ function srslylawlUI.CreateConfigWindow()
     end
     local function CreateCustomSlider(name, parent, min, max, valuePath, valueStep, decimals, onChangeFunc)
         local title = name
-        name = "$parent_Slider"..name
+        name = "$parent_Slider"..valuePath..name
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
         local slider = CreateFrame("Slider", name, bounds, "OptionsSliderTemplate")
         slider.bounds = bounds
@@ -108,8 +108,8 @@ function srslylawlUI.CreateConfigWindow()
         editBox:SetPoint("TOP", slider, "BOTTOM", 0, 0)
         editBox:SetAutoFocus(false)
         editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
-        editBox:SetNumeric(isNumeric or false)
-        if not decimals or decimals == 0 then
+        editBox:SetNumeric(false)
+        if (min >=0 and max >=0) and (not decimals or decimals == 0) then
             editBox:SetNumber(srslylawlUI.GetSetting(valuePath))
             editBox:SetScript("OnTextChanged", function(self) slider:SetValue(self:GetNumber()) end)
             slider:SetScript("OnValueChanged", function(self, value)
@@ -133,23 +133,37 @@ function srslylawlUI.CreateConfigWindow()
                 end
             end)
         else
-            editBox:SetText(valuePath)
-            editBox:SetScript("OnTextChanged", function(self) slider:SetValue(srslylawlUI.Utils_DecimalRound(self:GetText(), decimals)) end)
+            editBox:SetText(srslylawlUI.GetSetting(valuePath))
+            editBox:SetScript("OnTextChanged", function(self)
+                local text = self:GetText()
+
+                if type(text) == "string" then
+                    text = tonumber(text)
+                end
+                text = text or 0
+                text = srslylawlUI.Utils_DecimalRound(text, decimals)
+                
+                slider:SetValue(text)
+            end)
             slider:SetScript("OnValueChanged", function(self, value)
                 if editBox:GetText() == srslylawlUI.Utils_DecimalRound(value, decimals) then
+                    srslylawlUI.ChangeSetting(valuePath, value)
                     return
                 else
                     editBox:SetText(srslylawlUI.Utils_DecimalRound(value, decimals))
+                    srslylawlUI.ChangeSetting(valuePath, value)
                     if onChangeFunc then
                         onChangeFunc()
                     end
                 end
             end)
         end
-        editBox:SetMaxLetters(4)
+        -- editBox:SetMaxLetters(4)
 
         function slider:Reset()
-            self:SetValue(srslylawlUI.GetSetting(valuePath))
+            local setting = srslylawlUI.GetSetting(valuePath)
+            self:SetValue(setting)
+            self.editbox:SetText(setting)
         end
         slider.editbox = editBox
         table.insert(srslylawlUI.ConfigElements.Sliders, slider)
@@ -158,9 +172,17 @@ function srslylawlUI.CreateConfigWindow()
     end
     local function CreateCustomDropDown(title, width, parent, valuePath, values, onChangeFunc)
         -- Create the dropdown, and configure its appearance
-        local dropDown = CreateFrame("FRAME", "$parent_"..title, parent, "UIDropDownMenuTemplate")
-        UIDropDownMenu_SetWidth(dropDown, width)
+        local bounds = CreateFrame("Frame", "$parent_"..valuePath.."Bounds", parent)
+        local dropDown = CreateFrame("FRAME", "$parent_"..title, bounds, "UIDropDownMenuTemplate")
+
+        dropDown.bounds = bounds
+
+        srslylawlUI.Utils_SetPointPixelPerfect(dropDown, "TOPLEFT", bounds, "TOPLEFT", -20, -30)
+
+        UIDropDownMenu_SetWidth(dropDown, srslylawlUI.Utils_PixelFromCodeToScreen(width))
         UIDropDownMenu_SetText(dropDown, title)
+
+        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+50, 75)
 
         UIDropDownMenu_Initialize(dropDown, function(self)
             local info = UIDropDownMenu_CreateInfo()
@@ -169,7 +191,7 @@ function srslylawlUI.CreateConfigWindow()
                 local value = v or k
                 info.text = value
                 info.arg1 = value
-                info.checked = function(self) return self.value == srslylawlUI.GetSetting(valuePath) end
+                info.checked = function(self) return self.value == srslylawlUI.GetSetting(valuePath, true) end
                 UIDropDownMenu_AddButton(info)
             end
         end)
@@ -183,10 +205,71 @@ function srslylawlUI.CreateConfigWindow()
         end
 
         table.insert(srslylawlUI.ConfigElements.Dropdowns, dropDown)
+
+        function dropDown:Reset()
+            self:SetValue(srslylawlUI.GetSetting(valuePath, true))
+        end
+
+        return dropDown
+    end
+    local function CreateFrameAnchorDropDown(title, parent, affectedFrame, valuePath, values, onChangeFunc)
+        local bounds = CreateFrame("Frame", "$parent_"..title.."Bounds", parent)
+        local dropDown = CreateFrame("FRAME", "$parent_"..title, bounds, "UIDropDownMenuTemplate")
+
+        local width = 150
+        dropDown.bounds = bounds
+
+        local validatedValues = {}
+        --make sure we cant anchor to self
+        for _, f in pairs(values) do
+            if srslylawlUI.TranslateFrameAnchor(f) ~= affectedFrame then
+                table.insert(validatedValues, f)
+            end
+        end
+
+        srslylawlUI.Utils_SetPointPixelPerfect(dropDown, "TOPLEFT", bounds, "TOPLEFT", -20, -30)
+
+        UIDropDownMenu_SetWidth(dropDown, srslylawlUI.Utils_PixelFromCodeToScreen(width))
+        UIDropDownMenu_SetText(dropDown, title)
+
+        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+50, 75)
+
+        UIDropDownMenu_Initialize(dropDown, function(self)
+            local info = UIDropDownMenu_CreateInfo()
+            info.func = self.SetValue
+            for k, v in pairs(validatedValues) do
+                local value = v or srslylawlUI.TranslateFrameAnchor(k)
+                info.text = value
+                info.arg1 = value
+                info.checked = function(self) return self.value == srslylawlUI.GetSetting(valuePath, true) end
+                UIDropDownMenu_AddButton(info)
+            end
+        end)
+
+        function dropDown:SetValue(newValue)
+            UIDropDownMenu_SetText(dropDown, title)
+            srslylawlUI.ChangeSetting(valuePath, newValue)
+            if onChangeFunc then
+                onChangeFunc()
+            end
+        end
+
+        table.insert(srslylawlUI.ConfigElements.Dropdowns, dropDown)
+
+        function dropDown:Reset()
+            self:SetValue(srslylawlUI.GetSetting(valuePath, true))
+        end
+
         return dropDown
     end
     local function CreateConfigControl(parent, title)
-        local frame = CreateFrame("Frame", "$parent_"..title, parent, "BackdropTemplate")
+        local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
+        local frame = CreateFrame("Frame", "$parent_"..title, bounds, "BackdropTemplate")
+        frame.bounds = bounds
+
+        local inset = 10
+        srslylawlUI.Utils_SetPointPixelPerfect(frame, "TOPLEFT", bounds, "TOPLEFT", inset, -inset)
+        srslylawlUI.Utils_SetPointPixelPerfect(frame, "BOTTOMRIGHT", bounds, "BOTTOMRIGHT", -inset, inset)
         local pixel = srslylawlUI.Utils_PixelFromCodeToScreen(1)
         frame:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
@@ -204,7 +287,7 @@ function srslylawlUI.CreateConfigWindow()
 
         function frame:ResizeElements()
             local offset = 3
-            local availableWidth = srslylawlUI.Utils_PixelFromScreenToCode(self:GetParent():GetWidth())
+            local availableWidth = srslylawlUI.Utils_PixelFromScreenToCode(parent:GetWidth()) - inset*2
             local totalheight = 0
 
             local function GetRowBounds(index)
@@ -259,13 +342,25 @@ function srslylawlUI.CreateConfigWindow()
             for i=1, rowIndex do
                 totalheight = totalheight + self.rowBounds[i].height
             end
-
-            srslylawlUI.Utils_SetSizePixelPerfect(self, availableWidth, totalheight + (rowIndex+1)*offset)
+            local height = totalheight + (rowIndex+1)*offset + inset*2
+            -- srslylawlUI.Utils_SetSizePixelPerfect(self, availableWidth, height)
+            srslylawlUI.Utils_SetSizePixelPerfect(self.bounds, availableWidth, height)
         end
 
-        function frame:Add(element)
-            table.insert(frame.elements, element)
-            frame:ResizeElements()
+        function frame:Add(...)
+            for i=1, select("#", ...) do
+                local e = select(i, ...)
+                table.insert(self.elements, #self.elements+1, e)
+            end
+            self:ResizeElements()
+        end
+
+        function frame:SetSize(x, y)
+            self.bounds:SetSize(x, y)
+        end
+
+        function frame:SetPoint(point1, parent, point2, x, y)
+            self.bounds:SetPoint(point1, parent, point2, x, y)
         end
 
         return frame
@@ -390,8 +485,37 @@ function srslylawlUI.CreateConfigWindow()
         bounds:SetSize(w, h)
 
         function checkButton:Reset()
-            print("reset")
+            print("reset checkbutton not implemented")
         end
+        return checkButton
+    end
+    local function CreateSettingsCheckButton(name, parent, valuePath, funcOnChanged)
+        local nameWithoutSpace = name:gsub(" ", "_")
+        local bounds = CreateFrame("Frame", "$parent_"..nameWithoutSpace.."_Bounds", parent)
+        local checkButton = CreateFrame("CheckButton","$parent_Button", bounds ,"UICheckButtonTemplate")
+        checkButton.bounds = bounds
+        checkButton:SetPoint("TOPLEFT", bounds, "TOPLEFT", 0, 0)
+        checkButton.text:SetTextColor(1,1,1,1)
+        table.insert(srslylawlUI.ConfigElements.CheckButtons, checkButton)
+        checkButton.text:SetText(name)
+        local w = checkButton:GetWidth() + checkButton.text:GetStringWidth()
+        local h = checkButton:GetHeight()
+        bounds:SetSize(w, h)
+
+        checkButton:SetChecked(srslylawlUI.GetSetting(valuePath))
+        checkButton:SetScript("OnClick", function(self)
+            srslylawlUI.ChangeSetting(valuePath, self:GetChecked())
+            if funcOnChanged then
+                funcOnChanged(self)
+            end
+        end)
+        function checkButton:Reset()
+            self:SetChecked(srslylawlUI.GetSetting(valuePath))
+            if funcOnChanged then
+                funcOnChanged(self)
+            end
+        end
+
         return checkButton
     end
     local function CreateSaveLoadButtons(frame)
@@ -423,6 +547,22 @@ function srslylawlUI.CreateConfigWindow()
                                      "UIPanelCloseButton")
         local c = frame.CloseButton
         c:SetPoint("TOPRIGHT", 0, 0)
+    end
+    local function CreateAnchoringPanel(parent, path, frame)
+        function Reanchor()
+            frame:ClearAllPoints()
+            local anchors = srslylawlUI.GetSetting(path)
+            anchors[2] = srslylawlUI.TranslateFrameAnchor(anchors[2])
+            srslylawlUI.Utils_SetPointPixelPerfect(frame, unpack(anchors))
+        end
+        local elements = {}
+        elements[1] = CreateCustomDropDown("Point", 120, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
+        elements[2] = CreateFrameAnchorDropDown("To Frame", parent, frame, path..".2", srslylawlUI.FramesToAnchorTo, Reanchor)
+        elements[3] = CreateCustomDropDown("Relative To", 160, parent, path..".3", srslylawlUI.anchorTable, Reanchor)
+        elements[4] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".4", 1, 0, Reanchor)
+        elements[5] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path..".5", 1, 0, Reanchor)
+
+        return elements
     end
     local function FillGeneralTab(tab)
         local function CreateVisibilityFrame(tab)
@@ -536,7 +676,6 @@ function srslylawlUI.CreateConfigWindow()
 
             local showLongDuration = CreateCheckButton("Show long duration", buffSettings)
             showLongDuration:SetScript("OnClick", function(self)
-                print("changing setting")
                 srslylawlUI.ChangeSetting("party.buffs.showLongDuration", self:GetChecked())
                 srslylawlUI.Party_HandleAuras_ALL()
             end)
@@ -817,17 +956,48 @@ function srslylawlUI.CreateConfigWindow()
             cFrame.fakeFramesToggled = self:GetChecked()
         end)
 
-        local playerFrame = CreateConfigControl(tab, "Player Frame")
-        playerFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -50)
-        playerFrame:SetSize(200, 200)
+        --player
+        local playerFrameControl = CreateConfigControl(tab, "Player Frame")
+        playerFrameControl:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, -50)
+        local enable = CreateSettingsCheckButton("Enable", tab, "player.playerFrame.enabled", function(self) local checked = self:GetChecked() if checked then RegisterUnitWatch(srslylawlUI.mainUnits.player.unitFrame) else UnregisterUnitWatch(srslylawlUI.mainUnits.player.unitFrame) end srslylawlUI.mainUnits.player.unitFrame:SetShown(checked) end)
+        local hpWidth = CreateCustomSlider("Width", tab, 1, 3000, "player.playerFrame.hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.player.unitFrame) end)
+        local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, "player.playerFrame.hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.player.unitFrame) end)
+        playerFrameControl:Add(enable, hpWidth, hpHeight)
 
-        local testButton = CreateCheckButton("Testing Stuff and stuff", playerFrame)
-        local hpWidth = CreateCustomSlider("Width", playerFrame, 1, 3000, "player.playerFrame.hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.player.unitFrame) end)
-        local hpHeight = CreateCustomSlider("Height", playerFrame, 1, 2000, "player.playerFrame.hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.player.unitFrame) end)
+        local playerPosControl = CreateConfigControl(tab, "Player Frame Position")
+        playerPosControl:SetPoint("TOPLEFT", playerFrameControl.bounds, "BOTTOMLEFT", 0, 0)
+        local anchorElements = CreateAnchoringPanel(tab, "player.playerFrame.position", srslylawlUI.mainUnits.player.unitFrame)
+        playerPosControl:Add(unpack(anchorElements))
 
-        playerFrame:Add(testButton)
-        playerFrame:Add(hpWidth)
-        playerFrame:Add(hpHeight)
+        --target
+        local targetFrameControl = CreateConfigControl(tab, "Target Frame")
+        targetFrameControl:SetPoint("TOPLEFT", playerPosControl.bounds, "BOTTOMLEFT", 0, -15)
+        enable = CreateSettingsCheckButton("Enable", tab, "player.targetFrame.enabled", function(self) local checked = self:GetChecked() if checked then RegisterUnitWatch(srslylawlUI.mainUnits.target.unitFrame) else UnregisterUnitWatch(srslylawlUI.mainUnits.target.unitFrame) end srslylawlUI.mainUnits.target.unitFrame:SetShown(checked) end)
+        hpWidth = CreateCustomSlider("Width", tab, 1, 3000, "player.targetFrame.hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.target.unitFrame) end)
+        hpHeight = CreateCustomSlider("Height", tab, 1, 2000, "player.targetFrame.hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.target.unitFrame) end)
+        targetFrameControl:Add(enable, hpWidth, hpHeight)
+
+        local targetPosControl = CreateConfigControl(tab, "Target Frame Position")
+        targetPosControl:SetPoint("TOPLEFT", targetFrameControl.bounds, "BOTTOMLEFT", 0, 0)
+        targetPosControl:Add(unpack(CreateAnchoringPanel(tab, "player.targetFrame.position", srslylawlUI.mainUnits.target.unitFrame)))
+
+        --targettarget
+        local targetTargetFrameControl = CreateConfigControl(tab, "TargetTarget Frame")
+        targetTargetFrameControl:SetPoint("TOPLEFT", targetPosControl.bounds, "BOTTOMLEFT", 0, -15)
+        enable = CreateSettingsCheckButton("Enable", tab, "player.targettargetFrame.enabled", function(self) local checked = self:GetChecked() if checked then RegisterUnitWatch(srslylawlUI.mainUnits.targettarget.unitFrame) else UnregisterUnitWatch(srslylawlUI.mainUnits.targettarget.unitFrame) end srslylawlUI.mainUnits.targettarget.unitFrame:SetShown(checked) end)
+        hpWidth = CreateCustomSlider("Width", tab, 1, 3000, "player.targettargetFrame.hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.targettarget.unitFrame) end)
+        hpHeight = CreateCustomSlider("Height", tab, 1, 2000, "player.targettargetFrame.hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.targettarget.unitFrame) end)
+        targetTargetFrameControl:Add(enable, hpWidth, hpHeight)
+
+        local targetTargetPosControl = CreateConfigControl(tab, "TargetTarget Frame Position")
+        targetTargetPosControl:SetPoint("TOPLEFT", targetTargetFrameControl.bounds, "BOTTOMLEFT", 0, 0)
+        targetTargetPosControl:Add(unpack(CreateAnchoringPanel(tab, "player.targettargetFrame.position", srslylawlUI.mainUnits.targettarget.unitFrame)))
+
+
+
+
+
+
 
     end
     local function Tab_OnClick(self)

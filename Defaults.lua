@@ -36,9 +36,9 @@ srslylawlUI.defaultSettings = {
     player = {
         playerFrame = {
             enabled = true,
-            position = { "TOPRIGHT", nil, "CENTER", -200, -100},
+            position = { "TOPRIGHT", "Screen", "CENTER", -200, -100},
             hp = {
-                width = 300, height = 80},
+                width = 300, height = 70},
             buffs = { anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5,
                 showCastByPlayer = true, maxBuffs = 15, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
             debuffs = { anchor = "BOTTOMLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5, showCastByPlayer = true,
@@ -52,9 +52,9 @@ srslylawlUI.defaultSettings = {
         },
         targetFrame = {
             enabled = true,
-            position = { "TOPLEFT", nil, "CENTER", 200, -100},
+            position = { "TOPLEFT", "Screen", "CENTER", 200, -100},
             hp = {
-                width = 300, height = 80
+                width = 300, height = 70
             },
             buffs = {
                 anchor = "TOPLEFT", xOffset = -29, yOffset = 0, size = 32, growthDir = "LEFT", perRow = 5,
@@ -68,9 +68,9 @@ srslylawlUI.defaultSettings = {
         },
         targettargetFrame = {
             enabled = true,
-            position = {"TOPLEFT", nil, "TOPRIGHT", offsetX = 0, offsetY = 0},
+            position = {"TOPLEFT", "TargetFramePortrait", "TOPRIGHT", 0, 0},
             hp = {
-                width = 100, height = 50
+                width = 150, height = 70
             },
             power = {
                 width = 15
