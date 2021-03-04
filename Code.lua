@@ -74,8 +74,10 @@ srslylawlUI.partyUnitsTable = { "player", "party1", "party2", "party3", "party4"
 srslylawlUI.mainUnitsTable = {"player", "target", "targettarget"}
 srslylawlUI.crowdControlTable = { "stuns", "incaps", "disorients", "silences", "roots"}
 srslylawlUI.anchorTable = {
-    "TOP", "RIGHT", "BOTTOM", "LEFT", "CENTER", "TOPRIGHT", "TOPLEFT",
-    "BOTTOMLEFT", "BOTTOMRIGHT"
+    "TOP", "RIGHT", "BOTTOM", "LEFT", "CENTER", "TOPRIGHT", "TOPLEFT", "BOTTOMLEFT", "BOTTOMRIGHT"
+}
+srslylawlUI.auraSortMethodTable = {
+    "TOPLEFT", "TOPRIGHT", "RIGHTTOP", "RIGHTBOTTOM", "BOTTOMRIGHT", "BOTTOMLEFT", "LEFTBOTTOM", "LEFTTOP"
 }
 srslylawlUI.FramesToAnchorTo = {
     "Screen",
@@ -672,6 +674,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         v["checkedThisEvent"] = false
     end
     -- process buffs on unit
+    local setAuraPointsFlag = false
     local buffBaseColor = {0.960, 0.952, 0.760}
     local buffIsStealableColor = {0.760, 1, 0.984}
     local buffIsEnemyColor = {0.603, 0.137, 0.1521}
@@ -686,7 +689,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             UnitAura(unit, i, "HELPFUL")
             if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(i, unit)
-            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= maxBuffs then
+            if (unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL"))) and currentBuffFrame <= maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 if isStealable then
 	                f.border:SetVertexColor(unpack(buffIsStealableColor))
@@ -756,7 +759,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 }
                 table.insert(appliedCC, cc)
             end
-            if unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= maxDebuffs then
+            if (unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL"))) and currentDebuffFrame <= maxDebuffs then
                 f.icon:SetTexture(icon)
                 if ( count > 1 ) then
 		            local countText = count;
@@ -790,6 +793,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             f:Hide()
         end
     end
+    srslylawlUI.SetAuraPointsAll(unit, unitsType)
 
     --see if we want to display our cced frame
     local displayCC = #appliedCC > 0 and srslylawlUI.GetSetting("party.ccbar.enabled")
@@ -1692,8 +1696,6 @@ local function Initialize()
     srslylawlUI.FrameSetup()
     srslylawlUI.Party_SetBuffFrames()
     srslylawlUI.Party_SetDebuffFrames()
-    srslylawlUI.Frame_Main_SetBuffFrames()
-    srslylawlUI.Frame_Main_SetDebuffFrames()
     CreateSlashCommands()
 end
 srslylawlUI_EventFrame = CreateFrame("Frame")
