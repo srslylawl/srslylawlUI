@@ -26,12 +26,6 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 						</Anchors>
 						<BarTexture name="$parent_texture" file="Interface\Addons\srslylawlUI\media\powerBarSprite" />
 						<BarColor r="1.0" g="1.0" b="1.0" />
-						<Layers>
-							<Layer level="OVERLAY">
-								<FontString name="$parent_Name" parentKey="name" inherits="GameFontHighlight"/>
-								<FontString name="$parent_Text" parentKey="text" inherits="GameFontHighlight"/>
-							</Layer>
-						</Layers>
 					</StatusBar>
 					<StatusBar name="$parent_PowerBar" parentKey="powerBar" orientation="VERTICAL">
 						<Size x="10" y="50" />

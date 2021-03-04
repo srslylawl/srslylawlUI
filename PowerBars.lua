@@ -384,7 +384,6 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
 
     return frame
 end
-
 function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
     local frame = CreateFrame("Frame", "$parent_ResourceBar_"..powerToken, parent)
     srslylawlUI.CreateBackground(frame, 1)
@@ -450,6 +449,7 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
 
     return frame
 end
+
 function srslylawlUI.PowerBar.Set(parent, unit)
     local height = 40
     local function DisplayMainBar(parent)
@@ -504,9 +504,6 @@ function srslylawlUI.PowerBar.Set(parent, unit)
         srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
     end
 end
-function srslylawlUI.PowerBar.RefreshVisibility(parent)
---hide bars that are empty/full
-end
 function srslylawlUI.PowerBar.GetType()
     local specIndex = GetSpecialization()
     local specID = GetSpecializationInfo(specIndex)
@@ -529,7 +526,6 @@ end
 function srslylawlUI.PowerBar.GetPowerToken()
     return srslylawlUI.PowerBar.SpecToPowerType[srslylawlUI.GetSpecID()]
 end
-
 function srslylawlUI.PowerBar.GetBar(parent, type, token)
     if not parent.powerBars[token] then
         if token == "Stagger" then
