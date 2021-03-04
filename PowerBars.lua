@@ -170,7 +170,11 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         return pointFrame
     end
     function frame:SetColor(color)
-        self.color = color
+        if color then
+            self.color = color
+        else
+            color = self.color
+        end
         for i=1, #self.pointFrames do
             if not self.pointFrames[i].isCharged then
                 self.pointFrames[i]:SetStatusBarColor(color.r, color.g, color.b)
@@ -180,6 +184,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     function frame:SetButtonCount(newCount)
         self.desiredButtonCount = newCount
         self:SetPoints()
+        self:SetColor(color)
     end
     function frame:SetPoints(x, y)
         if self.desiredButtonCount > #self.pointFrames then

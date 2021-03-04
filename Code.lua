@@ -447,35 +447,11 @@ function srslylawlUI.Debug()
         srslylawlUI.DebugWindow.EditBox = editBox
         srslylawlUI.DebugWindow.CloseButton = CreateFrame("Button", "srslylawlUI_DebugWindow_CloseButton", srslylawlUI.DebugWindow, "UIPanelCloseButton")
         srslylawlUI.DebugWindow.CloseButton:SetPoint("BOTTOMLEFT", srslylawlUI.DebugWindow, "TOPRIGHT", 0, 0)
+        local text = "Debug \n"
+        debugString = text
     end
 
-    local text = "Debug \n"
 
-    local function AnchorToString(...)
-        local s = ""
-        for i=1,select('#', ...) do
-            local val = select(i, ...)
-            if type(val) == "table" then
-                val = val:GetName()
-            end
-            s = s .. val .. " "
-        end
-
-        return s
-    end
-
-    for k, v in pairs(partyUnits) do
-        local absorbFrameVisible = v.absorbFrames[1]:IsVisible()
-        local absorbOverlapFrameVisible = v.absorbFramesOverlap[1]:IsVisible()
-        local s = "________________\n" .. k .. "\n" .. (absorbFrameVisible and "Absorb Frame is visible! :)" or "Absorb Frame not visible") .. "\n" ..
-        "Anchor: " .. AnchorToString(v.absorbFrames[1]:GetPoint()) .. "\n\n" ..
-        (absorbOverlapFrameVisible and "Absorb Overlap Frame is visible! :)" or "Absorb Overlap Frame not visible") .. "\n" ..
-        "Anchor: " .. AnchorToString(v.absorbFramesOverlap[1]:GetPoint()) .. "\n"
-
-        text = text .. s .. "\n\n"
-    end
-
-    debugString = text
     srslylawlUI.DebugWindow.EditBox:SetText(debugString)
     srslylawlUI.DebugWindow:Show()
 end
