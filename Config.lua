@@ -82,7 +82,7 @@ function srslylawlUI.CreateConfigWindow()
 
         local px = srslylawlUI.Utils_PixelFromCodeToScreen(1)
 
-        slider:SetPoint("LEFT", bounds, "LEFT", 0, 0)
+        slider:SetPoint("LEFT", bounds, "LEFT", 5, 0)
         local width, height = 250, 34
         name = slider:GetName()
         _G[name .. "Low"]:SetText(min)
@@ -167,7 +167,7 @@ function srslylawlUI.CreateConfigWindow()
         end
         slider.editbox = editBox
         table.insert(srslylawlUI.ConfigElements.Sliders, slider)
-        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+25, 110)
+        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+30, 110)
         return slider
     end
     local function CreateCustomDropDown(title, width, parent, valuePath, values, onChangeFunc)
@@ -478,15 +478,10 @@ function srslylawlUI.CreateConfigWindow()
         checkButton.bounds = bounds
         checkButton:SetPoint("TOPLEFT", bounds, "TOPLEFT", 0, 0)
         checkButton.text:SetTextColor(1,1,1,1)
-        table.insert(srslylawlUI.ConfigElements.CheckButtons, checkButton)
         checkButton.text:SetText(name)
         local w = checkButton:GetWidth() + checkButton.text:GetStringWidth()
         local h = checkButton:GetHeight()
         bounds:SetSize(w, h)
-
-        function checkButton:Reset()
-            print("reset checkbutton not implemented")
-        end
         return checkButton
     end
     local function CreateSettingsCheckButton(name, parent, valuePath, funcOnChanged)
@@ -744,8 +739,6 @@ function srslylawlUI.CreateConfigWindow()
         -- HP Bar Sliders
         local cFrame = srslylawlUI_ConfigFrame
         cFrame.fakeFramesToggled = false
-        cFrame.editBoxes = {}
-        cFrame.sliders = {}
 
         local lockFrames = CreateCheckButton("Preview settings and make frames moveable", tab)
         cFrame.lockFramesButton1 = lockFrames
@@ -755,194 +748,207 @@ function srslylawlUI.CreateConfigWindow()
             cFrame.fakeFramesToggled = self:GetChecked()
         end)
 
-        local healthBarFrame = CreateFrameWBG("Party Health Bar", tab)
-        healthBarFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -55)
-        healthBarFrame:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -5, -115)
+        local path = "party."
+
+        local healthControl = CreateConfigControl(tab, "Party Health Bars")
+        healthControl:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, -50)
+
+        local hpWidth = CreateCustomSlider("Maximum Width", tab, 1, 3000, path.."hp.width", 1, 0, srslylawlUI.UpdateEverything)
+        local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path.."hp.height", 1, 0, srslylawlUI.UpdateEverything)
+        local minWidthPercent = CreateCustomSlider("Minimum Width %", tab, .01, 1, path.."hp.minWidthPercent", .01, 2, srslylawlUI.UpdateEverything)
+        AddTooltip(minWidthPercent, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
+        local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, srslylawlUI.UpdateEverything)
+        healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize)
+
+
+
+        -- local healthBarFrame = CreateFrameWBG("Party Health Bar", tab)
+        -- healthBarFrame:SetPoint("BOTTOMRIGHT", tab, "TOPRIGHT", -5, -115)
         
-        local width = floor(srslylawlUI.GetSetting("party.hp.width"))
-        local height = floor(srslylawlUI.GetSetting("party.hp.height"))
-        cFrame.sliders.height = CreateCustomSlider("Height", 5, 500,
-            height, healthBarFrame, -50, 1, true)
-        cFrame.sliders.height:SetPoint("TOPLEFT", 10, -20)
-        cFrame.sliders.height:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.ChangeSetting("party.hp.height", value)
-            srslylawlUI.UpdateEverything()
-        end)
-        cFrame.sliders.hpwidth = CreateCustomSlider("Max Width", 25,
-            2000, width, cFrame.sliders.height, -40, 1, true)
-        cFrame.sliders.hpwidth:ClearAllPoints()
-        cFrame.sliders.hpwidth:SetPoint("LEFT", cFrame.sliders.height.editbox,
-            "RIGHT", 10, 0)
-        cFrame.sliders.hpwidth:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.ChangeSetting("party.hp.width", value)
-            srslylawlUI.UpdateEverything()
-        end)
-        cFrame.sliders.minWidth = CreateCustomSlider("Min Width Percent", 0.1, 1, srslylawlUI.Utils_DecimalRound(srslylawlUI.GetSetting("party.hp.minWidthPercent"), 2),
-        cFrame.sliders.height, -50, 0.01, false, 2)
-        cFrame.sliders.minWidth:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.ChangeSetting("party.hp.minWidthPercent", value)
-            srslylawlUI.UpdateEverything()
-        end)
-        cFrame.sliders.minWidth:ClearAllPoints(true);
-        cFrame.sliders.minWidth:SetPoint("LEFT", cFrame.sliders.hpwidth.editbox,
-            "RIGHT", 10, 0)
-        AddTooltip(cFrame.sliders.minWidth, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
+        -- local width = floor(srslylawlUI.GetSetting("party.hp.width"))
+        -- local height = floor(srslylawlUI.GetSetting("party.hp.height"))
+        -- cFrame.sliders.height = CreateCustomSlider("Height", 5, 500,
+        --     height, healthBarFrame, -50, 1, true)
+        -- cFrame.sliders.height:SetPoint("TOPLEFT", 10, -20)
+        -- cFrame.sliders.height:HookScript("OnValueChanged", function(self, value)
+        --     srslylawlUI.ChangeSetting("party.hp.height", value)
+        --     srslylawlUI.UpdateEverything()
+        -- end)
+        -- cFrame.sliders.hpwidth = CreateCustomSlider("Max Width", 25,
+        --     2000, width, cFrame.sliders.height, -40, 1, true)
+        -- cFrame.sliders.hpwidth:ClearAllPoints()
+        -- cFrame.sliders.hpwidth:SetPoint("LEFT", cFrame.sliders.height.editbox,
+        --     "RIGHT", 10, 0)
+        -- cFrame.sliders.hpwidth:HookScript("OnValueChanged", function(self, value)
+        --     srslylawlUI.ChangeSetting("party.hp.width", value)
+        --     srslylawlUI.UpdateEverything()
+        -- end)
+        -- cFrame.sliders.minWidth = CreateCustomSlider("Min Width Percent", 0.1, 1, srslylawlUI.Utils_DecimalRound(srslylawlUI.GetSetting("party.hp.minWidthPercent"), 2),
+        -- cFrame.sliders.height, -50, 0.01, false, 2)
+        -- cFrame.sliders.minWidth:HookScript("OnValueChanged", function(self, value)
+        --     srslylawlUI.ChangeSetting("party.hp.minWidthPercent", value)
+        --     srslylawlUI.UpdateEverything()
+        -- end)
+        -- cFrame.sliders.minWidth:ClearAllPoints(true);
+        -- cFrame.sliders.minWidth:SetPoint("LEFT", cFrame.sliders.hpwidth.editbox,
+        --     "RIGHT", 10, 0)
+        -- AddTooltip(cFrame.sliders.minWidth, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
 
-        --powerbar
-        local powerFrame = CreateFrameWBG("Party Power Bar", healthBarFrame)
-        powerFrame:SetPoint("TOPLEFT", healthBarFrame, "BOTTOMLEFT", 0, -15)
-        powerFrame:SetSize(225, 60)
-        -- powerFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", -475, -75)
-        cFrame.sliders.powerWidth = CreateCustomSlider("Power Bar Width", 3, 50, srslylawlUI.GetSetting("party.power.width"), powerFrame, -50, 1, true, 0)
-        cFrame.sliders.powerWidth:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.ChangeSetting("party.power.width", value)
-            srslylawlUI.Frame_Party_ResetDimensions_ALL()
-        end)
-        cFrame.sliders.powerWidth:ClearAllPoints()
-        cFrame.sliders.powerWidth:SetPoint("LEFT", powerFrame, "LEFT", 10, 0)
+        -- --powerbar
+        -- local powerFrame = CreateFrameWBG("Party Power Bar", healthBarFrame)
+        -- powerFrame:SetPoint("TOPLEFT", healthBarFrame, "BOTTOMLEFT", 0, -15)
+        -- powerFrame:SetSize(225, 60)
+        -- -- powerFrame:SetPoint("BOTTOMRIGHT", healthBarFrame, "BOTTOMRIGHT", -475, -75)
+        -- cFrame.sliders.powerWidth = CreateCustomSlider("Power Bar Width", 3, 50, srslylawlUI.GetSetting("party.power.width"), powerFrame, -50, 1, true, 0)
+        -- cFrame.sliders.powerWidth:HookScript("OnValueChanged", function(self, value)
+        --     srslylawlUI.ChangeSetting("party.power.width", value)
+        --     srslylawlUI.Frame_Party_ResetDimensions_ALL()
+        -- end)
+        -- cFrame.sliders.powerWidth:ClearAllPoints()
+        -- cFrame.sliders.powerWidth:SetPoint("LEFT", powerFrame, "LEFT", 10, 0)
 
-        --petbar
-        local petFrame = CreateFrameWBG("Party Pet Bar", powerFrame)
-        petFrame:SetPoint("TOPLEFT", powerFrame, "TOPRIGHT", 5, 0)
-        petFrame:SetSize(225, 60)
-        -- petFrame:SetPoint("BOTTOMRIGHT", powerFrame, "BOTTOMRIGHT", 265, 0)
-        cFrame.sliders.petWidth = CreateCustomSlider("Pet Bar Width", 3, 50, srslylawlUI.GetSetting("party.pet.width"), petFrame, -50, 1, true, 0)
-        cFrame.sliders.petWidth:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.ChangeSetting("party.pet.width", value)
-            srslylawlUI.Frame_Party_ResetDimensions_ALL()
-        end)
-        cFrame.sliders.petWidth:ClearAllPoints()
-        cFrame.sliders.petWidth:SetPoint("LEFT", petFrame, "LEFT", 10, 0)
+        -- --petbar
+        -- local petFrame = CreateFrameWBG("Party Pet Bar", powerFrame)
+        -- petFrame:SetPoint("TOPLEFT", powerFrame, "TOPRIGHT", 5, 0)
+        -- petFrame:SetSize(225, 60)
+        -- -- petFrame:SetPoint("BOTTOMRIGHT", powerFrame, "BOTTOMRIGHT", 265, 0)
+        -- cFrame.sliders.petWidth = CreateCustomSlider("Pet Bar Width", 3, 50, srslylawlUI.GetSetting("party.pet.width"), petFrame, -50, 1, true, 0)
+        -- cFrame.sliders.petWidth:HookScript("OnValueChanged", function(self, value)
+        --     srslylawlUI.ChangeSetting("party.pet.width", value)
+        --     srslylawlUI.Frame_Party_ResetDimensions_ALL()
+        -- end)
+        -- cFrame.sliders.petWidth:ClearAllPoints()
+        -- cFrame.sliders.petWidth:SetPoint("LEFT", petFrame, "LEFT", 10, 0)
         
-        -- Buff Frames
-        local buffFrame = CreateFrameWBG("Party Buffs", powerFrame)
-        buffFrame:SetPoint("TOPLEFT", powerFrame, "BOTTOMLEFT", 0, -15)
-        buffFrame:SetPoint("BOTTOMRIGHT", powerFrame, "BOTTOMRIGHT", 200, -120)
-        local buffAnchor = CreateCustomDropDown("Anchor", 75, buffFrame, "TOPLEFT",
-            "TOPLEFT", -10, -20, srslylawlUI.GetSetting("party.buffs.anchor"), srslylawlUI.anchorTable, function(newValue)
-                srslylawlUI.ChangeSetting("party.buffs.anchor", newValue)
-                srslylawlUI.Party_SetBuffFrames()
-        end, function(self) return self.value == srslylawlUI.GetSetting("party.buffs.anchor") end)
-        local buffGrowthDir = CreateCustomDropDown("Growth Direction", 125, buffAnchor, "TOPLEFT",
-            "TOPRIGHT", -25, 0, srslylawlUI.GetSetting("party.buffs.growthDir"), {"LEFT", "RIGHT"}, function(newValue)
-                srslylawlUI.ChangeSetting("party.buffs.growthDir", newValue)
-                srslylawlUI.Party_SetBuffFrames()
-        end, function(self) return self.value == srslylawlUI.GetSetting("party.buffs.growthDir") end)
-        local buffAnchorXOffset = CreateEditBox(buffGrowthDir, "party.buffs.xOffset", srslylawlUI.Party_SetBuffFrames)
-        buffAnchorXOffset:SetTitle("X-Offset")
-        buffAnchorXOffset:SetPoint("TOPLEFT", buffGrowthDir, "TOPRIGHT", -10, 0)
+        -- -- Buff Frames
+        -- local buffFrame = CreateFrameWBG("Party Buffs", powerFrame)
+        -- buffFrame:SetPoint("TOPLEFT", powerFrame, "BOTTOMLEFT", 0, -15)
+        -- buffFrame:SetPoint("BOTTOMRIGHT", powerFrame, "BOTTOMRIGHT", 200, -120)
+        -- local buffAnchor = CreateCustomDropDown("Anchor", 75, buffFrame, "TOPLEFT",
+        --     "TOPLEFT", -10, -20, srslylawlUI.GetSetting("party.buffs.anchor"), srslylawlUI.anchorTable, function(newValue)
+        --         srslylawlUI.ChangeSetting("party.buffs.anchor", newValue)
+        --         srslylawlUI.Party_SetBuffFrames()
+        -- end, function(self) return self.value == srslylawlUI.GetSetting("party.buffs.anchor") end)
+        -- local buffGrowthDir = CreateCustomDropDown("Growth Direction", 125, buffAnchor, "TOPLEFT",
+        --     "TOPRIGHT", -25, 0, srslylawlUI.GetSetting("party.buffs.growthDir"), {"LEFT", "RIGHT"}, function(newValue)
+        --         srslylawlUI.ChangeSetting("party.buffs.growthDir", newValue)
+        --         srslylawlUI.Party_SetBuffFrames()
+        -- end, function(self) return self.value == srslylawlUI.GetSetting("party.buffs.growthDir") end)
+        -- local buffAnchorXOffset = CreateEditBox(buffGrowthDir, "party.buffs.xOffset", srslylawlUI.Party_SetBuffFrames)
+        -- buffAnchorXOffset:SetTitle("X-Offset")
+        -- buffAnchorXOffset:SetPoint("TOPLEFT", buffGrowthDir, "TOPRIGHT", -10, 0)
 
-        local buffAnchorYOffset = CreateEditBox(buffAnchorXOffset, "party.buffs.xOffset", srslylawlUI.Party_SetBuffFrames)
-        buffAnchorYOffset:SetTitle("Y-Offset")
+        -- local buffAnchorYOffset = CreateEditBox(buffAnchorXOffset, "party.buffs.xOffset", srslylawlUI.Party_SetBuffFrames)
+        -- buffAnchorYOffset:SetTitle("Y-Offset")
 
-        local buffIconSize = CreateEditBox(buffAnchorYOffset, "party.buffs.size", srslylawlUI.Party_SetBuffFrames)
-        buffIconSize:SetTitle("Size")
+        -- local buffIconSize = CreateEditBox(buffAnchorYOffset, "party.buffs.size", srslylawlUI.Party_SetBuffFrames)
+        -- buffIconSize:SetTitle("Size")
 
-        cFrame.sliders.maxBuffs = CreateCustomSlider("Max Visible Buffs", 0, 40, srslylawlUI.GetSetting("party.buffs.maxBuffs"), buffAnchor, -50, 1, true, 0)
-        cFrame.sliders.maxBuffs:SetPoint("TOPLEFT", buffAnchor, "BOTTOMLEFT", 20, -15)
-        cFrame.sliders.maxBuffs:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.ChangeSetting("party.buffs.maxBuffs", value)
-        end)
-        AddTooltip(cFrame.sliders.maxBuffs, "Requires UI Reload")
+        -- cFrame.sliders.maxBuffs = CreateCustomSlider("Max Visible Buffs", 0, 40, srslylawlUI.GetSetting("party.buffs.maxBuffs"), buffAnchor, -50, 1, true, 0)
+        -- cFrame.sliders.maxBuffs:SetPoint("TOPLEFT", buffAnchor, "BOTTOMLEFT", 20, -15)
+        -- cFrame.sliders.maxBuffs:HookScript("OnValueChanged", function(self, value)
+        --     srslylawlUI.ChangeSetting("party.buffs.maxBuffs", value)
+        -- end)
+        -- AddTooltip(cFrame.sliders.maxBuffs, "Requires UI Reload")
 
-        --ccbar frame
-        local ccBarFrame = CreateFrameWBG("Crowd Control Bar", petFrame)
-        ccBarFrame:SetPoint("TOPLEFT", petFrame, "TOPRIGHT", 5, 0)
-        ccBarFrame:SetSize(233, 125)
-        -- ccBarFrame:SetPoint("BOTTOMRIGHT", petFrame, "BOTTOMRIGHT", 220, -65)
+        -- --ccbar frame
+        -- local ccBarFrame = CreateFrameWBG("Crowd Control Bar", petFrame)
+        -- ccBarFrame:SetPoint("TOPLEFT", petFrame, "TOPRIGHT", 5, 0)
+        -- ccBarFrame:SetSize(233, 125)
+        -- -- ccBarFrame:SetPoint("BOTTOMRIGHT", petFrame, "BOTTOMRIGHT", 220, -65)
         
-        --enable/disable ccbar
-        local enableCCBar = CreateCheckButton("Enable CC Duration Bar", ccBarFrame)
-        enableCCBar:SetScript("OnClick", function(self)
-            srslylawlUI.ChangeSetting("party.ccbar.enabled", self:GetChecked())
-            srslylawlUI.Frame_Party_ResetDimensions_ALL()
-        end)
-        local ccEnabled = srslylawlUI.GetSetting("party.ccbar.enabled")
-        AddTooltip(enableCCBar, "Show Crowd Control duration of party members.")
-        enableCCBar:SetPoint("TOPLEFT", ccBarFrame, "TOPLEFT", 5, -5)
-        enableCCBar:SetChecked(ccEnabled)
-        enableCCBar:SetAttribute("defaultValue", ccEnabled)
+        -- --enable/disable ccbar
+        -- local enableCCBar = CreateCheckButton("Enable CC Duration Bar", ccBarFrame)
+        -- enableCCBar:SetScript("OnClick", function(self)
+        --     srslylawlUI.ChangeSetting("party.ccbar.enabled", self:GetChecked())
+        --     srslylawlUI.Frame_Party_ResetDimensions_ALL()
+        -- end)
+        -- local ccEnabled = srslylawlUI.GetSetting("party.ccbar.enabled")
+        -- AddTooltip(enableCCBar, "Show Crowd Control duration of party members.")
+        -- enableCCBar:SetPoint("TOPLEFT", ccBarFrame, "TOPLEFT", 5, -5)
+        -- enableCCBar:SetChecked(ccEnabled)
+        -- enableCCBar:SetAttribute("defaultValue", ccEnabled)
 
-        --ccbar width
-        cFrame.sliders.ccbarWidth = CreateCustomSlider("CC Bar Width", 3, 300, srslylawlUI.GetSetting("party.ccbar.width"), ccBarFrame, -50, 1, true, 0)
-        cFrame.sliders.ccbarWidth:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.ChangeSetting("party.ccbar.width", value)
-            srslylawlUI.Frame_Party_ResetDimensions_ALL()
-        end)
-        cFrame.sliders.ccbarWidth:ClearAllPoints()
-        cFrame.sliders.ccbarWidth:SetPoint("TOPLEFT", enableCCBar, "BOTTOMLEFT", 5, -10)
+        -- --ccbar width
+        -- cFrame.sliders.ccbarWidth = CreateCustomSlider("CC Bar Width", 3, 300, srslylawlUI.GetSetting("party.ccbar.width"), ccBarFrame, -50, 1, true, 0)
+        -- cFrame.sliders.ccbarWidth:HookScript("OnValueChanged", function(self, value)
+        --     srslylawlUI.ChangeSetting("party.ccbar.width", value)
+        --     srslylawlUI.Frame_Party_ResetDimensions_ALL()
+        -- end)
+        -- cFrame.sliders.ccbarWidth:ClearAllPoints()
+        -- cFrame.sliders.ccbarWidth:SetPoint("TOPLEFT", enableCCBar, "BOTTOMLEFT", 5, -10)
 
-        --ccbar height
-        cFrame.sliders.ccbarHeight = CreateCustomSlider("CC Bar Height %", 0.1, 1, srslylawlUI.GetSetting("party.ccbar.heightPercent"), ccBarFrame, -50, 0.05, false, 2)
-        cFrame.sliders.ccbarHeight:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.ChangeSetting("party.ccbar.heightPercent", value)
-            srslylawlUI.Frame_Party_ResetDimensions_ALL()
-        end)
-        cFrame.sliders.ccbarHeight:ClearAllPoints()
-        cFrame.sliders.ccbarHeight:SetPoint("TOPLEFT", cFrame.sliders.ccbarWidth, "BOTTOMLEFT", 0, -20)
-        AddTooltip(cFrame.sliders.ccbarHeight, "Percentage of HP Bar height.")
+        -- --ccbar height
+        -- cFrame.sliders.ccbarHeight = CreateCustomSlider("CC Bar Height %", 0.1, 1, srslylawlUI.GetSetting("party.ccbar.heightPercent"), ccBarFrame, -50, 0.05, false, 2)
+        -- cFrame.sliders.ccbarHeight:HookScript("OnValueChanged", function(self, value)
+        --     srslylawlUI.ChangeSetting("party.ccbar.heightPercent", value)
+        --     srslylawlUI.Frame_Party_ResetDimensions_ALL()
+        -- end)
+        -- cFrame.sliders.ccbarHeight:ClearAllPoints()
+        -- cFrame.sliders.ccbarHeight:SetPoint("TOPLEFT", cFrame.sliders.ccbarWidth, "BOTTOMLEFT", 0, -20)
+        -- AddTooltip(cFrame.sliders.ccbarHeight, "Percentage of HP Bar height.")
         
 
 
 
 
-        --Debuff Frames
-        local debuffFrame = CreateFrameWBG("Party Debuffs", buffFrame)
-        debuffFrame:SetPoint("TOPLEFT", buffFrame, "BOTTOMLEFT", 0, -15)
-        debuffFrame:SetPoint("BOTTOMRIGHT", buffFrame, "BOTTOMRIGHT", 0, -120)
-        local debuffAnchor = CreateCustomDropDown("Anchor", 75, debuffFrame, "TOPLEFT",
-            "TOPLEFT", -10, -20, srslylawlUI.GetSetting("party.debuffs.anchor"), srslylawlUI.anchorTable, function(newValue)
-                srslylawlUI.ChangeSetting("party.debuffs.anchor", newValue)
-                srslylawlUI.Party_SetDebuffFrames()
-        end, function(self) return self.value == srslylawlUI.GetSetting("party.debuffs.anchor") end)
-        local debuffGrowthDir = CreateCustomDropDown("Growth Direction", 125, debuffAnchor, "TOPLEFT",
-            "TOPRIGHT", -25, 0, srslylawlUI.GetSetting("party.debuffs.growthDir"), {"LEFT", "RIGHT"}, function(newValue)
-                srslylawlUI.ChangeSetting("party.debuffs.growthDir", newValue)
-                srslylawlUI.Party_SetDebuffFrames()
-        end, function(self) return self.value == srslylawlUI.GetSetting("party.debuffs.growthDir") end)
-        local debuffAnchorXOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffGrowthDir, srslylawlUI.GetSetting("party.debuffs.xOffset"),
-        function(self)
-            local n = self:GetNumber()
-            if srslylawlUI.GetSetting("party.debuffs.xOffset") == n then return end
-            srslylawlUI.ChangeSetting("party.debuffs.xOffset", n)
-            srslylawlUI.Party_SetDebuffFrames()
-        end)
-        debuffAnchorXOffset.title = debuffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-        debuffAnchorXOffset.title:SetPoint("TOP", 0, 12)
-        debuffAnchorXOffset.title:SetText("X-Offset")
-        debuffAnchorXOffset:ClearAllPoints()
-        debuffAnchorXOffset:SetPoint("TOPLEFT", debuffGrowthDir, "TOPRIGHT", -10, 0)
-        local debuffAnchorYOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffAnchorXOffset, srslylawlUI.GetSetting("party.debuffs.yOffset"),
-        function(self)
-            local n = self:GetNumber()
-            if srslylawlUI.GetSetting("party.debuffs.yOffset") == n then return end
-            srslylawlUI.ChangeSetting("party.debuffs.yOffset", n)
-            srslylawlUI.Party_SetDebuffFrames()
-        end)
-        debuffAnchorYOffset.title = debuffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-        debuffAnchorYOffset.title:SetPoint("TOP", 0, 12)
-        debuffAnchorYOffset.title:SetText("Y-Offset")
+        -- --Debuff Frames
+        -- local debuffFrame = CreateFrameWBG("Party Debuffs", buffFrame)
+        -- debuffFrame:SetPoint("TOPLEFT", buffFrame, "BOTTOMLEFT", 0, -15)
+        -- debuffFrame:SetPoint("BOTTOMRIGHT", buffFrame, "BOTTOMRIGHT", 0, -120)
+        -- local debuffAnchor = CreateCustomDropDown("Anchor", 75, debuffFrame, "TOPLEFT",
+        --     "TOPLEFT", -10, -20, srslylawlUI.GetSetting("party.debuffs.anchor"), srslylawlUI.anchorTable, function(newValue)
+        --         srslylawlUI.ChangeSetting("party.debuffs.anchor", newValue)
+        --         srslylawlUI.Party_SetDebuffFrames()
+        -- end, function(self) return self.value == srslylawlUI.GetSetting("party.debuffs.anchor") end)
+        -- local debuffGrowthDir = CreateCustomDropDown("Growth Direction", 125, debuffAnchor, "TOPLEFT",
+        --     "TOPRIGHT", -25, 0, srslylawlUI.GetSetting("party.debuffs.growthDir"), {"LEFT", "RIGHT"}, function(newValue)
+        --         srslylawlUI.ChangeSetting("party.debuffs.growthDir", newValue)
+        --         srslylawlUI.Party_SetDebuffFrames()
+        -- end, function(self) return self.value == srslylawlUI.GetSetting("party.debuffs.growthDir") end)
+        -- local debuffAnchorXOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffGrowthDir, srslylawlUI.GetSetting("party.debuffs.xOffset"),
+        -- function(self)
+        --     local n = self:GetNumber()
+        --     if srslylawlUI.GetSetting("party.debuffs.xOffset") == n then return end
+        --     srslylawlUI.ChangeSetting("party.debuffs.xOffset", n)
+        --     srslylawlUI.Party_SetDebuffFrames()
+        -- end)
+        -- debuffAnchorXOffset.title = debuffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        -- debuffAnchorXOffset.title:SetPoint("TOP", 0, 12)
+        -- debuffAnchorXOffset.title:SetText("X-Offset")
+        -- debuffAnchorXOffset:ClearAllPoints()
+        -- debuffAnchorXOffset:SetPoint("TOPLEFT", debuffGrowthDir, "TOPRIGHT", -10, 0)
+        -- local debuffAnchorYOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffAnchorXOffset, srslylawlUI.GetSetting("party.debuffs.yOffset"),
+        -- function(self)
+        --     local n = self:GetNumber()
+        --     if srslylawlUI.GetSetting("party.debuffs.yOffset") == n then return end
+        --     srslylawlUI.ChangeSetting("party.debuffs.yOffset", n)
+        --     srslylawlUI.Party_SetDebuffFrames()
+        -- end)
+        -- debuffAnchorYOffset.title = debuffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        -- debuffAnchorYOffset.title:SetPoint("TOP", 0, 12)
+        -- debuffAnchorYOffset.title:SetText("Y-Offset")
 
-        cFrame.editBoxes.debuffAnchorXOffset = debuffAnchorXOffset
-        cFrame.editBoxes.debuffAnchorYOffset = debuffAnchorYOffset
-        local debuffIconSize = CreateEditBox("$parent_Icon Size", debuffAnchorYOffset, srslylawlUI.GetSetting("party.debuffs.size"),
-        function(self)
-            local n = self:GetNumber()
-            if srslylawlUI.GetSetting("party.debuffs.size") == n then return end
-            srslylawlUI.ChangeSetting("party.debuffs.size", n)
-            srslylawlUI.Party_SetDebuffFrames()
-        end)
-        cFrame.editBoxes.debuffIconSize = debuffIconSize
-        debuffIconSize.title = debuffIconSize:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-        debuffIconSize.title:SetPoint("TOP", 0, 12)
-        debuffIconSize.title:SetText("Size")
+        -- cFrame.editBoxes.debuffAnchorXOffset = debuffAnchorXOffset
+        -- cFrame.editBoxes.debuffAnchorYOffset = debuffAnchorYOffset
+        -- local debuffIconSize = CreateEditBox("$parent_Icon Size", debuffAnchorYOffset, srslylawlUI.GetSetting("party.debuffs.size"),
+        -- function(self)
+        --     local n = self:GetNumber()
+        --     if srslylawlUI.GetSetting("party.debuffs.size") == n then return end
+        --     srslylawlUI.ChangeSetting("party.debuffs.size", n)
+        --     srslylawlUI.Party_SetDebuffFrames()
+        -- end)
+        -- cFrame.editBoxes.debuffIconSize = debuffIconSize
+        -- debuffIconSize.title = debuffIconSize:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+        -- debuffIconSize.title:SetPoint("TOP", 0, 12)
+        -- debuffIconSize.title:SetText("Size")
 
-        cFrame.sliders.maxDebuffs = CreateCustomSlider("Max Visible Debuffs", 0, 40, srslylawlUI.GetSetting("party.debuffs.maxDebuffs"), debuffAnchor, -50, 1, true, 0)
-        cFrame.sliders.maxDebuffs:SetPoint("TOPLEFT", debuffAnchor, "BOTTOMLEFT", 20, -15)
-        cFrame.sliders.maxDebuffs:HookScript("OnValueChanged", function(self, value)
-            srslylawlUI.ChangeSetting("party.debuffs.maxDebuffs", value)
-        end)
-        AddTooltip(cFrame.sliders.maxDebuffs, "Requires UI Reload")
+        -- cFrame.sliders.maxDebuffs = CreateCustomSlider("Max Visible Debuffs", 0, 40, srslylawlUI.GetSetting("party.debuffs.maxDebuffs"), debuffAnchor, -50, 1, true, 0)
+        -- cFrame.sliders.maxDebuffs:SetPoint("TOPLEFT", debuffAnchor, "BOTTOMLEFT", 20, -15)
+        -- cFrame.sliders.maxDebuffs:HookScript("OnValueChanged", function(self, value)
+        --     srslylawlUI.ChangeSetting("party.debuffs.maxDebuffs", value)
+        -- end)
+        -- AddTooltip(cFrame.sliders.maxDebuffs, "Requires UI Reload")
     end
     local function FillPlayerFramesTab(tab)
         local cFrame = srslylawlUI_ConfigFrame
@@ -956,52 +962,31 @@ function srslylawlUI.CreateConfigWindow()
             cFrame.fakeFramesToggled = self:GetChecked()
         end)
 
-        --player
-        local playerFrameControl = CreateConfigControl(tab, "Player Frame")
-        playerFrameControl:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, -50)
-        local enable = CreateSettingsCheckButton("Enable", tab, "player.playerFrame.enabled", function(self) local checked = self:GetChecked() if checked then RegisterUnitWatch(srslylawlUI.mainUnits.player.unitFrame) else UnregisterUnitWatch(srslylawlUI.mainUnits.player.unitFrame) end srslylawlUI.mainUnits.player.unitFrame:SetShown(checked) end)
-        local hpWidth = CreateCustomSlider("Width", tab, 1, 3000, "player.playerFrame.hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.player.unitFrame) end)
-        local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, "player.playerFrame.hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.player.unitFrame) end)
-        local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, "player.playerFrame.hp.fontSize", 0.5, 1, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.player.unitFrame) end)
-        playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize)
+        local anchor = tab
+        for _, unit in pairs(srslylawlUI.mainUnitsTable) do
+            local unitName = unit:sub(1,1):upper()..unit:sub(2)
+            local playerFrameControl = CreateConfigControl(tab, unitName.." Frame")
+            local path = "player."..unit.."Frame."
+            local unitFrame = srslylawlUI.mainUnits[unit].unitFrame
+            if unit == "player" then
+                playerFrameControl:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -50)
+            else
+                playerFrameControl:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -15)
+            end
 
-        local playerPosControl = CreateConfigControl(tab, "Player Frame Position")
-        playerPosControl:SetPoint("TOPLEFT", playerFrameControl.bounds, "BOTTOMLEFT", 0, 0)
-        local anchorElements = CreateAnchoringPanel(tab, "player.playerFrame.position", srslylawlUI.mainUnits.player.unitFrame)
-        playerPosControl:Add(unpack(anchorElements))
+            local enable = CreateSettingsCheckButton("Enable", tab, path.."enabled", function(self) local checked = self:GetChecked() if checked then RegisterUnitWatch(unitFrame) else UnregisterUnitWatch(unitFrame) end unitFrame:SetShown(checked) end)
+            local hpWidth = CreateCustomSlider("Width", tab, 1, 3000, path.."hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
+            local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path.."hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
+            local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
+            playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize)
 
-        --target
-        local targetFrameControl = CreateConfigControl(tab, "Target Frame")
-        targetFrameControl:SetPoint("TOPLEFT", playerPosControl.bounds, "BOTTOMLEFT", 0, -15)
-        enable = CreateSettingsCheckButton("Enable", tab, "player.targetFrame.enabled", function(self) local checked = self:GetChecked() if checked then RegisterUnitWatch(srslylawlUI.mainUnits.target.unitFrame) else UnregisterUnitWatch(srslylawlUI.mainUnits.target.unitFrame) end srslylawlUI.mainUnits.target.unitFrame:SetShown(checked) end)
-        hpWidth = CreateCustomSlider("Width", tab, 1, 3000, "player.targetFrame.hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.target.unitFrame) end)
-        hpHeight = CreateCustomSlider("Height", tab, 1, 2000, "player.targetFrame.hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.target.unitFrame) end)
-        fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, "player.targetFrame.hp.fontSize", 0.5, 1, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.target.unitFrame) end)
-        targetFrameControl:Add(enable, hpWidth, hpHeight, fontSize)
+            local playerPosControl = CreateConfigControl(tab, unitName.." Frame Position")
+            playerPosControl:SetPoint("TOPLEFT", playerFrameControl.bounds, "BOTTOMLEFT", 0, 0)
+            local anchorElements = CreateAnchoringPanel(tab, path.."position", unitFrame)
+            playerPosControl:Add(unpack(anchorElements))
 
-        local targetPosControl = CreateConfigControl(tab, "Target Frame Position")
-        targetPosControl:SetPoint("TOPLEFT", targetFrameControl.bounds, "BOTTOMLEFT", 0, 0)
-        targetPosControl:Add(unpack(CreateAnchoringPanel(tab, "player.targetFrame.position", srslylawlUI.mainUnits.target.unitFrame)))
-
-        --targettarget
-        local targetTargetFrameControl = CreateConfigControl(tab, "TargetTarget Frame")
-        targetTargetFrameControl:SetPoint("TOPLEFT", targetPosControl.bounds, "BOTTOMLEFT", 0, -15)
-        enable = CreateSettingsCheckButton("Enable", tab, "player.targettargetFrame.enabled", function(self) local checked = self:GetChecked() if checked then RegisterUnitWatch(srslylawlUI.mainUnits.targettarget.unitFrame) else UnregisterUnitWatch(srslylawlUI.mainUnits.targettarget.unitFrame) end srslylawlUI.mainUnits.targettarget.unitFrame:SetShown(checked) end)
-        hpWidth = CreateCustomSlider("Width", tab, 1, 3000, "player.targettargetFrame.hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.targettarget.unitFrame) end)
-        hpHeight = CreateCustomSlider("Height", tab, 1, 2000, "player.targettargetFrame.hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.targettarget.unitFrame) end)
-        fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, "player.targettargetFrame.hp.fontSize", 0.5, 1, function() srslylawlUI.Frame_ResetDimensions(srslylawlUI.mainUnits.targettarget.unitFrame) end)
-        targetTargetFrameControl:Add(enable, hpWidth, hpHeight, fontSize)
-
-        local targetTargetPosControl = CreateConfigControl(tab, "TargetTarget Frame Position")
-        targetTargetPosControl:SetPoint("TOPLEFT", targetTargetFrameControl.bounds, "BOTTOMLEFT", 0, 0)
-        targetTargetPosControl:Add(unpack(CreateAnchoringPanel(tab, "player.targettargetFrame.position", srslylawlUI.mainUnits.targettarget.unitFrame)))
-
-
-
-
-
-
-
+            anchor = playerPosControl.bounds
+        end
     end
     local function Tab_OnClick(self)
         local parent = self:GetParent()
@@ -1604,7 +1589,7 @@ function srslylawlUI.CreateConfigWindow()
     ScrollFrame.child:SetAllPoints(true)
     ScrollFrame.child:SetSize(partyFramesTab:GetWidth()-30, 10000)
     ScrollFrame:SetScrollChild(ScrollFrame.child)
-    -- FillPartyFramesTab(ScrollFrame.child)
+    FillPartyFramesTab(ScrollFrame.child)
 
     -- Create Buffs Tab
     buffsTab:ClearAllPoints()

@@ -109,11 +109,12 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
             if unit == "player" then
                 frame:SetPoint("TOPLEFT", srslylawlUI_FAUX_PartyHeader, "TOPLEFT")
-                frame.unit.healthBar.text:SetText("")
+                frame.unit.healthBar.leftText:SetText("")
+                frame.unit.healthBar.rightText:SetText("")
             else
                 frame:SetPoint("TOPLEFT", lastFrame, "BOTTOMLEFT")
-                frame.unit.healthBar.name:SetText(unit)
-                frame.unit.healthBar.text:SetText(hp)
+                frame.unit.healthBar.leftText:SetText(unit)
+                frame.unit.healthBar.rightText:SetText(hp)
                 frame.unit.healthBar:SetMinMaxValues(0, fauxUnit.hpmax)
                 frame.unit.healthBar:SetValue(fauxUnit.hp)
                 frame.unit.healthBar:SetStatusBarColor(color.r, color.g, color.b)
@@ -225,6 +226,14 @@ function srslylawlUI.ToggleFauxFrames(visible)
                             end
                             srslylawlUI.Utils_SetSizePixelPerfect(self.debuffs[i], size, size)
                         end
+                    end
+                    fontSizeChanged = self.fontSize ~= srslylawlUI.GetSetting("party.hp.fontSize")
+                    if fontSizeChanged and unit ~= "player" then
+                        self.fontSize = srslylawlUI.GetSetting("party.hp.fontSize")
+                        self.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(self.fontSize))
+                        self.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(self.fontSize))
+                        srslylawlUI.Utils_SetLimitedText(self.unit.healthBar.leftText, self.unit.healthBar:GetWidth()*0.5, unit, true)
+                        srslylawlUI.Utils_SetLimitedText(self.unit.healthBar.rightText, self.unit.healthBar:GetWidth()*0.5, hp, true)
                     end
                     local h = srslylawlUI.GetSetting("party.hp.height")
                     local lowerCap = srslylawlUI.GetSetting("party.hp.minWidthPercent")

@@ -297,7 +297,6 @@ function srslylawlUI.FrameSetup()
         unitFrame.unit.healthBar.rightTextFrame = CreateFrame("Frame", "$parent_rightTextFrame", unitFrame.unit.healthBar)
         unitFrame.unit.healthBar.rightText = unitFrame.unit.healthBar.rightTextFrame:CreateFontString("$parent_rightText", "OVERLAY", "GameFontHIGHLIGHT")
         unitFrame.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
-        unitFrame.unit.healthBar.rightTextFrame:SetPoint("BOTTOMRIGHT", unitFrame.unit.healthBar)
 
         unitFrame.unit.healthBar.leftTextFrame:SetFrameLevel(9)
         unitFrame.unit.healthBar.rightTextFrame:SetFrameLevel(9)
@@ -412,11 +411,11 @@ function srslylawlUI.SetupUnitFrame(buttonFrame, unit)
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
     buttonFrame.unit.powerBar:ClearAllPoints()
     if unit == "target" then
-        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 2, 2)
+        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit.healthBar, "BOTTOMLEFT", 2, 2)
     else
-        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit, "BOTTOMLEFT", 12, 2)
+        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit.healthBar, "BOTTOMLEFT", 12, 2)
     end
-    srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.rightText, "BOTTOMRIGHT", buttonFrame.unit, "BOTTOMRIGHT", -2, 2)
+    srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.rightText, "BOTTOMRIGHT", buttonFrame.unit.healthBar, "BOTTOMRIGHT", -2, 2)
 end
 function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
     srslylawlUI.SetupUnitFrame(buttonFrame)
@@ -1105,7 +1104,7 @@ function srslylawlUI.Frame_ResetName(button, unit)
         return
     end
     local name = UnitName(unit) or UNKNOWN
-    button.healthBar.leftText:SetText(name)
+    srslylawlUI.Utils_SetLimitedText(button.healthBar.leftText, button.healthBar:GetWidth()*0.5, name, true)
 end
 function srslylawlUI.Frame_ResetPetButton(button, unit)
     if UnitExists(unit) then
