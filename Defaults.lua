@@ -48,7 +48,13 @@ srslylawlUI.defaultSettings = {
                 width = 20
             },
             power = {
-                width = 15
+                fontSize = 15,
+                overrides = {}
+            },
+            cast = {
+                fontSize = 15,
+                height = 40,
+                priority = 0
             },
         },
         targetFrame = {
@@ -66,6 +72,11 @@ srslylawlUI.defaultSettings = {
             power = {
                 width = 15
             },
+            cast = {
+                fontSize = 15,
+                height = 40,
+                priority = 0
+            }
         },
         targettargetFrame = {
             enabled = true,

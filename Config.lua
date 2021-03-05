@@ -21,6 +21,7 @@ function srslylawlUI.CreateConfigWindow()
         srslylawlUI.mainUnits.player.unitFrame:SetMovable(bool)
         srslylawlUI.mainUnits.target.unitFrame:SetMovable(bool)
         srslylawlUI.mainUnits.targettarget.unitFrame:SetMovable(bool)
+        srslylawlUI.mainUnits.player.unitFrame:SetDemoMode(bool)
         srslylawlUI.Log((bool and "Frames can now be moved." or "Frames can no longer be moved."))
 
         srslylawlUI.ToggleFauxFrames(bool)
@@ -73,7 +74,7 @@ function srslylawlUI.CreateConfigWindow()
         end
         return editBox
     end
-    local function CreateCustomSlider(name, parent, min, max, valuePath, valueStep, decimals, onChangeFunc)
+    local function CreateCustomSlider(name, parent, min, max, valuePath, valueStep, decimals, onChangeFunc, canBeNil)
         local title = name
         name = "$parent_Slider"..valuePath..name
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
@@ -92,7 +93,9 @@ function srslylawlUI.CreateConfigWindow()
         slider.Text:SetPoint("TOP", 0, 15)
         srslylawlUI.Utils_SetSizePixelPerfect(slider, width, height)
         slider:SetMinMaxValues(min, max)
-        slider:SetValue(srslylawlUI.GetSetting(valuePath))
+        local var = srslylawlUI.GetSetting(valuePath, canBeNil)
+        var = var or 0
+        slider:SetValue(var)
         slider:SetValueStep(valueStep)
         slider:SetObeyStepOnDrag(true)
         local editBox = CreateFrame("EditBox", name .. "_EditBox", slider, "BackdropTemplate")
@@ -110,7 +113,7 @@ function srslylawlUI.CreateConfigWindow()
         editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
         editBox:SetNumeric(false)
         if (min >=0 and max >=0) and (not decimals or decimals == 0) then
-            editBox:SetNumber(srslylawlUI.GetSetting(valuePath))
+            editBox:SetNumber(var)
             editBox:SetScript("OnTextChanged", function(self) slider:SetValue(self:GetNumber()) end)
             slider:SetScript("OnValueChanged", function(self, value)
                 if editBox:GetNumber() == tonumber(value) then
@@ -133,7 +136,7 @@ function srslylawlUI.CreateConfigWindow()
                 end
             end)
         else
-            editBox:SetText(srslylawlUI.GetSetting(valuePath))
+            editBox:SetText(var)
             editBox:SetScript("OnTextChanged", function(self)
                 local text = self:GetText()
 
@@ -158,12 +161,90 @@ function srslylawlUI.CreateConfigWindow()
                 end
             end)
         end
-        -- editBox:SetMaxLetters(4)
 
         function slider:Reset()
-            local setting = srslylawlUI.GetSetting(valuePath)
+            local setting = srslylawlUI.GetSetting(valuePath, canBeNil)
+            setting = setting or 0
             self:SetValue(setting)
             self.editbox:SetText(setting)
+        end
+        slider.editbox = editBox
+        table.insert(srslylawlUI.ConfigElements.Sliders, slider)
+        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+45, 110)
+        return slider
+    end
+    local function CreatePowerBarSlider(title, parent, name, specID, value, default, onChangeFunc)
+        local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
+        local slider = CreateFrame("Slider", "$parent_Slider"..title..name, bounds, "OptionsSliderTemplate")
+        slider.bounds = bounds
+
+        local px = srslylawlUI.Utils_PixelFromCodeToScreen(1)
+        local valuePath = "player.playerFrame.power.overrides."..specID.."."..name.."."
+        if name == "CastBar" then
+            valuePath = "player.playerFrame.cast."
+        end
+        valuePath = valuePath..value
+        local canBeNil = true
+        local max = value == "priority" and 10 or 200
+
+        slider:SetPoint("LEFT", bounds, "LEFT", 5, 0)
+        local width, height = 250, 34
+        slider.Low:SetText(0)
+        slider.High:SetText(max)
+        slider.Text:SetText(title)
+        slider.Text:SetTextColor(0.380, 0.705, 1, 1)
+        slider.Text:SetPoint("TOP", 0, 15)
+        srslylawlUI.Utils_SetSizePixelPerfect(slider, width, height)
+        slider:SetMinMaxValues(0, max)
+        local var = srslylawlUI.GetSetting(valuePath, canBeNil)
+        var = var or default
+        slider:SetValue(var)
+        slider:SetValueStep(1)
+        slider:SetObeyStepOnDrag(true)
+        local editBox = CreateFrame("EditBox", name .. "_EditBox", slider, "BackdropTemplate")
+        editBox:SetBackdrop({
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 25*px,
+            insets = {left = 4*px, right = 4*px, top = 4*px, bottom = 4*px}
+        })
+        editBox:SetBackdropColor(0, 0.254, 0.478, 1)
+        editBox:SetTextInsets(5, 5, 0, 0)
+        srslylawlUI.Utils_SetSizePixelPerfect(editBox, 100, 35)
+        editBox:SetPoint("TOP", slider, "BOTTOM", 0, 0)
+        editBox:SetAutoFocus(false)
+        editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
+        editBox:SetNumeric(false)
+        editBox:SetNumber(var)
+        editBox:SetScript("OnTextChanged", function(self) slider:SetValue(self:GetNumber()) end)
+        slider:SetScript("OnValueChanged", function(self, value)
+            if editBox:GetNumber() == tonumber(value) then
+                srslylawlUI.ChangeSetting(valuePath, value)
+                if onChangeFunc then
+                    onChangeFunc()
+                end
+                return
+            else
+                local index = string.find(tostring(value), "%p")
+                if type(index) ~= "nil" then
+                    value = string.sub(tostring(value), 0, index - 1)
+                end
+                value = tonumber(value)
+                editBox:SetNumber(value)
+                srslylawlUI.ChangeSetting(valuePath, value)
+                if onChangeFunc then
+                    onChangeFunc()
+                end
+            end
+        end)
+        function slider:Reset()
+            local setting = srslylawlUI.GetSetting(valuePath, canBeNil)
+            setting = setting or default
+            self:SetValue(setting)
+            self.editbox:SetText(setting)
+            if onChangeFunc then
+                onChangeFunc()
+            end
         end
         slider.editbox = editBox
         table.insert(srslylawlUI.ConfigElements.Sliders, slider)
@@ -187,7 +268,7 @@ function srslylawlUI.CreateConfigWindow()
         UIDropDownMenu_SetWidth(dropDown, srslylawlUI.Utils_PixelFromCodeToScreen(width))
         UIDropDownMenu_SetText(dropDown, srslylawlUI.GetSetting(valuePath, true))
 
-        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+80, 100)
+        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+60, 100)
 
         function dropDown:SetValue(newValue)
             UIDropDownMenu_SetText(dropDown, newValue)
@@ -241,7 +322,7 @@ function srslylawlUI.CreateConfigWindow()
         UIDropDownMenu_SetWidth(dropDown, srslylawlUI.Utils_PixelFromCodeToScreen(width))
         UIDropDownMenu_SetText(dropDown, srslylawlUI.GetSetting(valuePath, true))
 
-        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+80, 100)
+        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+60, 100)
 
         UIDropDownMenu_Initialize(dropDown, function(self)
             local info = UIDropDownMenu_CreateInfo()
@@ -312,7 +393,7 @@ function srslylawlUI.CreateConfigWindow()
                     end
                     srslylawlUI.Utils_SetSizePixelPerfect(self.rowBounds[index], availableWidth, 1)
                     self.rowBounds[index].height = 1
-                    self.rowBounds[index].currentOffset = 0
+                    self.rowBounds[index].currentOffset = 10
                 end
 
                 return self.rowBounds[index]
@@ -326,11 +407,11 @@ function srslylawlUI.CreateConfigWindow()
                 end
             end
 
-            local currentWidth = 0
+            local currentWidth = inset
             local rowIndex = 1
             local r = GetRowBounds(rowIndex)
             r.height = 0
-            r.currentOffset = 0
+            r.currentOffset = 10
             for _, element in pairs(self.elements) do
                 local elementWidth = srslylawlUI.Utils_PixelFromScreenToCode(element.bounds:GetWidth())
                 local elementHeight = srslylawlUI.Utils_PixelFromScreenToCode(element.bounds:GetHeight())
@@ -378,7 +459,7 @@ function srslylawlUI.CreateConfigWindow()
 
         function frame:ChainToControl(control, anchor)
             if not anchor or anchor == "BOTTOM" then
-                srslylawlUI.Utils_SetPointPixelPerfect(self, "TOPLEFT", control.bounds, "BOTTOMLEFT", 0, -15)
+                srslylawlUI.Utils_SetPointPixelPerfect(self, "TOPLEFT", control.bounds, "BOTTOMLEFT", 0, -30)
             elseif anchor == "RIGHT" then
                 srslylawlUI.Utils_SetPointPixelPerfect(self, "TOPLEFT", control.bounds, "TOPRIGHT", -15, 0)
             end
@@ -572,7 +653,7 @@ function srslylawlUI.CreateConfigWindow()
             srslylawlUI.Utils_SetPointPixelPerfect(frame, unpack(anchors))
         end
         local elements = {}
-        elements[1] = CreateCustomDropDown("Point", 120, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
+        elements[1] = CreateCustomDropDown("Point", 160, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
         elements[2] = CreateFrameAnchorDropDown("To Frame", parent, frame, path..".2", srslylawlUI.FramesToAnchorTo, Reanchor)
         elements[3] = CreateCustomDropDown("Relative To", 160, parent, path..".3", srslylawlUI.anchorTable, Reanchor)
         elements[4] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".4", 1, 0, Reanchor)
@@ -983,6 +1064,65 @@ function srslylawlUI.CreateConfigWindow()
                     end)
                     auraControl:Add(frameAnchor, auraAnchor, auraSize, maxAuras)
                     anchor = auraControl
+                end
+
+                if unit == "player" then
+                    --powerbarsetup
+                    local function Refresh()
+                        local specIndex = GetSpecialization()
+                        local specID = GetSpecializationInfo(specIndex)
+                        if specID >= 102 and specID <= 105 then return end --not dealing with druid right now
+
+                        local barTable = srslylawlUI.mainUnits.player.unitFrame.BarHandler.bars
+                        local newTable = {}
+                        for i=1, #barTable do
+                            table.insert(newTable, barTable[i])
+                        end
+
+                        cFrame.playerPowerBars = newTable
+                        if not cFrame.playerPowerBarControls then
+                            cFrame.playerPowerBarControls = {}
+                        end
+
+                        local cAnchor = cFrame.lastPlayerPowerBarAnchor or anchor
+
+                        for i=1, #newTable do
+                            local exists = false
+                            local name = newTable[i].bar.name
+                            for _, v in pairs(cFrame.playerPowerBarControls) do
+                                if v.name == name then
+                                    exists = true
+                                    break
+                                end
+                            end
+
+                            if not exists then
+                                local barControl = CreateConfigControl(tab, "Player "..name)
+
+                                local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height", newTable[i].height, function()
+                                    -- srslylawlUI.PowerBar.Set(unitFrame, unit)
+                                    unitFrame:ReRegisterAll()
+                                end)
+                                local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority", newTable[i].priority, function()
+                                    -- srslylawlUI.PowerBar.Set(unitFrame, unit)
+                                    unitFrame:ReRegisterAll()
+                                end)
+                                barControl:Add(barHeight, barPriority)
+
+                                barControl:ChainToControl(cAnchor)
+
+                                cAnchor = barControl
+                                anchor = barControl
+                            end
+                        end
+                        cFrame.lastPlayerPowerBarAnchor = barControl
+                        
+                    end
+
+                    Refresh()
+
+
+
                 end
             else
                 anchor = playerPosControl
@@ -1513,6 +1653,7 @@ function srslylawlUI.CreateConfigWindow()
     cFrame.Title:SetText("srslylawlUI Configuration")
     srslylawlUI.Frame_MakeFrameMoveable(cFrame)
     cFrame:SetScript("OnHide", function() ToggleFakeFrames(false) end)
+    cFrame:SetFrameLevel(20)
 
     cFrame.body = CreateConfigBody("$parent_Body", cFrame)
 

@@ -679,7 +679,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     local buffIsStealableColor = {0.760, 1, 0.984}
     local buffIsEnemyColor = {0.603, 0.137, 0.1521}
     local currentBuffFrame = 1
-    local maxBuffs = unitsType == "partyUnits" and srslylawlUI.GetSetting("party.buffs.maxBuffs") or srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
+    local maxBuffs = srslylawlUI.GetSettingByUnit("buffs.maxBuffs", unitsType, unit)
     for i = 1, 40 do
         -- loop through all buffs and assign them to frames
         local f = srslylawlUI[unitsType][unit].buffFrames[currentBuffFrame]
@@ -737,7 +737,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     local appliedCC = {}
     currentDebuffFrame = 1
 
-    local maxDebuffs = unitsType == "partyUnits" and srslylawlUI.GetSetting("party.buffs.maxBuffs") or srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
+    local maxDebuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
     for i = 1, 40 do
         local f = srslylawlUI[unitsType][unit].debuffFrames[currentDebuffFrame]
         local name, icon, count, debuffType, duration, expirationTime, source,
@@ -1657,6 +1657,18 @@ function srslylawlUI.GetSetting(path, canBeNil)
         variable = srslylawlUI.Utils_TableDeepCopy(variable)
     end
     return variable
+end
+function srslylawlUI.GetSettingByUnit(path, unitsType, unit, canBeNil)
+    local s
+    if unitsType == "partyUnits" or unitsType == "fauxUnits" then
+        s = "party."..path
+    elseif unit and unitsType == "mainUnits" then
+        s = "player."..unit.."Frame."..path
+    else
+        error("couldnt get setting by unit")
+    end
+
+    return srslylawlUI.GetSetting(s, canBeNil)
 end
 function srslylawlUI.ChangeSetting(path, variable)
     local pathTable = SplitStringAtChar(path, ".")

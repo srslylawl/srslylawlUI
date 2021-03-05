@@ -1,25 +1,13 @@
 function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
     local frameName = "srslylawlUI_"..unit.."Aura"
     local unitsType = buttonFrame:GetAttribute("unitsType")
-    local parent
-    local maxBuffs = unitsType == "partyUnits" and srslylawlUI.GetSetting("party.buffs.maxBuffs") or srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
-    local size = unitsType == "mainUnits" and srslylawlUI.GetSetting("player."..unit.."Frame.buffs.size") or srslylawlUI.GetSetting("party.buffs.size")
+    local maxBuffs = srslylawlUI.GetSettingByUnit("buffs.maxBuffs", unitsType, unit)
+    local size = srslylawlUI.GetSettingByUnit("buffs.size", unitsType, unit)
     local texture = size >= 64 and srslylawlUI.textures.AuraBorder64 or srslylawlUI.textures.AuraBorder32
     local swipeTexture = size >= 64 and srslylawlUI.textures.AuraSwipe64 or srslylawlUI.textures.AuraSwipe32
     for i = 1, maxBuffs do
         if not srslylawlUI[unitsType][unit].buffFrames[i] then --so we can call this function multiple times
-            local xOffset, yOffset = srslylawlUI.Party_GetBuffOffsets()
-            local anchor = srslylawlUI.GetSetting("party.buffs.growthDir")
             local f = CreateFrame("Button", frameName .. i, buttonFrame.unit.auraAnchor, "CompactBuffTemplate")
-            f:ClearAllPoints()
-            if (i == 1) then
-            anchor = srslylawlUI.GetSetting("party.buffs.anchor")
-            xOffset = srslylawlUI.GetSetting("party.buffs.xOffset")
-            yOffset = srslylawlUI.GetSetting("party.buffs.yOffset")
-            f:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
-            else
-            srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
-            end
             f:SetAttribute("unit", unit)
             f:SetScript("OnLoad", nil)
             f:SetScript("OnEnter", function(self)
@@ -55,7 +43,6 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.cooldown:SetSwipeTexture(swipeTexture)
             srslylawlUI[unitsType][unit].buffFrames[i] = f
-            parent = f
             f:Hide()
         end
         for i=maxBuffs, 40 do
@@ -69,24 +56,13 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
     local frameName = "srslylawlUI_"..unit.."Debuff"
     local unitsType = buttonFrame:GetAttribute("unitsType")
     local parent
-    local maxBuffs = unitsType == "partyUnits" and srslylawlUI.GetSetting("party.debuffs.maxDebuffs") or srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.maxDebuffs")
-    local size = unitsType == "mainUnits" and srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.size") or srslylawlUI.GetSetting("party.debuffs.size")
+    local maxBuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
+    local size = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
     local texture = size >= 64 and srslylawlUI.textures.AuraBorder64 or srslylawlUI.textures.AuraBorder32
     local swipeTexture = size >= 64 and srslylawlUI.textures.AuraSwipe64 or srslylawlUI.textures.AuraSwipe32
     for i = 1, maxBuffs do
         if not srslylawlUI[unitsType][unit].debuffFrames[i] then
-            local xOffset, yOffset = srslylawlUI.Party_GetDebuffOffsets()
-            local anchor = srslylawlUI.GetSetting("party.debuffs.growthDir")
             local f = CreateFrame("Button", frameName .. i, buttonFrame.unit.auraAnchor, "CompactDebuffTemplate")
-            f:ClearAllPoints()
-            if (i == 1) then
-            anchor = srslylawlUI.GetSetting("party.debuffs.anchor")
-            xOffset = srslylawlUI.GetSetting("party.debuffs.xOffset")
-            yOffset = srslylawlUI.GetSetting("party.debuffs.yOffset")
-            f:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
-            else
-            srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
-            end
             f:SetAttribute("unit", unit)
             f:SetScript("OnLoad", nil)
             f:SetScript("OnEnter", function(self)
@@ -120,7 +96,6 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
             f.cooldown:SetSwipeTexture(swipeTexture)
 
             srslylawlUI[unitsType][unit].debuffFrames[i] = f
-            parent = f
             f:Hide()
         end
     end
@@ -245,6 +220,19 @@ local function CreateCustomFrames(buttonFrame, unit)
     --effective health frame (sums up active defensive spells)
     CreateEffectiveHealthFrame(buttonFrame, unit, 1)
 end
+function srslylawlUI.CreateCustomFontString(frame, name, fontSize)
+    local fString = frame:CreateFontString("$parent"..name, "ARTWORK", "GameFontHighlight")
+
+    function fString:ChangeFontSize(size)
+        if self.fontSize == size then return end
+        self:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(size))
+        self.fontSize = size
+    end
+
+    fString:ChangeFontSize(fontSize)
+
+    return fString
+end
 
 function srslylawlUI.FrameSetup()
     local function CreateCCBar(unitFrame, unit)
@@ -272,10 +260,10 @@ function srslylawlUI.FrameSetup()
     local function CreateUnitFrame(header, unit, faux, party)
         local name = party and "$parent_"..unit or "srslylawlUI_Main_"..unit
         local unitFrame = CreateFrame("Frame",name, header, "srslylawlUI_UnitTemplate")
+        local unitsType = faux and "fauxUnits" or party and "partyUnits" or "mainUnits"
         unitFrame:SetAttribute("unit", unit)
-        unitFrame:SetAttribute("unitsType", faux and "fauxUnits" or party and "partyUnits" or "mainUnits")
-        unitFrame.unit:SetAttribute("unitsType", faux and "fauxUnits" or party and "partyUnits" or "mainUnits")
-        local h = srslylawlUI.GetSetting("party.hp.height")
+        unitFrame:SetAttribute("unitsType", unitsType)
+        unitFrame.unit:SetAttribute("unitsType", unitsType)
         if unit ~= "targettarget" then
             srslylawlUI.CreateBackground(unitFrame.pet, 1, .8)
             unitFrame.ReadyCheck = CreateFrame("Frame", "$parent_ReadyCheck", unitFrame)
@@ -295,7 +283,7 @@ function srslylawlUI.FrameSetup()
             -- unitFrame.unit.CombatIcon.texture:SetTexCoord(0, .5, 0, .5)
             -- unitFrame.CombatIcon.texture:SetTexCoord(0.5, 1, 0, .5)
             srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CombatIcon, 16, 16)
-            srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CombatIcon, "BOTTOMLEFT", unitFrame.unit, "BOTTOMLEFT", -4, -2)
+            srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CombatIcon, "BOTTOMLEFT", unitFrame.unit, "BOTTOMLEFT", -2, -1)
             unitFrame.unit.CombatIcon:SetFrameLevel(4)
             unitFrame.unit.CombatIcon.texture:Hide()
         end
@@ -722,11 +710,11 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
 		end
     end
     frame.portrait = portrait
-    
 
 end
 function srslylawlUI.CreateCastBar(parent, unit)
     local cBar = CreateFrame("Frame", "$parent_CastBar", parent)
+    local unitsType = parent:GetAttribute("unitsType")
     srslylawlUI.CreateBackground(cBar, 1)
     local function CastOnUpdate(self, elapsed)
 	    local time = GetTime()
@@ -942,18 +930,21 @@ function srslylawlUI.CreateCastBar(parent, unit)
 	cBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", unit)
 	cBar:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", unit)
 
+    cBar.name = "CastBar"
     cBar.StatusBar = CreateFrame("StatusBar", "$parent_StatusBar", cBar)
     cBar.StatusBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
     cBar.StatusBar:Hide()
     cBar.Icon = cBar:CreateTexture("$parent_icon", "OVERLAY")
     cBar.Icon:SetTexCoord(.08, .92, .08, .92)
     cBar.StatusBar.Timer = cBar.StatusBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
-    cBar.StatusBar.Timer:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(15))
+    local fontSize = srslylawlUI.GetSettingByUnit("cast.fontSize", unitsType, unit)
+    local height = srslylawlUI.GetSettingByUnit("cast.height", unitsType, unit)
+    cBar.StatusBar.Timer:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
     cBar.StatusBar.SpellName = cBar.StatusBar:CreateFontString("$parent_SpellName", "OVERLAY", "GameFontHIGHLIGHT")
-    cBar.StatusBar.SpellName:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(15))
-    srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, 40, 40)
+    cBar.StatusBar.SpellName:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
+    srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, 40, height)
     cBar.Icon:SetPoint("TOPLEFT", cBar, "TOPLEFT", 0, 0)
-    srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar, "TOPLEFT", cBar.Icon, "TOPRIGHT", 2, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar, "TOPLEFT", cBar.Icon, "TOPRIGHT", 1, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar, "BOTTOMRIGHT", cBar, "BOTTOMRIGHT", 0, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar.SpellName, "LEFT", cBar.StatusBar, "LEFT", 1, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar.Timer, "RIGHT", cBar.StatusBar, "RIGHT", -1, 0)
@@ -1012,15 +1003,32 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
     frame.BarHandler = CreateFrame("Frame", "$parent_BarHandler", frame)
 
     local bh = frame.BarHandler
+    local unit = barParent:GetAttribute("unit")
+    local unitsType = barParent:GetAttribute("unitsType")
     bh.barParent = barParent
 
     bh.bars = {}
 
 
     function frame:RegisterBar(bar, priority, height)
+        if bar.name == "CastBar" then
+            priority = srslylawlUI.GetSettingByUnit("cast.priority", unitsType, unit)
+            height = srslylawlUI.GetSettingByUnit("cast.height", unitsType, unit)
+        elseif unit == "player" then
+            local specIndex = GetSpecialization()
+            local specID = GetSpecializationInfo(specIndex)
+
+            if specID < 102 or specID > 105 then -- not druid
+                local path = "player.playerFrame.power.overrides."..specID.."."..bar.name.."."
+                priority = srslylawlUI.GetSetting(path.."priority", true) or priority
+                height = srslylawlUI.GetSetting(path.."height", true) or height
+            end
+        end
+
         for _, v in pairs(bh.bars) do
             if v.bar == bar then
                 v.priority = priority
+                v.height = height
                 self:SortBars()
                 return
             end
@@ -1095,6 +1103,63 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 currentBar:SetPoints()
                 currentBar.pointsSet = true
             end
+        end
+    end
+
+    function frame:SetDemoMode(active)
+        if not bh.demoBars then
+            bh.demoBars = {}
+        end
+        if active then
+            local timer = 0
+            bh:SetScript("OnUpdate", function(self, elapsed)
+                timer = timer + elapsed
+                if timer <= 0.1 then return end
+                local currentBar, currentDemoBar, lastBar, height, token, resourceName
+                for i=1, #bh.bars do
+                    if not bh.demoBars[i] then
+                        bh.demoBars[i] = CreateFrame("StatusBar", "$parent_DemoBar"..i, bh.barParent)
+                        bh.demoBars[i]:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
+                        bh.demoBars[i].text = srslylawlUI.CreateCustomFontString(bh.demoBars[i], "Text", 15)
+                        bh.demoBars[i].text:SetPoint("CENTER")
+                    end
+                    currentDemoBar = bh.demoBars[i]
+                    currentBar = bh.bars[i]
+                    height = currentBar.height or 40
+
+                    if currentBar.bar.color then
+                        currentDemoBar:SetStatusBarColor(currentBar.bar.color.r, currentBar.bar.color.g, currentBar.bar.color.b)
+                    else
+                        currentDemoBar:SetStatusBarColor(1, 1, 1)
+                    end
+
+                    if not lastBar then
+                        srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", bh.barParent, "BOTTOMLEFT", 0, -1)
+                        srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", bh.barParent, "BOTTOMRIGHT", 0, -1-height)
+                    else
+                        srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", lastBar, "BOTTOMLEFT", 0, -1)
+                        srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", lastBar, "BOTTOMRIGHT", 0, -1-height)
+                    end
+
+                    currentDemoBar.text:SetText(currentBar.bar.name)
+
+                    currentDemoBar:Show()
+                    lastBar = currentDemoBar
+                end
+                timer = 0
+            end)
+        else
+            for i=1, #bh.demoBars do
+                bh.demoBars[i]:Hide()
+            end
+            bh:SetScript("OnUpdate", nil)
+        end
+    end
+
+    function frame:ReRegisterAll()
+        for i=1, #bh.bars do
+            local b = bh.bars[i]
+            frame:RegisterBar(b.bar, b.priority, b.height)
         end
     end
 end

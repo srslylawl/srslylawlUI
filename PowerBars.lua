@@ -155,6 +155,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     frame:SetAttribute("type", "pointBar")
     frame.powerToken = Enum.PowerType[powerToken]
     frame.unit = parent:GetAttribute("unit")
+    frame.name = powerToken
     frame.pointFrames = {}
     frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
     frame.inactiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inactiveState
@@ -398,9 +399,10 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
         frame.powerToken = Enum.PowerType[powerToken]
         frame.max = UnitPowerMax(frame.unit, frame.powerToken)
     end
-    frame:SetAttribute("type", "statusBar")
-    frame.statusBar.leftText = frame.statusBar:CreateFontString("$parent_LeftText", "ARTWORK", "GameTooltipTextSmall")
-    frame.statusBar.rightText = frame.statusBar:CreateFontString("$parent_RightText", "ARTWORK", "GameTooltipTextSmall")
+    frame.name = powerToken
+    frame:SetAttribute("type", "resourceBar")
+    frame.statusBar.rightText = srslylawlUI.CreateCustomFontString(frame.statusBar, "leftText", 15)
+    -- frame.statusBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
     frame.statusBar.rightText:SetPoint("CENTER", frame.statusBar, "CENTER", 0, 0)
 
     frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
@@ -408,11 +410,11 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
     frame.hideInCombat = srslylawlUI.PowerBar.BarDefaults[powerToken].hideInCombat
 
     function frame:SetColor(color)
+        self.color = color
         self.statusBar:SetStatusBarColor(color.r, color.g, color.b)
     end
     function frame:Update()
         local amount = UnitPower(self.unit, self.powerToken)
-        -- self.statusBar.rightText:SetText(ceil(amount/self.max*100).."%")
         self.statusBar.rightText:SetText(amount > 0 and amount or "")
         self.statusBar:SetValue(amount)
 
@@ -437,6 +439,8 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
         self:Update()
     end
     function frame:SetPoints()
+        local modifier = self.height
+
         -- local h = self.statusBar:GetHeight()
         -- if h > 0 then
         --     self.statusBar.rightText:SetTextHeight(h)
@@ -450,14 +454,16 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
     return frame
 end
 
+
+
 function srslylawlUI.PowerBar.Set(parent, unit)
     local height = 40
+    local specID = srslylawlUI.GetSpecID()
     local function DisplayMainBar(parent)
         local _, powerToken = UnitPowerType("player")
         powerToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
         local bar = srslylawlUI.PowerBar.GetBar(parent, "resource", powerToken)
         parent:RegisterBar(bar, 3, height)
-        -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 1)
     end
     if not parent.powerBars then
         parent.powerBars = {}
@@ -471,20 +477,20 @@ function srslylawlUI.PowerBar.Set(parent, unit)
     elseif barType == srslylawlUI.PowerBar.Type.ResourceBar then
         DisplayMainBar(parent)
         --Resource Bar
-        local token = srslylawlUI.PowerBar.GetPowerToken()
-        local bar = srslylawlUI.PowerBar.GetBar(parent, "resource", token)
+        local powerToken = srslylawlUI.PowerBar.GetPowerToken()
+        local bar = srslylawlUI.PowerBar.GetBar(parent, "resource", powerToken)
         if token == "Stagger" then
             srslylawlUI.PowerBar.SetupStaggerBar(bar, parent)
         end
-        parent:RegisterBar(bar, 5, height*.7)
+        parent:RegisterBar(bar, 5, height *.7)
         -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
     elseif barType == srslylawlUI.PowerBar.Type.PointBar then
         --Point Bar
         DisplayMainBar(parent)
-        local specID = srslylawlUI.GetSpecID()
-        local bar = srslylawlUI.PowerBar.GetBar(parent, "point", srslylawlUI.PowerBar.GetPowerToken())
-        parent:RegisterBar(bar, 5, height*.7)
-        -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
+        local powerToken = srslylawlUI.PowerBar.GetPowerToken()
+        local bar = srslylawlUI.PowerBar.GetBar(parent, "point", powerToken)
+        height = srslylawlUI.GetSetting("player.power.overrides."..specID.."."..powerToken..".height", true) or height *.7
+        parent:RegisterBar(bar, 5, height *.7)
         if specID >= 250 and specID <= 252 and not bar.isRegistered then --dk spec, use rune update
             bar:RegisterEvent("RUNE_POWER_UPDATE")
             bar:SetScript("OnEvent", function(self, event, ...)

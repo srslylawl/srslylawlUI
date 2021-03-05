@@ -168,6 +168,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame:SetScript("OnUpdate",
                 function(self, elapsed)
                 timerFrame = timerFrame + elapsed
+                if InCombatLockdown() then return end
                 if timerFrame > 0.1 then
                     local countChanged = self.shownBuffs ~= srslylawlUI.GetSetting("party.buffs.maxBuffs")
                     local anchorChanged = self.buffs.anchor ~= srslylawlUI.GetSetting("party.buffs.anchor") or self.buffs.xOffset ~= srslylawlUI.GetSetting("party.buffs.xOffset") or self.buffs.yOffset ~= srslylawlUI.GetSetting("party.buffs.yOffset")
