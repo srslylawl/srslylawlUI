@@ -479,10 +479,10 @@ function srslylawlUI.PowerBar.Set(parent, unit)
         --Resource Bar
         local powerToken = srslylawlUI.PowerBar.GetPowerToken()
         local bar = srslylawlUI.PowerBar.GetBar(parent, "resource", powerToken)
-        if token == "Stagger" then
-            srslylawlUI.PowerBar.SetupStaggerBar(bar, parent)
+        if powerToken == "Stagger" then
+            srslylawlUI.PowerBar.SetupStaggerBar(bar)
         end
-        parent:RegisterBar(bar, 5, height *.7)
+        parent:RegisterBar(bar, 5, height *.5)
         -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
     elseif barType == srslylawlUI.PowerBar.Type.PointBar then
         --Point Bar
