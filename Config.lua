@@ -1120,9 +1120,7 @@ function srslylawlUI.CreateConfigWindow()
                     end
 
                     Refresh()
-
-
-
+                    --should place bars again once spec/druidform changes
                 end
             else
                 anchor = playerPosControl

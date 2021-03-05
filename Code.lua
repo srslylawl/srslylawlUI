@@ -50,7 +50,7 @@ srslylawlUI.keyPhrases = {
         "reducing all damage taken", "reduces all damage taken", "damage taken is redirected", "damage taken is transferred"
     },
     absorbs = {
-        "absorb"
+        "absorb", "prevents"
     },
     immunity = {
         "immune to physical damage", "immune to all damage", "immune to all attacks", "immune to damage", "immune to magical damage"
@@ -100,17 +100,16 @@ local debugString = ""
 
 --[[ TODO:
 
-combaticon position
 healabsorb bar needs to be capped
-horde/ally symbol
+horde/ally symbol (topright)
+scale buffs/debuffs
 ccdurbar on player/target/targettarget
 powerbar text
-absorb anchor sometimes not moving
 alt powerbar
-effective health frame layer
 fontsizes
 hide blizzard default frames
 UnitHasIncomingResurrection(unit)
+powerbar fadeout
 incoming summon
 more sort methods?
 totem bar?
@@ -119,7 +118,7 @@ focus frame
 better immunity texture
 config window:
     faux frames absorb auras
-    faux frames for target/player/targettarget/pet
+    faux frames for target/player/targettarget/pet/auras
     settings for player/target/targettarget/pet/buffs/debuffs/powerbars
 revisit some of the sorting/resize logic, probably firing way more often than necessary
 enable/disable sorting? maybe enable manual sorting by hand?
@@ -1252,7 +1251,8 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     end
     local pixelPerHp = width / highestMaxHP
     local playerCurrentHP = UnitHealth(unit)
-    local currentBarLength = (playerCurrentHP * pixelPerHp) + 1
+    local currentBarLength = playerCurrentHP * pixelPerHp + srslylawlUI.Utils_PixelFromCodeToScreen(1)
+    local totalAbsorbBarLength = 0
     local overlapBarIndex, curBarIndex, curBarOverlapIndex = 1, 1, 1 --overlapBarIndex 1 means we havent filled the bar up with absorbs, 2 means we are now overlaying absorbs over the healthbar
     local variousAbsorbAmount = 0  -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
     local absorbSegments = {}
@@ -1281,39 +1281,65 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     end
     local function CalcSegment(amount, sType, tAura)
         local absorbAmount = amount
-        local allowedWidth, overlapAmount, barWidth
+        local overlapAmount, barWidth, displayAmount
         if absorbAmount == nil then
             local errorMsg = "Aura " .. tAura.name .. " with ID " .. tAura.index .. " does not have an absorb amount. Make sure that it is the spellID of the actual buff, not of the spell that casts the buff."
             srslylawlUI.Log(errorMsg)
             return
         end
+        print(unitsType, absorbAmount, tAura and tAura.name or nil)
         while absorbAmount > 0 do
+            displayAmount = 0
             overlapAmount = 0
             barWidth = pixelPerHp * absorbAmount
-            allowedWidth = width * overlapBarIndex
+
+
+            -- allowedWidth = width * overlapBarIndex
             --caching the index so we display the segment correctly
             local oIndex = overlapBarIndex
 
-            local pixelOverlap = (currentBarLength + barWidth) - allowedWidth
+            local pixelOverlap = (currentBarLength + barWidth) - width*overlapBarIndex
+            print("abs: ", absorbAmount, " overlapBarIndex: ", overlapBarIndex, "allowed: ",  width, "overlap: ", pixelOverlap)
+            print("pixeloverlap:", pixelOverlap, "curlen:", currentBarLength, "curwidth", barWidth, "totalAbsorbBarLength", totalAbsorbBarLength)
             --if we are already at overlapindex 2 and we have overlap, we are now at the left end of the bar
             --for now, ignore it and just let it stick out
-            if pixelOverlap > 0 and overlapBarIndex < 2 then
-                -- bar overlaps, display only the value that wouldnt overlap
+
+            if pixelOverlap > 0 and overlapBarIndex < 3 then
+                -- bar overlaps
                 overlapAmount = pixelOverlap / pixelPerHp
                 --since pixels arent that accurate in converting from/to health, make sure we never overlap more than our full absorb amount
                 overlapAmount = overlapAmount > absorbAmount and absorbAmount or overlapAmount
-                absorbAmount = absorbAmount - overlapAmount
-                barWidth = pixelPerHp * absorbAmount
+                -- display only the value that wouldnt overlap
+                displayAmount = absorbAmount - overlapAmount
+                absorbAmount = absorbAmount - displayAmount
+                barWidth = pixelPerHp * displayAmount
                 overlapBarIndex = overlapBarIndex + 1
+                print("overlapAmount", overlapAmount, "absorbamount:", absorbAmount, "displayamount:", displayAmount, "barW", barWidth)
+            elseif overlapBarIndex == 3 then
+                absorbAmount = 0
+                barWidth = 0
+            elseif pixelOverlap <= 0 then
+                absorbAmount = 0
             end
+            local totalOverlap = (totalAbsorbBarLength + barWidth) - width
+            if totalOverlap > 0 then
+                print("totaloverlap", totalOverlap, barWidth)
+                barWidth = barWidth - totalOverlap
+                absorbAmount = 0
+            end
+            
+            print("final width: ", barWidth, "remaining absorb:", absorbAmount)
+            -- print(overlapBarIndex, absorbAmount, overlapAmount, barWidth)
+            currentBarLength = currentBarLength + barWidth
+            totalAbsorbBarLength = totalAbsorbBarLength + barWidth
 
             if barWidth > 2 then
-            absorbSegments[#absorbSegments + 1] = NewAbsorbSegment(absorbAmount, barWidth, sType, oIndex, tAura)
-            else
+                print("_________________displaying")
+                absorbSegments[#absorbSegments + 1] = NewAbsorbSegment(absorbAmount, barWidth, sType, oIndex, tAura)
+            elseif pixelOverlap <= 0 and totalOverlap <= 0 then
                 variousAbsorbAmount = variousAbsorbAmount + absorbAmount
             end
-            currentBarLength = currentBarLength + barWidth
-            absorbAmount = overlapAmount
+            -- absorbAmount = overlapAmount
         end
     end
     local function SetupSegment(tAura, bar, absorbAmount, barWidth, height)
@@ -1344,14 +1370,26 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
         currentBar:Show()
     end
     local function DisplayFrames(absorbSegments)
-        local segment, bar, pool, i, shouldMerge
+        local segment, bar, pool, i, shouldMerge, lastNonOverlapIndex
         for k, _ in ipairs(absorbSegments) do
             segment = absorbSegments[k]
             i = segment.oIndex > 1 and curBarOverlapIndex or curBarIndex
             pool = segment.oIndex > 1 and srslylawlUI[unitsType][unit]["absorbFramesOverlap"] or srslylawlUI[unitsType][unit]["absorbFrames"]
             bar = pool[i]
-            shouldMerge = segment.oIndex > 1 and segment.tAura ~= nil and segment.tAura == absorbSegments[1].tAura and absorbSegments[1].oIndex == 1
-            shouldMerge = shouldMerge or (segment.sType == absorbSegments[1].sType and segment.oIndex > 1 and absorbSegments[1].oIndex == 1)
+            shouldMerge = false
+            if k > 1 and segment.oIndex > 1 and lastNonOverlapIndex then
+                local typeMatch = segment.sType == absorbSegments[1].sType
+                local firstSegmentIsNotOverlap = absorbSegments[1].oIndex == 1
+                local tAuraMatch = segment.tAura == absorbSegments[1].tAura
+
+                if typeMatch and firstSegmentIsNotOverlap and tAuraMatch then
+                    shouldMerge = true
+                end
+            end
+            -- shouldMerge = segment.oIndex > 1 and segment.tAura ~= nil and segment.tAura == absorbSegments[1].tAura and absorbSegments[1].oIndex == 1
+            -- shouldMerge = shouldMerge or (segment.sType == absorbSegments[1].sType and segment.oIndex > 1 and absorbSegments[1].oIndex == 1)
+
+            print("shouldMerge", shouldMerge)
             if shouldMerge then
                 --hiding the non overlap frame and instead making the overlap frame bigger
                 srslylawlUI[unitsType][unit]["absorbFrames"][1].hide = true
@@ -1388,6 +1426,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
             if segment.oIndex > 1 then
                 curBarOverlapIndex = curBarOverlapIndex + 1
             else
+                lastNonOverlapIndex = k
                 curBarIndex = curBarIndex + 1
             end
         end
@@ -1426,7 +1465,9 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
 
     if #absorbSegments > 0 then
         DisplayFrames(absorbSegments)
+        print("XXXXXXXXXXXXXXX done calculating")
     end
+
 
     --hide the ones we didnt use
     for _, bar in pairs(srslylawlUI[unitsType][unit]["absorbFramesOverlap"]) do
