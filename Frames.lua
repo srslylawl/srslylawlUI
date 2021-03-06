@@ -763,6 +763,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
 	    end
     end
     function cBar:UpdateCast()
+        if self.disabled then return end
 	    local spell, displayName, icon, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(self.unit)
 	    local isChannelled
 	    if not spell then
@@ -1012,9 +1013,12 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
 
 
     function frame:RegisterBar(bar, priority, height)
+        local disabled = false
         if bar.name == "CastBar" then
             priority = srslylawlUI.GetSettingByUnit("cast.priority", unitsType, unit)
             height = srslylawlUI.GetSettingByUnit("cast.height", unitsType, unit)
+            disabled = srslylawlUI.GetSettingByUnit("cast.disabled", unitsType, unit)
+            bar.disabled = disabled
         elseif unit == "player" then
             local specIndex = GetSpecialization()
             local specID = GetSpecializationInfo(specIndex)
@@ -1023,6 +1027,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 local path = "player.playerFrame.power.overrides."..specID.."."..bar.name.."."
                 priority = srslylawlUI.GetSetting(path.."priority", true) or priority
                 height = srslylawlUI.GetSetting(path.."height", true) or height
+                disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
             end
         end
 
@@ -1030,6 +1035,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             if v.bar == bar then
                 v.priority = priority
                 v.height = height
+                v.disabled = disabled
                 self:SortBars()
                 return
             end
@@ -1087,7 +1093,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         for i=1, #bh.bars do
             currentBar = bh.bars[i].bar
             height = bh.bars[i].height or 40
-            if currentBar:IsShown() and currentBar:GetAlpha() > .9 then --ignore if the bar isnt visible
+            if currentBar:IsShown() and currentBar:GetAlpha() > .9 and not bh.bars[i].disabled then --ignore if the bar isnt visible
                 if not lastBar then
                     srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "TOPLEFT", bh.barParent, "BOTTOMLEFT", 0, -1)
                     srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "BOTTOMRIGHT", bh.barParent, "BOTTOMRIGHT", 0, -1-height)

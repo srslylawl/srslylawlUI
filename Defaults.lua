@@ -52,6 +52,7 @@ srslylawlUI.defaultSettings = {
                 overrides = {}
             },
             cast = {
+                disabled = false,
                 fontSize = 15,
                 height = 40,
                 priority = 0
@@ -73,6 +74,7 @@ srslylawlUI.defaultSettings = {
                 width = 15
             },
             cast = {
+                disabled = false,
                 fontSize = 15,
                 height = 40,
                 priority = 0

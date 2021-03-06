@@ -578,28 +578,27 @@ function srslylawlUI.CreateConfigWindow()
         local bounds = CreateFrame("Frame", "$parent_"..nameWithoutSpace.."_Bounds", parent)
         local checkButton = CreateFrame("CheckButton","$parent_Button", bounds ,"UICheckButtonTemplate")
         checkButton.bounds = bounds
-        checkButton:SetPoint("TOPLEFT", bounds, "TOPLEFT", 0, 0)
+        checkButton:SetPoint("LEFT", bounds, "LEFT", 0, 0)
         checkButton.text:SetTextColor(1,1,1,1)
         checkButton.text:SetText(name)
         local w = checkButton:GetWidth() + checkButton.text:GetStringWidth()
         local h = checkButton:GetHeight()
-        bounds:SetSize(w, h)
+        bounds:SetSize(w, h+10)
         return checkButton
     end
-    local function CreateSettingsCheckButton(name, parent, valuePath, funcOnChanged)
+    local function CreateSettingsCheckButton(name, parent, valuePath, funcOnChanged, canBeNil)
         local nameWithoutSpace = name:gsub(" ", "_")
         local bounds = CreateFrame("Frame", "$parent_"..nameWithoutSpace.."_Bounds", parent)
         local checkButton = CreateFrame("CheckButton","$parent_Button", bounds ,"UICheckButtonTemplate")
         checkButton.bounds = bounds
-        checkButton:SetPoint("TOPLEFT", bounds, "TOPLEFT", 0, 0)
+        checkButton:SetPoint("LEFT", bounds, "LEFT", 0, 0)
         checkButton.text:SetTextColor(1,1,1,1)
         table.insert(srslylawlUI.ConfigElements.CheckButtons, checkButton)
         checkButton.text:SetText(name)
         local w = checkButton:GetWidth() + checkButton.text:GetStringWidth()
         local h = checkButton:GetHeight()
-        bounds:SetSize(w, h)
-
-        checkButton:SetChecked(srslylawlUI.GetSetting(valuePath))
+        bounds:SetSize(w, h+10)
+        checkButton:SetChecked(srslylawlUI.GetSetting(valuePath, canBeNil))
         checkButton:SetScript("OnClick", function(self)
             srslylawlUI.ChangeSetting(valuePath, self:GetChecked())
             if funcOnChanged then
@@ -607,7 +606,7 @@ function srslylawlUI.CreateConfigWindow()
             end
         end)
         function checkButton:Reset()
-            self:SetChecked(srslylawlUI.GetSetting(valuePath))
+            self:SetChecked(srslylawlUI.GetSetting(valuePath, canBeNil) or false)
             if funcOnChanged then
                 funcOnChanged(self)
             end
@@ -1067,6 +1066,12 @@ function srslylawlUI.CreateConfigWindow()
                 end
 
                 if unit == "player" then
+                    local petControl = CreateConfigControl(tab, unitName.." Pet Frame")
+                    local petWidth = CreateCustomSlider("Width", tab, 1, 200, path.."pet.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions_Pet(unitFrame) end)
+                    petControl:Add(petWidth)
+                    petControl:SetPoint("TOPLEFT", anchor.bounds, "BOTTOMLEFT", 0, 0)
+                    anchor = petControl
+
                     --powerbarsetup
                     local function Refresh()
                         local specIndex = GetSpecialization()
@@ -1097,8 +1102,14 @@ function srslylawlUI.CreateConfigWindow()
                             end
 
                             if not exists then
+                                local p = "player.playerFrame.power.overrides."..specID.."."..name
+                                if name == "CastBar" then
+                                    p = "player.playerFrame.cast"
+                                end
                                 local barControl = CreateConfigControl(tab, "Player "..name)
-
+                                local barEnabled = CreateSettingsCheckButton("Disable", tab, p..".disabled", function()
+                                    unitFrame:ReRegisterAll()
+                                end, true)
                                 local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height", newTable[i].height, function()
                                     -- srslylawlUI.PowerBar.Set(unitFrame, unit)
                                     unitFrame:ReRegisterAll()
@@ -1107,9 +1118,9 @@ function srslylawlUI.CreateConfigWindow()
                                     -- srslylawlUI.PowerBar.Set(unitFrame, unit)
                                     unitFrame:ReRegisterAll()
                                 end)
-                                barControl:Add(barHeight, barPriority)
+                                barControl:Add(barEnabled, barHeight, barPriority)
 
-                                barControl:ChainToControl(cAnchor)
+                                barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
 
                                 cAnchor = barControl
                                 anchor = barControl
