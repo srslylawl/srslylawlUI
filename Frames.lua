@@ -1462,6 +1462,10 @@ function srslylawlUI.Frame_ResetDimensions(button)
             local frameW = srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
             srslylawlUI.Utils_SetSizePixelPerfect(button.unit, frameW, frameH)
         end
+
+        if unit == "player" and unitsType == "mainUnits"then
+            button:SetPoints() --reparent powerbars
+        end
     end
 
     button.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))

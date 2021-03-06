@@ -482,15 +482,14 @@ function srslylawlUI.PowerBar.Set(parent, unit)
         if powerToken == "Stagger" then
             srslylawlUI.PowerBar.SetupStaggerBar(bar)
         end
-        parent:RegisterBar(bar, 5, height *.5)
+        parent:RegisterBar(bar, 5, floor(height *.5))
         -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
     elseif barType == srslylawlUI.PowerBar.Type.PointBar then
         --Point Bar
         DisplayMainBar(parent)
         local powerToken = srslylawlUI.PowerBar.GetPowerToken()
         local bar = srslylawlUI.PowerBar.GetBar(parent, "point", powerToken)
-        height = srslylawlUI.GetSetting("player.power.overrides."..specID.."."..powerToken..".height", true) or height *.7
-        parent:RegisterBar(bar, 5, height *.7)
+        parent:RegisterBar(bar, 5, floor(height *.5))
         if specID >= 250 and specID <= 252 and not bar.isRegistered then --dk spec, use rune update
             bar:RegisterEvent("RUNE_POWER_UPDATE")
             bar:SetScript("OnEvent", function(self, event, ...)
