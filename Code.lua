@@ -261,24 +261,36 @@ function srslylawlUI.Utils_SetPointPixelPerfect(frame, point, parent, relativeTo
     frame:SetPoint(point, parent, relativeTo, offsetX*scaleX, offsetY*scaleY)
 end
 function srslylawlUI.Utils_PixelFromCodeToScreen(width, height)
-    local physicalWidth, physicalHeight = GetPhysicalScreenSize()
-    local ingameHeight = GetScreenHeight() * UIParent:GetScale()
-    local ingameWidth = GetScreenWidth() * UIParent:GetScale()
-    local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+    if width and height then
+        local physicalWidth, physicalHeight = GetPhysicalScreenSize()
+        local ingameHeight = GetScreenHeight() * UIParent:GetScale()
+        local ingameWidth = GetScreenWidth() * UIParent:GetScale()
+        local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
 
-    width = width ~= nil and width*scaleX
-    height = height ~= nil and height*scaleY
-    return width, height
+        return width*scaleX, height*scaleY
+    elseif not height then
+        local physicalWidth  = GetPhysicalScreenSize()
+        local ingameWidth = GetScreenWidth() * UIParent:GetScale()
+        local scaleX = ingameWidth/physicalWidth
+
+        return width*scaleX
+    end
 end
 function srslylawlUI.Utils_PixelFromScreenToCode(width, height)
-    local physicalWidth, physicalHeight = GetPhysicalScreenSize()
-    local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
-    local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
-    local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+    if width and height then
+        local physicalWidth, physicalHeight = GetPhysicalScreenSize()
+        local ingameHeight = GetScreenHeight() * UIParent:GetScale()
+        local ingameWidth = GetScreenWidth() * UIParent:GetScale()
+        local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
 
-    width = width ~= nil and srslylawlUI.Utils_ScuffedRound(width/scaleX)
-    height = height ~= nil and srslylawlUI.Utils_ScuffedRound(height/scaleY)
-    return width, height
+        return srslylawlUI.Utils_PixelRound(width/scaleX, 1*scaleX), srslylawlUI.Utils_PixelRound(height/scaleX, 1*scaleY)
+    elseif not height then
+        local physicalWidth = GetPhysicalScreenSize()
+        local ingameWidth = GetScreenWidth() * UIParent:GetScale()
+        local scaleX = ingameWidth/physicalWidth
+
+        return srslylawlUI.Utils_PixelRound(width/scaleX, 1*scaleX)
+    end
 end
 function srslylawlUI.Utils_AnchorInvert(position)
     if position == "TOP" then
@@ -367,6 +379,14 @@ function srslylawlUI.Utils_SetLimitedText(fontstring, maxPixels, text, addDots)
         wasShortened = true
     end
 end
+function srslylawlUI.Utils_PixelRound(x, pixelSize)
+    pixelSize = pixelSize or srslylawlUI.Utils_PixelFromCodeToScreen(1)
+    if math.fmod(x, 1) >= pixelSize then
+        return ceil(x)
+    else
+        return floor(x)
+    end
+end
 function srslylawlUI.ShortenNumber(number)
     if number > 999999999 then
         number = tostring(srslylawlUI.Utils_ScuffedRound(number/100000000))
@@ -416,8 +436,6 @@ function srslylawlUI.TranslateFrameAnchor(anchor)
     elseif anchor == nil then
         return "Screen"
     end
-
-    print(anchor)
 end
 function srslylawlUI.Debug()
     if srslylawlUI.DebugWindow == nil then
@@ -1251,7 +1269,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     end
     local pixelPerHp = width / highestMaxHP
     local playerCurrentHP = UnitHealth(unit)
-    local currentBarLength = playerCurrentHP * pixelPerHp + srslylawlUI.Utils_PixelFromCodeToScreen(1)
+    local currentBarLength = playerCurrentHP * pixelPerHp
     local totalAbsorbBarLength = 0
     local overlapBarIndex, curBarIndex, curBarOverlapIndex = 1, 1, 1 --overlapBarIndex 1 means we havent filled the bar up with absorbs, 2 means we are now overlaying absorbs over the healthbar
     local variousAbsorbAmount = 0  -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
@@ -1259,6 +1277,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     local incomingHeal = UnitGetIncomingHeals(unit)
     local healAbsorb = UnitGetTotalHealAbsorbs(unit)
     local sortedAbsorbAuras, incomingHealWidth, variousFrameWidth, healAbsorbWidth
+    local pixelSize = srslylawlUI.Utils_PixelFromCodeToScreen(1)
 
     local function NewAbsorbSegment(amount, width, sType, oIndex, tAura)
         return {
@@ -1281,65 +1300,52 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     end
     local function CalcSegment(amount, sType, tAura)
         local absorbAmount = amount
-        local overlapAmount, barWidth, displayAmount
+        local barWidth
         if absorbAmount == nil then
             local errorMsg = "Aura " .. tAura.name .. " with ID " .. tAura.index .. " does not have an absorb amount. Make sure that it is the spellID of the actual buff, not of the spell that casts the buff."
             srslylawlUI.Log(errorMsg)
             return
         end
-        print(unitsType, absorbAmount, tAura and tAura.name or nil)
         while absorbAmount > 0 do
-            displayAmount = 0
-            overlapAmount = 0
             barWidth = pixelPerHp * absorbAmount
-
-
-            -- allowedWidth = width * overlapBarIndex
             --caching the index so we display the segment correctly
             local oIndex = overlapBarIndex
 
             local pixelOverlap = (currentBarLength + barWidth) - width*overlapBarIndex
-            print("abs: ", absorbAmount, " overlapBarIndex: ", overlapBarIndex, "allowed: ",  width, "overlap: ", pixelOverlap)
-            print("pixeloverlap:", pixelOverlap, "curlen:", currentBarLength, "curwidth", barWidth, "totalAbsorbBarLength", totalAbsorbBarLength)
             --if we are already at overlapindex 2 and we have overlap, we are now at the left end of the bar
             --for now, ignore it and just let it stick out
 
             if pixelOverlap > 0 and overlapBarIndex < 3 then
-                -- bar overlaps
-                overlapAmount = pixelOverlap / pixelPerHp
-                --since pixels arent that accurate in converting from/to health, make sure we never overlap more than our full absorb amount
-                overlapAmount = overlapAmount > absorbAmount and absorbAmount or overlapAmount
-                -- display only the value that wouldnt overlap
-                displayAmount = absorbAmount - overlapAmount
-                absorbAmount = absorbAmount - displayAmount
-                barWidth = pixelPerHp * displayAmount
+                barWidth = barWidth-pixelOverlap
+                if overlapBarIndex == 1 and barWidth > 1 then
+                    barWidth = barWidth-1 --remove 1 for anchor spacing, if bar is smaller than 1 pixel it will be added to the last bar instead, thus no space necessary
+                end
+                absorbAmount = absorbAmount - barWidth/pixelPerHp
                 overlapBarIndex = overlapBarIndex + 1
-                print("overlapAmount", overlapAmount, "absorbamount:", absorbAmount, "displayamount:", displayAmount, "barW", barWidth)
+            elseif pixelOverlap <= 0 then
+                absorbAmount = 0
             elseif overlapBarIndex == 3 then
                 absorbAmount = 0
                 barWidth = 0
-            elseif pixelOverlap <= 0 then
-                absorbAmount = 0
             end
+
             local totalOverlap = (totalAbsorbBarLength + barWidth) - width
             if totalOverlap > 0 then
-                print("totaloverlap", totalOverlap, barWidth)
                 barWidth = barWidth - totalOverlap
                 absorbAmount = 0
             end
-            
-            print("final width: ", barWidth, "remaining absorb:", absorbAmount)
-            -- print(overlapBarIndex, absorbAmount, overlapAmount, barWidth)
-            currentBarLength = currentBarLength + barWidth
+
             totalAbsorbBarLength = totalAbsorbBarLength + barWidth
 
-            if barWidth > 2 then
-                print("_________________displaying")
+            if srslylawlUI.Utils_PixelRound(barWidth, pixelSize) >= 1 then
+                currentBarLength = currentBarLength + barWidth + 1
                 absorbSegments[#absorbSegments + 1] = NewAbsorbSegment(absorbAmount, barWidth, sType, oIndex, tAura)
-            elseif pixelOverlap <= 0 and totalOverlap <= 0 then
-                variousAbsorbAmount = variousAbsorbAmount + absorbAmount
+            else
+                if absorbSegments[#absorbSegments] then
+                    absorbSegments[#absorbSegments].width = absorbSegments[#absorbSegments].width + barWidth
+                    currentBarLength = currentBarLength + barWidth
+                end
             end
-            -- absorbAmount = overlapAmount
         end
     end
     local function SetupSegment(tAura, bar, absorbAmount, barWidth, height)
@@ -1370,14 +1376,28 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
         currentBar:Show()
     end
     local function DisplayFrames(absorbSegments)
-        local segment, bar, pool, i, shouldMerge, lastNonOverlapIndex
+        local segment, bar, pool, i, shouldMerge
+        local roundingError = 0
         for k, _ in ipairs(absorbSegments) do
             segment = absorbSegments[k]
             i = segment.oIndex > 1 and curBarOverlapIndex or curBarIndex
             pool = segment.oIndex > 1 and srslylawlUI[unitsType][unit]["absorbFramesOverlap"] or srslylawlUI[unitsType][unit]["absorbFrames"]
             bar = pool[i]
             shouldMerge = false
-            if k > 1 and segment.oIndex > 1 and lastNonOverlapIndex then
+
+            --these width values are "real" pixels, which will have to be rounded in order to be displayed correctly.
+            --when we have multiple frames, this rounding can accumulate and cause us to be off by a few pixels
+            --in order to achieve pixel perfection, we have to account for that here
+            local rounded = srslylawlUI.Utils_PixelRound(segment.width, pixelSize)
+            roundingError = roundingError + (rounded - segment.width)
+            segment.width = rounded
+            --see if this is the last frame for current index, and add the rounding error on top if it is
+            if not absorbSegments[k+1] or absorbSegments[k+1].oIndex > segment.oIndex then
+                segment.width = srslylawlUI.Utils_PixelRound(segment.width - roundingError, pixelSize)
+                roundingError = 0
+            end
+
+            if k > 1 and segment.oIndex > 1 then
                 local typeMatch = segment.sType == absorbSegments[1].sType
                 local firstSegmentIsNotOverlap = absorbSegments[1].oIndex == 1
                 local tAuraMatch = segment.tAura == absorbSegments[1].tAura
@@ -1386,10 +1406,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
                     shouldMerge = true
                 end
             end
-            -- shouldMerge = segment.oIndex > 1 and segment.tAura ~= nil and segment.tAura == absorbSegments[1].tAura and absorbSegments[1].oIndex == 1
-            -- shouldMerge = shouldMerge or (segment.sType == absorbSegments[1].sType and segment.oIndex > 1 and absorbSegments[1].oIndex == 1)
 
-            print("shouldMerge", shouldMerge)
             if shouldMerge then
                 --hiding the non overlap frame and instead making the overlap frame bigger
                 srslylawlUI[unitsType][unit]["absorbFrames"][1].hide = true
@@ -1426,19 +1443,12 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
             if segment.oIndex > 1 then
                 curBarOverlapIndex = curBarOverlapIndex + 1
             else
-                lastNonOverlapIndex = k
                 curBarIndex = curBarIndex + 1
             end
         end
     end
     sortedAbsorbAuras = SortAbsorbBySpellIDDesc(trackedAurasByIndex)
-    if healAbsorb > 0 then
-        healAbsorbWidth = floor(healAbsorb * pixelPerHp)
-        
-        if healAbsorbWidth > 2 then
-            CalcSegment(healAbsorb, "healAbsorb", nil)
-        end
-    end
+
     if incomingHeal ~= nil then
         incomingHealWidth = floor(incomingHeal * pixelPerHp)
         if incomingHealWidth > 2 then
@@ -1454,6 +1464,13 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     if variousFrameWidth >= 2 then
         CalcSegment(variousAbsorbAmount, "various", nil)
     end
+    if healAbsorb > 0 then
+        healAbsorbWidth = floor(healAbsorb * pixelPerHp)
+        
+        if healAbsorbWidth > 2 then
+            CalcSegment(healAbsorb, "healAbsorb", nil)
+        end
+    end
     --flag all bars as hide
     for _, bar in pairs(srslylawlUI[unitsType][unit]["absorbFramesOverlap"]) do
         bar.hide = true
@@ -1465,7 +1482,6 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
 
     if #absorbSegments > 0 then
         DisplayFrames(absorbSegments)
-        print("XXXXXXXXXXXXXXX done calculating")
     end
 
 

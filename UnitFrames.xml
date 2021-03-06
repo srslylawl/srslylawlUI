@@ -3,16 +3,9 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 http://wowprogramming.com/FrameXML/UI.xsd">
 	<Frame name="srslylawlUI_UnitTemplate" virtual="true">
-		<Size x="36" y="50"/>
 		<Frames>
-		<!-- unitButton -->
+			<!-- unitButton -->
 			<Button name="$parent_Unit" parentKey="unit" inherits="SecureUnitButtonTemplate" registerForClicks="AnyUp" enableMouse="true">
-				<Size x="34" y="50" />
-				<Anchors>
-					<Anchor point="TOPLEFT">
-						<Offset x="0" y="0" />
-					</Anchor>
-				</Anchors>
 				<Layers>
 					<Layer level="OVERLAY">
 						<Texture name="$parent_Selected" parentKey="selected" setAllPoints="true" file="Interface\AddOns\srslylawlUI\media\healthBarHighlight" alphaMode="ADD" hidden="true"/>
@@ -20,10 +13,6 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 				</Layers>
 				<Frames>
 					<StatusBar name="$parent_HealthBar" parentKey="healthBar">
-						<Size x="34" y="50" />
-						<Anchors>
-							<Anchor point="TOPLEFT" />
-						</Anchors>
 						<BarTexture name="$parent_texture" file="Interface\Addons\srslylawlUI\media\powerBarSprite" />
 						<BarColor r="1.0" g="1.0" b="1.0" />
 					</StatusBar>

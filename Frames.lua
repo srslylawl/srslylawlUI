@@ -290,6 +290,16 @@ function srslylawlUI.FrameSetup()
         srslylawlUI.CreateBackground(unitFrame.unit.healthBar, 1, .8)
         srslylawlUI.CreateBackground(unitFrame.unit.powerBar, 1, .8)
 
+        local height, width = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit), srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
+
+        srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit, width, height)
+        srslylawlUI.Utils_SetPointPixelPerfect(unitFrame, "TOPLEFT", unitFrame.unit, "TOPLEFT", -1, 1)
+        srslylawlUI.Utils_SetPointPixelPerfect(unitFrame, "BOTTOMRIGHT", unitFrame.unit, "BOTTOMRIGHT", 1, -1)
+
+        unitFrame.unit.healthBar:SetPoint("TOPLEFT", unitFrame.unit, "TOPLEFT", 0, 0)
+
+
+
         local fontSize = (party or faux) and srslylawlUI.GetSetting("party.hp.fontSize") or srslylawlUI.GetSetting("player."..unit.."Frame.hp.fontSize")
 
         unitFrame.unit.healthBar.leftTextFrame = CreateFrame("Frame", "$parent_leftTextFrame", unitFrame.unit.healthBar)
@@ -355,9 +365,9 @@ function srslylawlUI.FrameSetup()
         
         --initial sorting
         if unit == "player" then
-            frame:SetPoint("TOPLEFT", header, "TOPLEFT")
+            frame.unit:SetPoint("TOPLEFT", header, "TOPLEFT")
         else
-            frame:SetPoint("TOPLEFT", parent, "BOTTOMLEFT")
+            frame.unit:SetPoint("TOPLEFT", parent, "BOTTOMLEFT")
         end
         srslylawlUI.Frame_InitialPartyUnitConfig(frame, false)
         srslylawlUI.Frame_InitialPartyUnitConfig(faux, true)
@@ -384,17 +394,8 @@ function srslylawlUI.FrameSetup()
             CreateCustomFrames(frame, unit)
         end
         local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
-        if a and #a > 1 then
-            srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
-        elseif unit == "targettarget" then
-            frame:SetPoint("TOPLEFT", srslylawlUI.mainUnits.target.unitFrame, "TOPRIGHT", 0, 0)
-        elseif unit == "target" then
-            frame:SetPoint("TOPLEFT", nil, "CENTER", 0, 0)
-        elseif unit == "player" then
-            frame:SetPoint("TOPRIGHT", nil, "CENTER", 0, 0)
-        end
-        
-        
+        srslylawlUI.Utils_SetPointPixelPerfect(frame.unit, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
+
         srslylawlUI.Frame_InitialMainUnitConfig(frame)
     end
     srslylawlUI.Frame_UpdateVisibility()
@@ -1431,29 +1432,20 @@ end
 function srslylawlUI.Frame_ResetDimensions(button)
     local unit = button:GetAttribute("unit")
     local unitsType = button:GetAttribute("unitsType")
-    local h, w, fontSize
+    local h, w = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit), srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
+    local fontSize = srslylawlUI.GetSettingByUnit("hp.fontSize", unitsType, unit)
     local checkFrame = button.unit.healthBar
     if unitsType == "partyUnits" or unitsType == "fauxUnits" then
-        h = srslylawlUI.GetSetting("party.hp.height")
-        w = srslylawlUI.GetSetting("party.hp.width")
-        fontSize = srslylawlUI.GetSetting("party.hp.fontSize")
-        if srslylawlUI.unitHealthBars ~= nil then
-        if srslylawlUI.unitHealthBars[unit] ~= nil then
-            if srslylawlUI.unitHealthBars[unit]["width"] ~= nil then
-                w = srslylawlUI.unitHealthBars[unit]["width"]
-            end
-        end
+        if srslylawlUI.unitHealthBars[unit] and srslylawlUI.unitHealthBars[unit]["width"] then
+            w = srslylawlUI.unitHealthBars[unit]["width"]
         end
     elseif unitsType == "mainUnits" then
-        h = srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")
-        w = srslylawlUI.GetSetting("player."..unit.."Frame.hp.width")
-        fontSize = srslylawlUI.GetSetting("player."..unit.."Frame.hp.fontSize")
         checkFrame = button
     end
 
     local widthDiff = abs(srslylawlUI.Utils_PixelFromScreenToCode(checkFrame:GetWidth()) - w)
     local heightDiff = abs(srslylawlUI.Utils_PixelFromScreenToCode(checkFrame:GetHeight()) - h)
-    local tolerance = 1
+    local tolerance = 0.1
     local needsResize = widthDiff > tolerance or heightDiff > tolerance
     if needsResize or unitsType == "mainUnits" then
         srslylawlUI.Utils_SetSizePixelPerfect(button.unit.auraAnchor, w, h)
@@ -1466,9 +1458,8 @@ function srslylawlUI.Frame_ResetDimensions(button)
 
         if not InCombatLockdown() then
             -- stuff that taints in combat
-            local frameH = unitsType ~= "mainUnits" and srslylawlUI.GetSetting("party.hp.height") or srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")
-            local frameW = unitsType ~= "mainUnits" and srslylawlUI.GetSetting("party.hp.width") or srslylawlUI.GetSetting("player."..unit.."Frame.hp.width")
-            srslylawlUI.Utils_SetSizePixelPerfect(button, frameW+1, frameH+1)
+            local frameH = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
+            local frameW = srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
             srslylawlUI.Utils_SetSizePixelPerfect(button.unit, frameW, frameH)
         end
     end
@@ -1510,7 +1501,6 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1, 0)
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", 2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width"), 0)
         else
-
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width")), 0)
         end
@@ -1914,12 +1904,12 @@ function srslylawlUI.SortPartyFrames()
         local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(list[i].unit, "partyUnits")
 
         if (buttonFrame) then
-            buttonFrame:ClearAllPoints()
+            buttonFrame.unit:ClearAllPoints()
             if i == 1 then
                 buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
             else
                 local parent = srslylawlUI.Frame_GetFrameByUnit(list[i - 1].unit, "partyUnits")
-                srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
+                srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
             end
             srslylawlUI.Frame_ResetUnitButton(buttonFrame.unit, list[i].unit)
         end
