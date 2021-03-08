@@ -2,6 +2,7 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
     local frameName = "srslylawlUI_"..unit.."Aura"
     local unitsType = buttonFrame:GetAttribute("unitsType")
     local maxBuffs = srslylawlUI.GetSettingByUnit("buffs.maxBuffs", unitsType, unit)
+    if unitsType == "fauxUnits" then maxBuffs = 40 end
     local size = srslylawlUI.GetSettingByUnit("buffs.size", unitsType, unit)
     local texture = size >= 64 and srslylawlUI.textures.AuraBorder64 or srslylawlUI.textures.AuraBorder32
     local swipeTexture = size >= 64 and srslylawlUI.textures.AuraSwipe64 or srslylawlUI.textures.AuraSwipe32
@@ -55,8 +56,8 @@ end
 function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
     local frameName = "srslylawlUI_"..unit.."Debuff"
     local unitsType = buttonFrame:GetAttribute("unitsType")
-    local parent
     local maxBuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
+    if unitsType == "fauxUnits" then maxBuffs = 40 end
     local size = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
     local texture = size >= 64 and srslylawlUI.textures.AuraBorder64 or srslylawlUI.textures.AuraBorder32
     local swipeTexture = size >= 64 and srslylawlUI.textures.AuraSwipe64 or srslylawlUI.textures.AuraSwipe32
@@ -355,10 +356,26 @@ function srslylawlUI.FrameSetup()
             trackedAurasByIndex = {},
             unitFrame = frame
         }
-        local faux = CreateUnitFrame(fauxHeader, unit, true, true)
         srslylawlUI.CreateBuffFrames(frame, unit)
         srslylawlUI.CreateDebuffFrames(frame, unit)
         CreateCustomFrames(frame, unit)
+
+        local faux = CreateUnitFrame(fauxHeader, unit, true, true)
+        srslylawlUI.fauxUnits[unit] = {
+            absorbAuras = {},
+            absorbFrames = {},
+            absorbFramesOverlap = {},
+            buffFrames = {},
+            debuffFrames = {},
+            defensiveAuras = {},
+            effectiveHealthFrames = {},
+            effectiveHealthSegments = {},
+            trackedAurasByIndex = {},
+            unitFrame = faux
+        }
+        srslylawlUI.CreateBuffFrames(faux, unit)
+        srslylawlUI.CreateDebuffFrames(faux, unit)
+
 
         --initial sorting
         if unit == "player" then
@@ -368,7 +385,7 @@ function srslylawlUI.FrameSetup()
         end
         srslylawlUI.Frame_InitialPartyUnitConfig(frame, false)
         srslylawlUI.Frame_InitialPartyUnitConfig(faux, true)
-        parent = frame
+        parent = frame.unit
     end
     --Initiate player, target and targettarget frame
     for _, unit in pairs(srslylawlUI.mainUnitsTable) do
@@ -556,9 +573,17 @@ function srslylawlUI.RegisterEvents(buttonFrame)
         buttonFrame:RegisterEvent("PARTY_LEADER_CHANGED")
         buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
         buttonFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+        buttonFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
     end
 end
 function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
+    local function UpdatePowerBar(unit, token)
+        if unit == "player" and unitsType == "mainUnits" then
+            srslylawlUI.PowerBar.Update(self, token)
+        else
+            self.unit.powerBar:SetValue(UnitPower(unit))
+        end
+    end
     local unit = self:GetAttribute("unit")
     local unitExists = UnitExists(unit)
     local unitsType = self:GetAttribute("unitsType")
@@ -566,6 +591,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
     -- Handle any events that don’t accept a unit argument
     if event == "PLAYER_ENTERING_WORLD" then
         srslylawlUI.HandleAuras(self.unit, unit)
+        UpdatePowerBar(unit, nil)
     elseif event == "GROUP_ROSTER_UPDATE" then
         self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
     elseif event == "PLAYER_TARGET_CHANGED" then
@@ -592,6 +618,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         end
     elseif event == "PLAYER_SPECIALIZATION_CHANGED" and unit == "player" then
         srslylawlUI.PowerBar.Set(self, unit)
+    elseif event == "UPDATE_INSTANCE_INFO" then
+        UpdatePowerBar(unit, nil)
     elseif event == "PARTY_LEADER_CHANGED" then
         self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
     elseif event == "READY_CHECK" then
@@ -621,11 +649,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                 srslylawlUI.PowerBar.Set(self, unit)
             end
         elseif event == "UNIT_POWER_FREQUENT" then
-            if unit == "player" and unitsType == "mainUnits" then
-                srslylawlUI.PowerBar.Update(self, arg2)
-            else
-                self.unit.powerBar:SetValue(UnitPower(unit))
-            end
+            UpdatePowerBar(unit, arg2)
         elseif event == "UNIT_MAXPOWER" then
             if unit == "player" and unitsType == "mainUnits" then
                 srslylawlUI.PowerBar.UpdateMax(self, arg2)
@@ -650,7 +674,9 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
             if unitsType == "partyUnits" then
-                srslylawlUI.Log(UnitName(unit) .. (UnitIsConnected(unit) and " is now online." or " is now offline."))
+                if UnitName(unit) ~= "Unknown" then
+                    srslylawlUI.Log(UnitName(unit) .. (UnitIsConnected(unit) and " is now online." or " is now offline."))
+                end
             end
         elseif event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_PREDICTION" then
             srslylawlUI.HandleAuras(self.unit, unit)
@@ -1696,8 +1722,11 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
             return ReverseAnchorPointPos(ReverseAnchorPointPos(str, 1), 2)
         end
     end
-    local function ReparentOnHide(frame)
+    local function ReparentOnHideShow(frame)
         frame:SetScript("OnHide", function()
+        srslylawlUI.SetAuraPointsAll(unit, unitsType)
+        end)
+        frame:SetScript("OnShow", function()
         srslylawlUI.SetAuraPointsAll(unit, unitsType)
         end)
     end
@@ -1787,24 +1816,26 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
             else
                 unitsTable[unit][auraType.."Anchor"] = unitFrame.unit
             end
+            ReparentOnHideShow(frame)
             currentRowLength = frameSize
         else
             if currentRowLength + frameSize + offset > maxRowLength then
+                --doesnt fit into row
                 srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, initialXOffset, initialYOffset)
                 rowAnchor = frame
                 if frame:IsShown() then
                     unitsTable[unit][auraType.."Anchor"] = frame
                 end
+                ReparentOnHideShow(frame)
                 currentRowLength = frameSize
             else
                 srslylawlUI.Utils_SetPointPixelPerfect(frame, anchorPoint, frames[i-1], anchorPointRelative, xOffset, yOffset)
                 currentRowLength = currentRowLength + frameSize + offset
+                frame:SetScript("OnHide", nil)
+                frame:SetScript("OnShow", nil)
             end
         end
         srslylawlUI.Utils_SetSizePixelPerfect(frame, frameSize, frameSize)
-    end
-    if unitsTable[unit][auraType.."Anchor"] then
-        ReparentOnHide(unitsTable[unit][auraType.."Anchor"])
     end
 end
 function srslylawlUI.SetAuraPointsAll(unit, unitsType)

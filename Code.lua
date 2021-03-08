@@ -69,6 +69,7 @@ srslylawlUI.mainUnits = {
     target = {},
     targettarget = {}
 }
+srslylawlUI.fauxUnits = {}
 srslylawlUI.customTooltip = CreateFrame("GameTooltip", "srslylawl_CustomTooltip", UIParent, "GameTooltipTemplate")
 srslylawlUI.partyUnitsTable = { "player", "party1", "party2", "party3", "party4"}
 srslylawlUI.mainUnitsTable = {"player", "target", "targettarget"}
@@ -96,12 +97,8 @@ local debugString = ""
 
 --[[ TODO:
 
-horde/ally symbol (topright)
-scale buffs/debuffs
 ccdurbar on player/target/targettarget
-powerbar text
 alt powerbar
-fontsizes
 hide blizzard default frames
 UnitHasIncomingResurrection(unit)
 powerbar fadeout
@@ -957,22 +954,22 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
     local function NotDefault(bool)
         return bool ~= srslylawlUI.GetSetting("party.buffs.showDefault")
     end
-    if srslylawlUI_Saved.buffs.whiteList[spellId] ~= nil then
+    if srslylawlUI_Saved.buffs.whiteList[spellId] then
         --always show whitelisted spells
         return true
     end
 
-    if srslylawlUI_Saved.buffs.blackList[spellId] ~= nil then
+    if srslylawlUI_Saved.buffs.blackList[spellId] then
         --never show blacklisted spells
         return false
     end
 
-    if srslylawlUI_Saved.buffs.absorbs[spellId] ~= nil then
+    if srslylawlUI_Saved.buffs.absorbs[spellId] then
         --dont show absorb spells unless whitelisted
         return false
     end
 
-    if srslylawlUI_Saved.buffs.defensives[spellId] ~= nil then
+    if srslylawlUI_Saved.buffs.defensives[spellId] then
         --its a defensive spell
         return srslylawlUI.GetSetting("party.buffs.showDefensives")
     end
@@ -980,52 +977,49 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
     if duration == 0 then
         return srslylawlUI.GetSetting("party.buffs.showInfiniteDuration")
     end
-    
     if duration > srslylawlUI.GetSetting("party.buffs.maxDuration") then
-        if NotDefault(srslylawlUI.GetSetting("party.buffs.showLongDuration")) then
-            return srslylawlUI.GetSetting("party.buffs.showLongDuration")
-        end
+        return srslylawlUI.GetSetting("party.buffs.showLongDuration")
     end
-    
+
     if source == "player" and castByPlayer then
         if NotDefault(srslylawlUI.GetSetting("party.buffs.showCastByPlayer")) then
             return srslylawlUI.GetSetting("party.buffs.showCastByPlayer")
         end
     end
-    
+
 
     return srslylawlUI.GetSetting("party.buffs.showDefault")
 end
 function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
-              isStealable, nameplateShowPersonal, spellId, canApplyAura,
-              isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
-    
+        isStealable, nameplateShowPersonal, spellId, canApplyAura,
+        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
+
     local function NotDefault(bool)
         return bool ~= srslylawlUI.GetSetting("party.debuffs.showDefault")
     end
-    if srslylawlUI_Saved.debuffs.whiteList[spellId] ~= nil then
+    if srslylawlUI_Saved.debuffs.whiteList[spellId] then
         --always show whitelisted spells
         return true
     end
 
-    if srslylawlUI_Saved.debuffs.blackList[spellId] ~= nil then
+    if srslylawlUI_Saved.debuffs.blackList[spellId] then
         --never show blacklisted spells
         return false
     end
-    
+
     if source == "player" and castByPlayer then
         if NotDefault(srslylawlUI.GetSetting("party.debuffs.showCastByPlayer")) then
             return srslylawlUI.GetSetting("party.debuffs.showCastByPlayer")
         end
     end
-    
+
     if duration == 0 then
         if NotDefault(srslylawlUI.GetSetting("party.debuffs.showInfiniteDuration")) then
             return srslylawlUI.GetSetting("party.debuffs.showInfiniteDuration")
         end
     end
-    
+
     if duration > srslylawlUI.GetSetting("party.debuffs.maxDuration") then
         if NotDefault(srslylawlUI.GetSetting("party.debuffs.showLongDuration")) then
             return srslylawlUI.GetSetting("party.debuffs.showLongDuration")

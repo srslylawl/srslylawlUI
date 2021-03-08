@@ -16,7 +16,7 @@ srslylawlUI.defaultSettings = {
             width = 15
         },
         buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = -29, yOffset = 0, size = 16, scaledSize = 32, growthDir = "LEFT",
-                showCastByPlayer = true, maxBuffs = 5, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
+                showCastByPlayer = true, maxBuffs = 5, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = false, showLongDuration = false},
         debuffs = { anchor = "BOTTOMLEFT", anchoredTo = "Frame", xOffset = -29, yOffset = 0, size = 16, scaledSize = 32, growthDir = "LEFT", showCastByPlayer = true,
                 maxDebuffs = 5, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
         maxAbsorbFrames = 20,

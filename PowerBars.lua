@@ -703,10 +703,12 @@ end
 function srslylawlUI.PowerBar.Update(parent, powerToken)
     local eventToToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
     powerToken = eventToToken and eventToToken or powerToken
-    local bar = srslylawlUI.PowerBar.GetBar(parent, nil, powerToken)
-    if not bar.isUnparented then
-        --since bars we dont want to see can still get events(druid's rage in other forms, since it gets reset to 25 anyway), check for that here
-        bar:Update()
+    if powerToken then
+        local bar = srslylawlUI.PowerBar.GetBar(parent, nil, powerToken)
+        if not bar.disabled then
+            --since bars we dont want to see can still get events(druid's rage in other forms, since it gets reset to 25 anyway), check for that here
+            bar:Update()
+        end
     end
 end
 function srslylawlUI.PowerBar.UpdateMax(parent, powerToken)

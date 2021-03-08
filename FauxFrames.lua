@@ -123,44 +123,23 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
             --buffs
             frame.buffs = {}
-            local frameName = "srslylawlUI_FAUX"..unit.."Aura"
-            local parent = frame.unit
+            local frames = srslylawlUI.fauxUnits[unit].buffFrames
             for i = 1, 40 do
-                local xOffset, yOffset = srslylawlUI.Party_GetBuffOffsets()
-                local anchor = srslylawlUI.GetSetting("party.buffs.growthDir")
-                local f = CreateFrame("Button", frameName .. i, frame.unit, "CompactBuffTemplate")
-                if (i == 1) then
-                    xOffset = srslylawlUI.GetSetting("party.buffs.xOffset")
-                    yOffset = srslylawlUI.GetSetting("party.buffs.yOffset")
-                    f:SetPoint(srslylawlUI.GetSetting("party.buffs.anchor"), srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
-                else
-                    srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
+                local f = frames[i]
+                if f then
+                    f.icon:SetTexture(135932)
+                    frame.buffs[i] = f
                 end
-                f:EnableMouse(false)
-                f.icon:SetTexture(135932)
-                frame.buffs[i] = f
-                parent = f
             end
             --debuffs
             frame.debuffs = {}
-            frameName = "srslylawlUI_FAUX"..unit.."Debuff"
-            parent = frame.unit
+            local frames = srslylawlUI.fauxUnits[unit].debuffFrames
             for i = 1, 40 do
-                local xOffset, yOffset = srslylawlUI.Party_GetDebuffOffsets()
-                local anchor = srslylawlUI.GetSetting("party.debuffs.growthDir")
-                local f = CreateFrame("Button", frameName .. i, frame.unit, "CompactDebuffTemplate")
-                if (i == 1) then
-                    anchor = srslylawlUI.GetSetting("party.debuffs.anchor")
-                    xOffset = srslylawlUI.GetSetting("party.debuffs.xOffset")
-                    yOffset = srslylawlUI.GetSetting("party.debuffs.yOffset")
-                    f:SetPoint(srslylawlUI.GetSetting("party.debuffs.anchor"), srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
-                else
-                    srslylawlUI.Utils_SetPointPixelPerfect(f, "CENTER", parent, "CENTER", xOffset, yOffset)
+                local f = frames[i]
+                if f then
+                    f.icon:SetTexture(136207)
+                    frame.debuffs[i] = f
                 end
-                f:EnableMouse(false)
-                f.icon:SetTexture(136207)
-                frame.debuffs[i] = f
-                parent = f
             end
 
             local timerFrame = 1
@@ -174,28 +153,22 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     local countChanged = self.shownBuffs ~= srslylawlUI.GetSetting("party.buffs.maxBuffs")
                     local anchorChanged = self.buffs.anchor ~= srslylawlUI.GetSetting("party.buffs.anchor") or self.buffs.xOffset ~= srslylawlUI.GetSetting("party.buffs.xOffset") or self.buffs.yOffset ~= srslylawlUI.GetSetting("party.buffs.yOffset")
                     local sizeChanged = self.buffs.size ~= srslylawlUI.GetSetting("party.buffs.size")
-                    local growthDirChanged = self.buffs.growthDir ~= srslylawlUI.GetSetting("party.buffs.growthDir")
-                    if countChanged or anchorChanged or sizeChanged or growthDirChanged then
+                    local anchorToChanged = self.buffs.anchoredTo ~= srslylawlUI.GetSetting("party.buffs.anchoredTo")
+                    if countChanged or anchorChanged or sizeChanged or anchorToChanged then
                         self.shownBuffs = srslylawlUI.GetSetting("party.buffs.maxBuffs")
                         for i=1,40 do
                             self.buffs[i]:SetShown(i <= self.shownBuffs)
                             local size = srslylawlUI.GetSetting("party.buffs.size")
-                            local xOffset, yOffset = srslylawlUI.Party_GetBuffOffsets()
-                            local anchor = "CENTER"
-                            self.buffs[i]:ClearAllPoints()
+                            self.buffs.size = size
                             if (i == 1) then
                                 anchor = srslylawlUI.GetSetting("party.buffs.anchor")
                                 xOffset = srslylawlUI.GetSetting("party.buffs.xOffset")
                                 yOffset = srslylawlUI.GetSetting("party.buffs.yOffset")
-                                self.buffs[i]:SetParent(self.unit.auraAnchor)
-                                self.buffs[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                                 self.buffs.anchor = anchor
                                 self.buffs.xOffset = xOffset
                                 self.buffs.yOffset = yOffset
                                 self.buffs.size = size
-                                self.buffs.growthDir = srslylawlUI.GetSetting("party.buffs.growthDir")
-                            else
-                                srslylawlUI.Utils_SetPointPixelPerfect(self.buffs[i], anchor, self.buffs[i-1], anchor, xOffset, yOffset)
+                                self.buffs.anchoredTo = srslylawlUI.GetSetting("party.buffs.anchoredTo")
                             end
                             srslylawlUI.Utils_SetSizePixelPerfect(self.buffs[i], size, size)
                         end
@@ -203,32 +176,26 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     countChanged = self.shownDebuffs ~= srslylawlUI.GetSetting("party.debuffs.maxDebuffs")
                     sizeChanged = self.debuffs.size ~= srslylawlUI.GetSetting("party.debuffs.size")
                     anchorChanged = self.debuffs.anchor ~= srslylawlUI.GetSetting("party.debuffs.anchor") or self.debuffs.xOffset ~= srslylawlUI.GetSetting("party.debuffs.xOffset") or self.debuffs.yOffset ~= srslylawlUI.GetSetting("party.debuffs.yOffset")
-                    growthDirChanged = self.debuffs.growthDir ~= srslylawlUI.GetSetting("party.debuffs.growthDir")
-                    if countChanged or anchorChanged or sizeChanged or growthDirChanged then
+                    anchorToChanged = self.debuffs.anchoredTo ~= srslylawlUI.GetSetting("party.debuffs.anchoredTo")
+                    if countChanged or anchorChanged or sizeChanged or anchorToChanged then
                         self.shownDebuffs = srslylawlUI.GetSetting("party.debuffs.maxDebuffs")
                         for i=1,40 do
                             self.debuffs[i]:SetShown(i <= self.shownDebuffs)
                             local size = srslylawlUI.GetSetting("party.debuffs.size")
-                            local xOffset, yOffset = srslylawlUI.Party_GetDebuffOffsets()
-                            local anchor = "CENTER"
-                            self.debuffs[i]:ClearAllPoints()
+                            self.debuffs[i].size = size
                             if (i == 1) then
                                 anchor = srslylawlUI.GetSetting("party.debuffs.anchor")
                                 xOffset = srslylawlUI.GetSetting("party.debuffs.xOffset")
                                 yOffset = srslylawlUI.GetSetting("party.debuffs.yOffset")
-                                self.debuffs[i]:SetParent(self.unit.auraAnchor)
-                                self.debuffs[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
                                 self.debuffs.anchor = anchor
                                 self.debuffs.xOffset = xOffset
                                 self.debuffs.yOffset = yOffset
                                 self.debuffs.size = size
-                                self.debuffs.growthDir = srslylawlUI.GetSetting("party.debuffs.growthDir")
-                            else
-                                srslylawlUI.Utils_SetPointPixelPerfect(self.debuffs[i], anchor, self.debuffs[i-1], anchor, xOffset, yOffset)
+                                self.debuffs.anchoredTo = srslylawlUI.GetSetting("party.debuffs.anchoredTo")
                             end
-                            srslylawlUI.Utils_SetSizePixelPerfect(self.debuffs[i], size, size)
                         end
                     end
+                    srslylawlUI.SetAuraPointsAll(unit, "fauxUnits")
                     fontSizeChanged = self.fontSize ~= srslylawlUI.GetSetting("party.hp.fontSize")
                     if fontSizeChanged and unit ~= "player" then
                         self.fontSize = srslylawlUI.GetSetting("party.hp.fontSize")
