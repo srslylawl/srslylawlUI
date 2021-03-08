@@ -686,12 +686,15 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         v["checkedThisEvent"] = false
     end
     -- process buffs on unit
-    local setAuraPointsFlag = false
+    local auraPointsChanged = false
     local buffBaseColor = {0.960, 0.952, 0.760}
     local buffIsStealableColor = {0.760, 1, 0.984}
     local buffIsEnemyColor = {0.603, 0.137, 0.1521}
     local currentBuffFrame = 1
     local maxBuffs = srslylawlUI.GetSettingByUnit("buffs.maxBuffs", unitsType, unit)
+    local buffSize = srslylawlUI.GetSettingByUnit("buffs.size", unitsType, unit)
+    local scaledBuffSize = srslylawlUI.GetSettingByUnit("buffs.scaledSize", unitsType, unit)
+    local size
     for i = 1, 40 do
         -- loop through all buffs and assign them to frames
         local f = srslylawlUI[unitsType][unit].buffFrames[currentBuffFrame]
@@ -705,10 +708,17 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 if isStealable then
 	                f.border:SetVertexColor(unpack(buffIsStealableColor))
+                    size = scaledBuffSize
                 elseif source and UnitIsEnemy(source, "player") then
                     f.border:SetVertexColor(unpack(buffIsEnemyColor))
+                    size = buffSize
                 else
                     f.border:SetVertexColor(unpack(buffBaseColor))
+                    size = buffSize
+                end
+                if size ~= f.size then
+                    f.size = size
+                    auraPointsChanged = true
                 end
                 f:SetID(i)
                 f:Show()
@@ -749,6 +759,8 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     local appliedCC = {}
     currentDebuffFrame = 1
 
+    local debuffSize = srslylawlUI.GetSettingByUnit("debuffs.size", unitsType, unit)
+    local scaledDebuffSize = srslylawlUI.GetSettingByUnit("debuffs.scaledSize", unitsType, unit)
     local maxDebuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
     for i = 1, 40 do
         local f = srslylawlUI[unitsType][unit].debuffFrames[currentDebuffFrame]
@@ -794,6 +806,16 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
 	            f.border:SetVertexColor(color.r, color.g, color.b);
 
+                if source and source == "player" then
+                    size = scaledDebuffSize
+                else
+                    size = debuffSize
+                end
+
+                if f.size ~= size then
+                    f.size = size
+                    auraPointsChanged = true
+                end
                 f:Show()
                 currentDebuffFrame = currentDebuffFrame + 1
             end
@@ -805,7 +827,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             f:Hide()
         end
     end
-    srslylawlUI.SetAuraPointsAll(unit, unitsType)
+    if auraPointsChanged then
+        srslylawlUI.SetAuraPointsAll(unit, unitsType)
+    end
 
     --see if we want to display our cced frame
     local displayCC = #appliedCC > 0 and srslylawlUI.GetSetting("party.ccbar.enabled")
@@ -863,7 +887,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         end
         
     end
-    unitbutton.CCDurBar:SetShown(displayCC)
+    if unitbutton.CCDurBar then
+        unitbutton.CCDurBar:SetShown(displayCC)
+    end
     -- we checked all frames, untrack any that are gone
     for k, v in pairs(srslylawlUI[unitsType][unit].trackedAurasByIndex) do
         if not v["checkedThisEvent"] then

@@ -585,6 +585,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                 self:UpdateUnitLevel()
                 self:UpdateUnitFaction()
                 srslylawlUI.HandleAuras(self.unit, unit)
+                srslylawlUI.SetAuraPointsAll(unit, unitsType)
             end
             srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
             srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
@@ -672,8 +673,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
     end
 end
 function srslylawlUI.Frame_SetupTargetFrame(frame)
-    frame:RegisterEvent("UNIT_PORTRAIT_UPDATE")
-	frame:RegisterEvent("UNIT_MODEL_CHANGED")
+    frame:RegisterEvent("UNIT_PORTRAIT_UPDATE", "target")
+	frame:RegisterEvent("UNIT_MODEL_CHANGED", "target")
     frame:RegisterEvent("UNIT_FACTION", "target")
     local portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame.unit)
     srslylawlUI.Utils_SetPointPixelPerfect(portrait, "TOPLEFT", frame.unit, "TOPRIGHT", 1, 0)
@@ -1691,6 +1692,11 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
             return ReverseAnchorPointPos(ReverseAnchorPointPos(str, 1), 2)
         end
     end
+    local function ReparentOnHide(frame)
+        frame:SetScript("OnHide", function()
+        srslylawlUI.SetAuraPointsAll(unit, unitsType)
+        end)
+    end
     local unitsTable = srslylawlUI[unitsType]
     local unitFrame = unitsTable[unit].unitFrame
     local frames = auraType == "buffs" and unitsTable[unit].buffFrames or unitsTable[unit].debuffFrames
@@ -1707,10 +1713,10 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
     local defaultSize = srslylawlUI.GetSetting(path..auraType..".size")
 
     local anchorTo = srslylawlUI.GetSetting(path..auraType..".anchoredTo")
-    if anchorTo == "Buffs" and unitsTable[unit]["buffsAnchor"] then
+    if anchorTo == "Buffs" and unitsTable[unit]["buffsAnchor"] and unitsTable[unit]["buffsAnchor"]:IsShown() then
         rowAnchor = unitsTable[unit]["buffsAnchor"]
         anchorMethod = srslylawlUI.GetSetting(path.."buffs.anchor")
-    elseif anchorTo == "Debuffs" and unitsTable[unit]["debuffsAnchor"] then
+    elseif anchorTo == "Debuffs" and unitsTable[unit]["debuffsAnchor"] and unitsTable[unit]["debuffsAnchor"]:IsShown() then
         rowAnchor = unitsTable[unit]["debuffsAnchor"]
         anchorMethod = srslylawlUI.GetSetting(path.."debuffs.anchor")
     else
@@ -1721,8 +1727,8 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
         maxRowLength = srslylawlUI.GetSetting(path.."hp.width")
         initialAnchorPoint = ReverseAnchorPointPos(anchorMethod, 1)
         initialAnchorPointRelative = anchorMethod
-        anchorPoint = anchorMethod
-        anchorPointRelative = ReverseAnchorPointPos(anchorMethod, 2)
+        anchorPoint = (anchorMethod == "TOPLEFT" or anchorMethod == "BOTTOMLEFT") and "LEFT" or "RIGHT"
+        anchorPointRelative = (anchorMethod == "TOPLEFT" or anchorMethod == "BOTTOMLEFT") and "RIGHT" or "LEFT"
         initialXOffset = 0
         initialYOffset = (anchorMethod == "TOPLEFT" or anchorMethod == "TOPRIGHT") and offset or -offset
         xOffset = (anchorMethod == "TOPLEFT" or anchorMethod == "BOTTOMLEFT") and offset or -offset
@@ -1732,29 +1738,29 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
         if anchorMethod == "LEFTBOTTOM" then
             initialAnchorPoint = "BOTTOMRIGHT"
             initialAnchorPointRelative = "BOTTOMLEFT"
-            anchorPoint = "BOTTOMRIGHT"
-            anchorPointRelative = "TOPRIGHT"
+            anchorPoint = "BOTTOM"
+            anchorPointRelative = "TOP"
             initialXOffset, initialYOffset = -offset, 0
             xOffset, yOffset = 0, offset
         elseif anchorMethod == "LEFTTOP" then
             initialAnchorPoint = "TOPRIGHT"
             initialAnchorPointRelative = "TOPLEFT"
-            anchorPoint = "TOPRIGHT"
-            anchorPointRelative = "BOTTOMRIGHT"
+            anchorPoint = "TOP"
+            anchorPointRelative = "BOTTOM"
             initialXOffset, initialYOffset = -offset, 0
             xOffset, yOffset = 0, -offset
         elseif anchorMethod == "RIGHTTOP" then
             initialAnchorPoint = "TOPLEFT"
             initialAnchorPointRelative = "TOPRIGHT"
-            anchorPoint = "TOPLEFT"
-            anchorPointRelative = "BOTTOMLEFT"
+            anchorPoint = "TOP"
+            anchorPointRelative = "BOTTOM"
             initialXOffset, initialYOffset = offset, 0
             xOffset, yOffset = 0, -offset
         elseif anchorMethod == "RIGHTBOTTOM" then
             initialAnchorPoint = "BOTTOMLEFT"
             initialAnchorPointRelative = "BOTTOMRIGHT"
-            anchorPoint = "BOTTOMLEFT"
-            anchorPointRelative = "TOPRIGHT"
+            anchorPoint = "BOTTOM"
+            anchorPointRelative = "TOP"
             initialXOffset, initialYOffset = offset, 0
             xOffset, yOffset = 0, offset
         end
@@ -1762,6 +1768,9 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
 
 
     local currentRowLength = 0
+    if unitsTable[unit][auraType.."Anchor"] then
+        unitsTable[unit][auraType.."Anchor"]:SetScript("OnHide", nil)
+    end
     for i=1, #frames do
         local frame = frames[i]
         local frameSize = frame.size or defaultSize
@@ -1771,6 +1780,8 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
             rowAnchor = frame
             if frame:IsShown() then
                 unitsTable[unit][auraType.."Anchor"] = frame
+            else
+                unitsTable[unit][auraType.."Anchor"] = unitFrame.unit
             end
             currentRowLength = frameSize
         else
@@ -1787,6 +1798,9 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
             end
         end
         srslylawlUI.Utils_SetSizePixelPerfect(frame, frameSize, frameSize)
+    end
+    if unitsTable[unit][auraType.."Anchor"] then
+        ReparentOnHide(unitsTable[unit][auraType.."Anchor"])
     end
 end
 function srslylawlUI.SetAuraPointsAll(unit, unitsType)

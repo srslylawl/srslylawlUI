@@ -40,9 +40,9 @@ srslylawlUI.defaultSettings = {
             hp = {
                 width = 300, height = 70, fontSize = 12
             },
-            buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 32, maxBuffs = 40
+            buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 32, scaledSize = 48, maxBuffs = 40
             },
-            debuffs = { anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 32, maxDebuffs = 40
+            debuffs = { anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 32, scaledSize = 48, maxDebuffs = 40
             },
             pet = {
                 width = 20
@@ -65,10 +65,10 @@ srslylawlUI.defaultSettings = {
                 width = 300, height = 70, fontSize = 12
             },
             buffs = {
-                anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 32, maxBuffs = 40
+                anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 32, scaledSize = 48, maxBuffs = 40
             },
             debuffs = {
-                anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 32, maxDebuffs = 40
+                anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 32, scaledSize = 48, maxDebuffs = 40
             },
             power = {
                 width = 15

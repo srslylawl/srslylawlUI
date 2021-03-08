@@ -377,6 +377,7 @@ function srslylawlUI.CreateConfigWindow()
         frame.rowBounds = {}
 
         function frame:ResizeElements()
+            local rowBaseOffset = 10
             local offset = 3
             local availableWidth = srslylawlUI.Utils_PixelFromScreenToCode(parent:GetWidth()) - inset*2
             local totalWidth = 0
@@ -411,23 +412,25 @@ function srslylawlUI.CreateConfigWindow()
             local rowIndex = 1
             local r = GetRowBounds(rowIndex)
             r.height = 0
-            r.currentOffset = 10
+            r.currentOffset = rowBaseOffset
             for _, element in pairs(self.elements) do
                 local elementWidth = srslylawlUI.Utils_PixelFromScreenToCode(element.bounds:GetWidth())
                 local elementHeight = srslylawlUI.Utils_PixelFromScreenToCode(element.bounds:GetHeight())
 
                 if currentWidth + elementWidth + offset <= availableWidth then
+                    --append to row
                     srslylawlUI.Utils_SetPointPixelPerfect(element.bounds, "TOPLEFT", GetRowBounds(rowIndex), "TOPLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
                     currentWidth = currentWidth + elementWidth + offset
                     self.rowBounds[rowIndex].currentOffset = currentWidth
                     AdjustRowBounds(rowIndex, elementHeight)
                 else
+                    --new row
                     currentWidth = elementWidth + offset
                     rowIndex = rowIndex + 1
                     local rB = GetRowBounds(rowIndex)
                     rB.height = elementHeight
-                    rB.currentOffset = currentWidth
-                    srslylawlUI.Utils_SetPointPixelPerfect(element.bounds, "TOPLEFT", rB, "BOTTOMLEFT", 0, 0)
+                    rB.currentOffset = rowBaseOffset
+                    srslylawlUI.Utils_SetPointPixelPerfect(element.bounds, "TOPLEFT", rB, "BOTTOMLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
                 end
                 totalWidth = currentWidth > totalWidth and currentWidth or totalWidth
             end
@@ -437,7 +440,6 @@ function srslylawlUI.CreateConfigWindow()
             end
             local height = totalheight + (rowIndex+1)*offset + inset*2
             local w = self.useFullWidth and availableWidth or totalWidth + offset
-            -- srslylawlUI.Utils_SetSizePixelPerfect(self, availableWidth, height)
             srslylawlUI.Utils_SetSizePixelPerfect(self.bounds, w, height)
         end
 
@@ -1059,9 +1061,26 @@ function srslylawlUI.CreateConfigWindow()
                         srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
                         srslylawlUI.HandleAuras(unitFrame, unit) end)
                     local auraSize = CreateCustomSlider("Size", tab, 0, 200, path..aType.."s.size", 1, 0, function()
+                        srslylawlUI.HandleAuras(unitFrame, unit) 
                         srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
                     end)
-                    auraControl:Add(frameAnchor, auraAnchor, auraSize, maxAuras)
+                    local scaledAuraSize = CreateCustomSlider("Scaled Size", tab, 0, 200, path..aType.."s.scaledSize", 1, 0, function()
+                        srslylawlUI.HandleAuras(unitFrame, unit)
+                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                    end)
+                    if unit == "target" then
+                        if aType == "buff" then
+                            AddTooltip(scaledAuraSize, "Size of stealable/purgeable/dispellable buffs.")
+                        else
+                            AddTooltip(scaledAuraSize, "Size of debuffs applied by yourself.")
+                        end
+                    else
+                        if aType == "buff" then
+                        else
+                            AddTooltip(scaledAuraSize, "Size of debuffs applied by yourself.")
+                        end
+                    end
+                    auraControl:Add(frameAnchor, auraAnchor, auraSize, scaledAuraSize, maxAuras)
                     anchor = auraControl
                 end
 
