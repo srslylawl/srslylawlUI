@@ -108,11 +108,12 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame.unit.powerBar:SetValue(fauxUnit.mana)
 
             if unit == "player" then
-                frame:SetPoint("TOPLEFT", srslylawlUI_FAUX_PartyHeader, "TOPLEFT")
+                frame.unit:SetPoint("TOPLEFT", srslylawlUI_FAUX_PartyHeader, "TOPLEFT")
                 frame.unit.healthBar.leftText:SetText("")
                 frame.unit.healthBar.rightText:SetText("")
             else
-                frame:SetPoint("TOPLEFT", lastFrame, "BOTTOMLEFT")
+                srslylawlUI.Utils_SetPointPixelPerfect(frame.unit, "TOPLEFT", lastFrame.unit, "BOTTOMLEFT", 0, -1)
+                -- frame.unit:SetPoint("TOPLEFT", lastFrame.unit, "BOTTOMLEFT")
                 frame.unit.healthBar.leftText:SetText(unit)
                 frame.unit.healthBar.rightText:SetText(hp)
                 frame.unit.healthBar:SetMinMaxValues(0, fauxUnit.hpmax)
@@ -243,7 +244,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     local minWidth = floor(health * pixelPerHp * lowerCap)
                     local scaledWidth = (self:GetAttribute("hpMax") * pixelPerHp)
                     scaledWidth = scaledWidth < minWidth and minWidth or scaledWidth
-                    srslylawlUI.Utils_SetSizePixelPerfect(self, srslylawlUI.GetSetting("party.hp.width")+2, h+2)
+                    -- srslylawlUI.Utils_SetSizePixelPerfect(self, srslylawlUI.GetSetting("party.hp.width")+2, h+2)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit, srslylawlUI.GetSetting("party.hp.width"), h)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.auraAnchor, scaledWidth, h)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.healthBar, scaledWidth, h)

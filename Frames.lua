@@ -359,7 +359,7 @@ function srslylawlUI.FrameSetup()
         srslylawlUI.CreateBuffFrames(frame, unit)
         srslylawlUI.CreateDebuffFrames(frame, unit)
         CreateCustomFrames(frame, unit)
-        
+
         --initial sorting
         if unit == "player" then
             frame.unit:SetPoint("TOPLEFT", header, "TOPLEFT")
@@ -1976,17 +1976,17 @@ function srslylawlUI.SortPartyFrames()
     end
 
     for i = 1, #list do
-        local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(list[i].unit, "partyUnits")
+        local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(list[i].unit, "partyUnits").unit
 
         if (buttonFrame) then
-            buttonFrame.unit:ClearAllPoints()
+            buttonFrame:ClearAllPoints()
             if i == 1 then
                 buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
             else
-                local parent = srslylawlUI.Frame_GetFrameByUnit(list[i - 1].unit, "partyUnits")
-                srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
+                local parent = srslylawlUI.Frame_GetFrameByUnit(list[i - 1].unit, "partyUnits").unit
+                srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
             end
-            srslylawlUI.Frame_ResetUnitButton(buttonFrame.unit, list[i].unit)
+            srslylawlUI.Frame_ResetUnitButton(buttonFrame, list[i].unit)
         end
     end
 
