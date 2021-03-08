@@ -1778,8 +1778,6 @@ local function Initialize()
     end
     srslylawlUI.LoadSettings()
     srslylawlUI.FrameSetup()
-    srslylawlUI.Party_SetBuffFrames()
-    srslylawlUI.Party_SetDebuffFrames()
     CreateSlashCommands()
 end
 srslylawlUI_EventFrame = CreateFrame("Frame")

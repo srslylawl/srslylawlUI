@@ -460,6 +460,7 @@ function srslylawlUI.CreateConfigWindow()
                     rB.height = elementHeight
                     rB.currentOffset = inset
                     srslylawlUI.Utils_SetPointPixelPerfect(element.bounds, "TOPLEFT", rB, "BOTTOMLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
+                    rB.currentOffset = inset+elementWidth + offset
                 end
                 totalWidth = currentWidth > totalWidth and currentWidth or totalWidth
             end
@@ -800,107 +801,50 @@ function srslylawlUI.CreateConfigWindow()
         AddTooltip(ccBarHeight, "Percentage of HP Bar height")
         ccBars:Add(ccBarEnabled, ccBarWidth, ccBarHeight)
 
-        -- local anchor = ccBars
-        -- for i=1, 2 do
-        --     local type = i==1 and "buffs" or "debuffs"
-        --     local typeCap = i==1 and "Buffs" or "Debuffs"
-        --     local control = CreateConfigControl(tab, "Party "..typeCap)
-        --     control:ChainToControl(anchor)
-        --     local 
-
-
-
-
-        -- end
-
-        -- -- Buff Frames
-        -- local buffFrame = CreateFrameWBG("Party Buffs", powerFrame)
-        -- buffFrame:SetPoint("TOPLEFT", powerFrame, "BOTTOMLEFT", 0, -15)
-        -- buffFrame:SetPoint("BOTTOMRIGHT", powerFrame, "BOTTOMRIGHT", 200, -120)
-        -- local buffAnchor = CreateCustomDropDown("Anchor", 75, buffFrame, "TOPLEFT",
-        --     "TOPLEFT", -10, -20, srslylawlUI.GetSetting("party.buffs.anchor"), srslylawlUI.anchorTable, function(newValue)
-        --         srslylawlUI.ChangeSetting("party.buffs.anchor", newValue)
-        --         srslylawlUI.Party_SetBuffFrames()
-        -- end, function(self) return self.value == srslylawlUI.GetSetting("party.buffs.anchor") end)
-        -- local buffGrowthDir = CreateCustomDropDown("Growth Direction", 125, buffAnchor, "TOPLEFT",
-        --     "TOPRIGHT", -25, 0, srslylawlUI.GetSetting("party.buffs.growthDir"), {"LEFT", "RIGHT"}, function(newValue)
-        --         srslylawlUI.ChangeSetting("party.buffs.growthDir", newValue)
-        --         srslylawlUI.Party_SetBuffFrames()
-        -- end, function(self) return self.value == srslylawlUI.GetSetting("party.buffs.growthDir") end)
-        -- local buffAnchorXOffset = CreateEditBox(buffGrowthDir, "party.buffs.xOffset", srslylawlUI.Party_SetBuffFrames)
-        -- buffAnchorXOffset:SetTitle("X-Offset")
-        -- buffAnchorXOffset:SetPoint("TOPLEFT", buffGrowthDir, "TOPRIGHT", -10, 0)
-
-        -- local buffAnchorYOffset = CreateEditBox(buffAnchorXOffset, "party.buffs.xOffset", srslylawlUI.Party_SetBuffFrames)
-        -- buffAnchorYOffset:SetTitle("Y-Offset")
-
-        -- local buffIconSize = CreateEditBox(buffAnchorYOffset, "party.buffs.size", srslylawlUI.Party_SetBuffFrames)
-        -- buffIconSize:SetTitle("Size")
-
-        -- cFrame.sliders.maxBuffs = CreateCustomSlider("Max Visible Buffs", 0, 40, srslylawlUI.GetSetting("party.buffs.maxBuffs"), buffAnchor, -50, 1, true, 0)
-        -- cFrame.sliders.maxBuffs:SetPoint("TOPLEFT", buffAnchor, "BOTTOMLEFT", 20, -15)
-        -- cFrame.sliders.maxBuffs:HookScript("OnValueChanged", function(self, value)
-        --     srslylawlUI.ChangeSetting("party.buffs.maxBuffs", value)
-        -- end)
-        -- AddTooltip(cFrame.sliders.maxBuffs, "Requires UI Reload")
-
-        -- --Debuff Frames
-        -- local debuffFrame = CreateFrameWBG("Party Debuffs", buffFrame)
-        -- debuffFrame:SetPoint("TOPLEFT", buffFrame, "BOTTOMLEFT", 0, -15)
-        -- debuffFrame:SetPoint("BOTTOMRIGHT", buffFrame, "BOTTOMRIGHT", 0, -120)
-        -- local debuffAnchor = CreateCustomDropDown("Anchor", 75, debuffFrame, "TOPLEFT",
-        --     "TOPLEFT", -10, -20, srslylawlUI.GetSetting("party.debuffs.anchor"), srslylawlUI.anchorTable, function(newValue)
-        --         srslylawlUI.ChangeSetting("party.debuffs.anchor", newValue)
-        --         srslylawlUI.Party_SetDebuffFrames()
-        -- end, function(self) return self.value == srslylawlUI.GetSetting("party.debuffs.anchor") end)
-        -- local debuffGrowthDir = CreateCustomDropDown("Growth Direction", 125, debuffAnchor, "TOPLEFT",
-        --     "TOPRIGHT", -25, 0, srslylawlUI.GetSetting("party.debuffs.growthDir"), {"LEFT", "RIGHT"}, function(newValue)
-        --         srslylawlUI.ChangeSetting("party.debuffs.growthDir", newValue)
-        --         srslylawlUI.Party_SetDebuffFrames()
-        -- end, function(self) return self.value == srslylawlUI.GetSetting("party.debuffs.growthDir") end)
-        -- local debuffAnchorXOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffGrowthDir, srslylawlUI.GetSetting("party.debuffs.xOffset"),
-        -- function(self)
-        --     local n = self:GetNumber()
-        --     if srslylawlUI.GetSetting("party.debuffs.xOffset") == n then return end
-        --     srslylawlUI.ChangeSetting("party.debuffs.xOffset", n)
-        --     srslylawlUI.Party_SetDebuffFrames()
-        -- end)
-        -- debuffAnchorXOffset.title = debuffAnchorXOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-        -- debuffAnchorXOffset.title:SetPoint("TOP", 0, 12)
-        -- debuffAnchorXOffset.title:SetText("X-Offset")
-        -- debuffAnchorXOffset:ClearAllPoints()
-        -- debuffAnchorXOffset:SetPoint("TOPLEFT", debuffGrowthDir, "TOPRIGHT", -10, 0)
-        -- local debuffAnchorYOffset = CreateEditBox("$parent_DebuffAnchorXOffset", debuffAnchorXOffset, srslylawlUI.GetSetting("party.debuffs.yOffset"),
-        -- function(self)
-        --     local n = self:GetNumber()
-        --     if srslylawlUI.GetSetting("party.debuffs.yOffset") == n then return end
-        --     srslylawlUI.ChangeSetting("party.debuffs.yOffset", n)
-        --     srslylawlUI.Party_SetDebuffFrames()
-        -- end)
-        -- debuffAnchorYOffset.title = debuffAnchorYOffset:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-        -- debuffAnchorYOffset.title:SetPoint("TOP", 0, 12)
-        -- debuffAnchorYOffset.title:SetText("Y-Offset")
-
-        -- cFrame.editBoxes.debuffAnchorXOffset = debuffAnchorXOffset
-        -- cFrame.editBoxes.debuffAnchorYOffset = debuffAnchorYOffset
-        -- local debuffIconSize = CreateEditBox("$parent_Icon Size", debuffAnchorYOffset, srslylawlUI.GetSetting("party.debuffs.size"),
-        -- function(self)
-        --     local n = self:GetNumber()
-        --     if srslylawlUI.GetSetting("party.debuffs.size") == n then return end
-        --     srslylawlUI.ChangeSetting("party.debuffs.size", n)
-        --     srslylawlUI.Party_SetDebuffFrames()
-        -- end)
-        -- cFrame.editBoxes.debuffIconSize = debuffIconSize
-        -- debuffIconSize.title = debuffIconSize:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-        -- debuffIconSize.title:SetPoint("TOP", 0, 12)
-        -- debuffIconSize.title:SetText("Size")
-
-        -- cFrame.sliders.maxDebuffs = CreateCustomSlider("Max Visible Debuffs", 0, 40, srslylawlUI.GetSetting("party.debuffs.maxDebuffs"), debuffAnchor, -50, 1, true, 0)
-        -- cFrame.sliders.maxDebuffs:SetPoint("TOPLEFT", debuffAnchor, "BOTTOMLEFT", 20, -15)
-        -- cFrame.sliders.maxDebuffs:HookScript("OnValueChanged", function(self, value)
-        --     srslylawlUI.ChangeSetting("party.debuffs.maxDebuffs", value)
-        -- end)
-        -- AddTooltip(cFrame.sliders.maxDebuffs, "Requires UI Reload")
+        local anchor = ccBars
+        local function ResetAuraAll()
+            for _, unit in pairs(srslylawlUI.partyUnitsTable) do
+                srslylawlUI.SetAuraPointsAll(unit, "partyUnits")
+            end
+        end
+        for i=1, 2 do
+            local path = "party."
+            local anchorTable = i == 1 and {"Frame", "Debuffs"} or {"Frame", "Buffs"}
+            local aType = i == 1 and "buff" or "debuff"
+            local typeCap = i == 1 and "Buff" or "Debuff"
+            local auraControl = CreateConfigControl(tab, "Party "..typeCap.." Frames")
+            auraControl:SetPoint("TOPLEFT", anchor.bounds, "BOTTOMLEFT", 0, 0)
+            local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path..aType.."s.anchoredTo", anchorTable)
+            local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path..aType.."s.anchor", srslylawlUI.auraSortMethodTable, function() ResetAuraAll() end)
+            --disabling the auraanchor dropdown, should we anchor to other auratype
+            local onChanged = function(self, newValue)
+                ResetAuraAll()
+                if newValue ~= "Frame" then
+                    UIDropDownMenu_DisableDropDown(auraAnchor)
+                else
+                    UIDropDownMenu_EnableDropDown(auraAnchor)
+                end
+            end
+            frameAnchor.onChangeFunc = onChanged
+            if srslylawlUI.GetSetting(path..aType.."s.anchoredTo") ~= "Frame" then
+                UIDropDownMenu_DisableDropDown(auraAnchor)
+            end
+            local maxAuras = CreateCustomSlider("Max "..typeCap.."s", tab, 0, 40, path..aType.."s.max"..typeCap.."s", 1, 0, function()
+                for _, unit in pairs(srslylawlUI.partyUnitsTable) do
+                    srslylawlUI.CreateBuffFrames(srslylawlUI.partyUnits[unit].unitFrame, unit)
+                end
+                ResetAuraAll()
+                srslylawlUI.Party_HandleAuras_ALL()
+            end)
+            local auraSize = CreateCustomSlider("Size", tab, 0, 200, path..aType.."s.size", 1, 0, function()
+                srslylawlUI.Party_HandleAuras_ALL()
+                ResetAuraAll()
+            end)
+            local xOffset = CreateCustomSlider("X Offset", tab, -500, 500, path..aType.."s.xOffset", 1, 0, ResetAuraAll)
+            local yOffset = CreateCustomSlider("Y Offset", tab, -500, 500, path..aType.."s.yOffset", 1, 0, ResetAuraAll)
+            auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, maxAuras)
+            anchor = auraControl
+        end
     end
     local function FillPlayerFramesTab(tab)
         local cFrame = srslylawlUI_ConfigFrame
@@ -995,7 +939,13 @@ function srslylawlUI.CreateConfigWindow()
                             AddTooltip(scaledAuraSize, "Size of debuffs applied by yourself")
                         end
                     end
-                    auraControl:Add(frameAnchor, auraAnchor, auraSize, scaledAuraSize, maxAuras)
+                    local xOffset = CreateCustomSlider("X Offset", tab, -500, 500, path..aType.."s.xOffset", 1, 0, function()
+                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                    end)
+                    local yOffset = CreateCustomSlider("Y Offset", tab, -500, 500, path..aType.."s.yOffset", 1, 0, function()
+                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                    end)
+                    auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, scaledAuraSize, maxAuras)
                     anchor = auraControl
                 end
 

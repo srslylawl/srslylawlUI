@@ -46,10 +46,10 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
             srslylawlUI[unitsType][unit].buffFrames[i] = f
             f:Hide()
         end
-        for i=maxBuffs, 40 do
-            if srslylawlUI[unitsType][unit].buffFrames[i] then
+    end
+    for i=maxBuffs, 40 do
+        if srslylawlUI[unitsType][unit].buffFrames[i] then
                 srslylawlUI[unitsType][unit].buffFrames[i]:Hide()
-            end
         end
     end
 end
@@ -535,9 +535,10 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
 
     if unit == "target" then
         srslylawlUI.Frame_SetupTargetFrame(buttonFrame)
+        srslylawlUI.BarHandler_Create(buttonFrame, buttonFrame.unit)
+
         buttonFrame.CastBar = srslylawlUI.CreateCastBar(buttonFrame, unit)
-        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.CastBar, "TOPLEFT", buttonFrame.unit, "BOTTOMLEFT", 0, -1)
-        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.CastBar, "BOTTOMRIGHT", buttonFrame.unit, "BOTTOMRIGHT", 0, -41)
+        buttonFrame:RegisterBar(buttonFrame.CastBar, 0)
     elseif unit == "targettarget" then
         buttonFrame.unit.healthBar.rightText:Hide()
     end
@@ -1598,98 +1599,6 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
         end
     end
 end
-function srslylawlUI.Party_SetBuffFrames()
-    for k, v in pairs(srslylawlUI.partyUnits) do
-        local frame = srslylawlUI.partyUnits[k]
-        if frame ~= nil and frame.buffFrames ~= nil then
-            for i = 1, srslylawlUI.GetSetting("party.buffs.maxBuffs") do
-                local size = srslylawlUI.GetSetting("party.buffs.size")
-                local xOffset, yOffset = srslylawlUI.Party_GetBuffOffsets()
-                local anchor = "CENTER"
-                frame.buffFrames[i]:ClearAllPoints()
-                if frame.buffFrames[i] == nil then
-                    srslylawlUI.Log('Max visible buffs setting has been changed, please reload UI by typing "/reload" ')
-                    error('Max visible buffs setting has been changed, please reload UI by typing "/reload" ')
-                end
-                if (i == 1) then
-                    anchor = srslylawlUI.GetSetting("party.buffs.anchor")
-                    xOffset = srslylawlUI.GetSetting("party.buffs.xOffset")
-                    yOffset = srslylawlUI.GetSetting("party.buffs.yOffset")
-                    frame.buffFrames[i]:SetParent(srslylawlUI.Frame_GetFrameByUnit(k, "partyUnits").unit.auraAnchor)
-                    frame.buffFrames[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
-                else
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame.buffFrames[i], anchor, frame.buffFrames[i-1], anchor, xOffset, yOffset)
-                end
-                srslylawlUI.Utils_SetSizePixelPerfect(frame.buffFrames[i], size, size)
-            end
-        end
-    end
-end
-function srslylawlUI.Party_SetDebuffFrames()
-    for k, v in pairs(srslylawlUI.partyUnits) do
-        local frame = srslylawlUI.partyUnits[k]
-        if frame ~= nil and frame.debuffFrames ~= nil then
-            for i = 1, srslylawlUI.GetSetting("party.debuffs.maxDebuffs") do
-                local size = srslylawlUI.GetSetting("party.debuffs.size")
-                local xOffset, yOffset = srslylawlUI.Party_GetDebuffOffsets()
-                local anchor = "CENTER"
-                if frame.debuffFrames[i] == nil then
-                    srslylawlUI.Log('Max visible debuffs setting has been changed, please reload UI by typing "/reload" ')
-                    error('Max visible debuffs setting has been changed, please reload UI by typing "/reload" ')
-                end
-                frame.debuffFrames[i]:ClearAllPoints()
-                if (i == 1) then
-                    anchor = srslylawlUI.GetSetting("party.debuffs.anchor")
-                    xOffset = srslylawlUI.GetSetting("party.debuffs.xOffset")
-                    yOffset = srslylawlUI.GetSetting("party.debuffs.yOffset")
-                    frame.debuffFrames[i]:SetParent(srslylawlUI.Frame_GetFrameByUnit(k, "partyUnits").unit.auraAnchor)
-                    frame.debuffFrames[i]:SetPoint(anchor, srslylawlUI.Utils_PixelFromCodeToScreen(xOffset), srslylawlUI.Utils_PixelFromCodeToScreen(yOffset))
-                else
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame.debuffFrames[i], anchor, frame.debuffFrames[i-1], anchor, xOffset, yOffset)
-                end
-                srslylawlUI.Utils_SetSizePixelPerfect(frame.debuffFrames[i], size, size)
-            end
-        end
-    end
-end
-function srslylawlUI.Party_GetBuffOffsets()
-    local xOffset, yOffset
-    local size = srslylawlUI.GetSetting("party.buffs.size")
-    local growthDir = srslylawlUI.GetSetting("party.buffs.growthDir")
-    if growthDir == "LEFT" then
-        xOffset = -size
-        yOffset = 0
-    elseif growthDir == "RIGHT" then
-        xOffset = size
-        yOffset = 0
-    elseif growthDir == "TOP" then
-        xOffset = 0
-        yOffset = size
-    elseif growthDir == "BOTTOM" then
-        xOffset = 0
-        yOffset = -size
-    end
-    return xOffset, yOffset
-end
-function srslylawlUI.Party_GetDebuffOffsets()
-    local xOffset, yOffset
-    local size = srslylawlUI.GetSetting("party.debuffs.size")
-    local growthDir = srslylawlUI.GetSetting("party.debuffs.growthDir")
-    if growthDir == "LEFT" then
-        xOffset = -size
-        yOffset = 0
-    elseif growthDir == "RIGHT" then
-        xOffset = size
-        yOffset = 0
-    elseif growthDir == "TOP" then
-        xOffset = 0
-        yOffset = size
-    elseif growthDir == "BOTTOM" then
-        xOffset = 0
-        yOffset = -size
-    end
-    return xOffset, yOffset
-end
 
 function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
     local function ReversePos(str)
@@ -1744,6 +1653,8 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
     local offset = 3
     local initialXOffset, initialYOffset, xOffset, yOffset
     local defaultSize = srslylawlUI.GetSetting(path..auraType..".size")
+    local frameXOffset = srslylawlUI.GetSetting(path..auraType..".xOffset")
+    local frameYOffset = srslylawlUI.GetSetting(path..auraType..".yOffset")
 
     local anchorTo = srslylawlUI.GetSetting(path..auraType..".anchoredTo")
     if anchorTo == "Buffs" and unitsTable[unit]["buffsAnchor"] and unitsTable[unit]["buffsAnchor"]:IsShown() then
@@ -1809,7 +1720,7 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
         local frameSize = frame.size or defaultSize
         frame:ClearAllPoints()
         if i == 1 then
-            srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, initialXOffset, initialYOffset)
+            srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, initialXOffset+frameXOffset, initialYOffset+frameYOffset)
             rowAnchor = frame
             if frame:IsShown() then
                 unitsTable[unit][auraType.."Anchor"] = frame
@@ -1839,12 +1750,8 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
     end
 end
 function srslylawlUI.SetAuraPointsAll(unit, unitsType)
-    local path = unitsType == "mainUnits" and "player." or "party."
-    if unitsType == "mainUnits" then
-        path = path .. unit.."Frame."
-    end
-    if srslylawlUI.GetSetting(path.."buffs.anchoredTo") == "Debuffs" then
-        --order matters depending on what is anchored to what
+    --order matters depending on what is anchored to what
+    if srslylawlUI.GetSettingByUnit("buffs.anchoredTo", unitsType, unit) == "Debuffs" then
         srslylawlUI.SetAuraPoints(unit, unitsType, "debuffs")
         srslylawlUI.SetAuraPoints(unit, unitsType, "buffs")
     else
