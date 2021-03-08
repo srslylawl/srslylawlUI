@@ -744,15 +744,16 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
     srslylawlUI.CreateBackground(portrait)
     portrait.ModelUpdate = function(self)
         if not UnitIsVisible("target") or not UnitIsConnected("target") then
-            self:ClearModel()
 	        self:SetModelScale(5.5)
-	        self:SetPosition(0, 0, -0.8)
+	        self:SetPosition(2, 0, .9)
+            self:SetPortraitZoom(5)
+            self:ClearModel()
 	        self:SetModel("Interface\\Buttons\\talktomequestionmark.m2")
         else
-            self:ClearModel()
-		    self:SetUnit("target")
 		    self:SetPortraitZoom(1)
 		    self:SetPosition(0, 0, 0)
+            self:ClearModel()
+		    self:SetUnit("target")
         end
     end
     portrait.PortraitUpdate = function(self)
@@ -763,6 +764,9 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
 		end
     end
     frame.portrait = portrait
+
+    frame.portrait:SetScript("OnShow", function(self) self:ModelUpdate() end)
+    --portrait seems to be very sensitive to order of execution, needs it as onshow or else it wont update properly
     frame:UpdateUnitLevel()
 end
 function srslylawlUI.CreateCastBar(parent, unit)
