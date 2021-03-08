@@ -298,10 +298,7 @@ function srslylawlUI.FrameSetup()
 
         unitFrame.unit.healthBar:SetPoint("TOPLEFT", unitFrame.unit, "TOPLEFT", 0, 0)
 
-
-
         local fontSize = (party or faux) and srslylawlUI.GetSetting("party.hp.fontSize") or srslylawlUI.GetSetting("player."..unit.."Frame.hp.fontSize")
-
         unitFrame.unit.healthBar.leftTextFrame = CreateFrame("Frame", "$parent_leftTextFrame", unitFrame.unit.healthBar)
         unitFrame.unit.healthBar.leftText = unitFrame.unit.healthBar.leftTextFrame:CreateFontString("$parent_leftText", "OVERLAY", "GameFontHIGHLIGHT")
         unitFrame.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
@@ -585,6 +582,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                     self.CastBar:Show()
                 end
                 self.portrait:PortraitUpdate()
+                self:UpdateUnitLevel()
+                self:UpdateUnitFaction()
                 srslylawlUI.HandleAuras(self.unit, unit)
             end
             srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
@@ -660,6 +659,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             self.portrait:PortraitUpdate()
         elseif event == "UNIT_MODEL_CHANGED" and unit == "target" then
             self.portrait:ModelUpdate()
+        elseif event == "UNIT_FACTION" and unit == "target" then
+            self:UpdateUnitFaction()
         end
     elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
         if event == "UNIT_MAXHEALTH" then
@@ -673,6 +674,7 @@ end
 function srslylawlUI.Frame_SetupTargetFrame(frame)
     frame:RegisterEvent("UNIT_PORTRAIT_UPDATE")
 	frame:RegisterEvent("UNIT_MODEL_CHANGED")
+    frame:RegisterEvent("UNIT_FACTION", "target")
     local portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame.unit)
     srslylawlUI.Utils_SetPointPixelPerfect(portrait, "TOPLEFT", frame.unit, "TOPRIGHT", 1, 0)
     local height = srslylawlUI.GetSetting("player.targetFrame.hp.height")
@@ -680,6 +682,14 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
     portrait:SetAlpha(1)
     portrait:SetUnit("target")
     portrait:SetPortraitZoom(1)
+    frame.unitLevel = srslylawlUI.CreateCustomFontString(portrait, "Level", 12)
+    srslylawlUI.Utils_SetPointPixelPerfect(frame.unitLevel, "BOTTOMRIGHT", portrait, "BOTTOMRIGHT", 0, 0)
+    frame.unitLevel:SetText("??")
+
+    frame.factionIcon = portrait:CreateTexture("$parent_FactionIcon", "OVERLAY")
+    srslylawlUI.Utils_SetSizePixelPerfect(frame.factionIcon, 20, 20)
+    frame.factionIcon:SetPoint("CENTER", portrait, "TOPRIGHT", 0, 0)
+    frame.factionIcon:SetTexCoord(0, 0.625, 0, 0.625)
 
     local oldSetSize = frame.SetSize
     function frame:SetSize(x, y)
@@ -688,6 +698,47 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
         srslylawlUI.Utils_SetPointPixelPerfect(portrait, "BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", height+1, 0)
 
         oldSetSize(frame, x, y)
+    end
+
+    function frame:UpdateUnitLevel()
+        local unitLevel = UnitLevel("target")
+
+        if unitLevel < 0 then
+            self.unitLevel:SetText("??")
+        else
+            self.unitLevel:SetText(unitLevel)
+        end
+    end
+    function frame:UpdateUnitFaction()
+        local ffa = UnitIsPVPFreeForAll("target")
+
+        if ffa then
+            if self.faction ~= faction then
+                    self.factionIcon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-FFA")
+                    self.factionIcon:Show()
+                self.faction = "FFA"
+            end
+        else
+            local faction = UnitFactionGroup("target")
+            if not faction or faction == "Neutral" then
+                if self.faction then
+                    self.factionIcon:Hide()
+                    self.faction = nil
+                end
+            elseif faction == "Horde" then
+                if self.faction ~= faction then
+                    self.factionIcon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-Horde")
+                    self.factionIcon:Show()
+                    self.faction = faction
+                end
+            elseif faction == "Alliance" then
+                if self.faction ~= faction then
+                    self.factionIcon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-Alliance")
+                    self.factionIcon:Show()
+                    self.faction = faction
+                end
+            end
+        end
     end
     srslylawlUI.CreateBackground(portrait)
     portrait.ModelUpdate = function(self)
@@ -711,7 +762,7 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
 		end
     end
     frame.portrait = portrait
-
+    frame:UpdateUnitLevel()
 end
 function srslylawlUI.CreateCastBar(parent, unit)
     local cBar = CreateFrame("Frame", "$parent_CastBar", parent)

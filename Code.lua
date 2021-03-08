@@ -89,18 +89,13 @@ srslylawlUI.unitHealthBars = {}
 local unitHealthBars = srslylawlUI.unitHealthBars
 srslylawlUI.sortTimerActive = false
 
-local partyUnits = srslylawlUI.partyUnits
-local mainUnits = srslylawlUI.mainUnits
-
 local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrabber", UIParent, "GameTooltipTemplate")
-local mainUnitsTable = srslylawlUI.mainUnitsTable
 local partyUnitsTable = srslylawlUI.partyUnitsTable
 local debugString = ""
 
 
 --[[ TODO:
 
-healabsorb bar needs to be capped
 horde/ally symbol (topright)
 scale buffs/debuffs
 ccdurbar on player/target/targettarget
