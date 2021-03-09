@@ -1921,7 +1921,7 @@ function srslylawlUI.Frame_ShowImmunity(healthBar, isImmune)
         local classColor = RAID_CLASS_COLORS[class]
         --textureobject seems to reset after being switched from the object to the texturefile below
         --needs texture assigned again
-        healthBar.immuneTex:SetTexture(srslylawlUI.textures.Immunity, true, "REPEAT")
+        healthBar.immuneTex:SetTexture(srslylawlUI.textures.Immunity, true, "REPEAT", "NEAREST")
         healthBar.immuneTex:SetVertexColor(classColor.r, classColor.g, classColor.b, classColor.a)
         healthBar:SetStatusBarTexture(healthBar.immuneTex)
     else

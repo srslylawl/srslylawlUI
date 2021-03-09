@@ -802,6 +802,21 @@ function srslylawlUI.CreateConfigWindow()
         AddTooltip(debuffsLong, "Show/hide buffs with a base duration longer than 180 seconds")
 
         debuffVisibility:Add(debuffsDefault, debuffsPlayer, debuffsInfinite, debuffsLong)
+
+        local showBlizzardFrames = CreateConfigControl(tab, "Show Blizzard Frames (requires UI reload)")
+        showBlizzardFrames:ChainToControl(debuffVisibility)
+
+        local player = CreateSettingsCheckButton("Player Frame", tab, "blizzard.player.enabled", nil)
+
+        local target = CreateSettingsCheckButton("Target Frame", tab, "blizzard.target.enabled", nil)
+
+        local party = CreateSettingsCheckButton("Party Frames", tab, "blizzard.party.enabled", nil)
+
+        local auras = CreateSettingsCheckButton("Auras", tab, "blizzard.auras.enabled", nil)
+
+        local castbar = CreateSettingsCheckButton("Castbar", tab, "blizzard.castbar.enabled", nil)
+        showBlizzardFrames:Add(player, target, party, auras, castbar)
+
     end
     local function FillPartyFramesTab(tab)
         -- HP Bar Sliders

@@ -95,5 +95,12 @@ srslylawlUI.defaultSettings = {
                 width = 15
             },
         }
+    },
+    blizzard = {
+        player = {enabled = false},
+        target = {enabled = false},
+        party = {enabled = false},
+        auras = { enabled = false},
+        castbar = {enabled = false}
     }
 }

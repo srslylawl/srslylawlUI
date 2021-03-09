@@ -36,7 +36,7 @@ srslylawlUI.textures = {
     AbsorbFrame = "Interface/RAIDFRAME/Shield-Fill",
     HealthBar = "Interface/AddOns/srslylawlUI/media/powerBarSprite",--"Interface/Addons/srslylawlUI/media/healthBar",
     EffectiveHealth = "Interface/AddOns/srslylawlUI/media/eHealthBar",
-    Immunity = "Interface/AddOns/srslylawlUI/media/healthBarImmune",
+    Immunity = "Interface/AddOns/srslylawlUI/media/immunitySprite",
     PowerBarSprite = "Interface/AddOns/srslylawlUI/media/powerBarSprite",
     AuraBorder32 = "Interface/AddOns/srslylawlUI/media/auraBorder_32",
     AuraBorder64 = "Interface/AddOns/srslylawlUI/media/auraBorder_64",
@@ -98,30 +98,26 @@ local debugString = ""
 --[[
 #############################################################
 #                                                           #
-#             Created by srslylawl#5257 (discord)           #
+#                  Created by Andreas S. G.                 #
+#                  Discord: srslylawl#5257                  #
+#                  BNET: INSANITY#22914                     #
 #                                                           #
 #############################################################
 ]]
 
 --[[ TODO:
-
-ccdurbar on target
 alt powerbar
-hide blizzard default frames
 UnitHasIncomingResurrection(unit)
 powerbar fadeout
 incoming summon
 more sort methods?
-totem bar?
-purge resources on loadscreen (arena)
 focus frame
-better immunity texture
 config window:
-    faux frames absorb auras
-    faux frames for target/player/targettarget/pet/auras
-    settings for player/target/targettarget/pet/buffs/debuffs/powerbars
+faux frames absorb auras
+faux frames for target/player/targettarget/pet/auras
 revisit some of the sorting/resize logic, probably firing way more often than necessary
 enable/disable sorting? maybe enable manual sorting by hand?
+totem bar?
 ]]
 
 
@@ -1789,8 +1785,45 @@ local function Initialize()
             srslylawlUI.Debug()
         end
     end
+    local function HideBlizzardFrames()
+        local function Hide(frame)
+            frame:SetScript("OnEvent", nil)
+            frame:Hide()
+        end
+        local showPlayer = srslylawlUI.GetSetting("blizzard.player.enabled")
+        local showTarget = srslylawlUI.GetSetting("blizzard.target.enabled")
+        local showParty = srslylawlUI.GetSetting("blizzard.party.enabled")
+        local showCastbar = srslylawlUI.GetSetting("blizzard.castbar.enabled")
+        local showAuras = srslylawlUI.GetSetting("blizzard.auras.enabled")
+
+        if not showPlayer then
+            Hide(PlayerFrame)
+        end
+        if not showTarget then
+            Hide(TargetFrame)
+        end
+        if not showParty then
+            for i=1, 4 do
+                Hide(_G["PartyMemberFrame"..i])
+            end
+        end
+        if not showCastbar then
+            Hide(CastingBarFrame)
+        end
+        if not showAuras then
+            Hide(BuffFrame)
+        end
+
+        UIParent:HookScript("OnHide", function(self)
+            print("hide")
+        end)
+        UIParent:HookScript("OnShow", function(self)
+            print("show")
+        end)
+    end
     srslylawlUI.LoadSettings()
     srslylawlUI.FrameSetup()
+    HideBlizzardFrames()
     CreateSlashCommands()
 end
 srslylawlUI_EventFrame = CreateFrame("Frame")
