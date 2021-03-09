@@ -466,6 +466,7 @@ end
 
 
 function srslylawlUI.PowerBar.Set(parent, unit)
+    parent:UnregisterAll()
     local height = 40
     local specID = srslylawlUI.GetSpecID()
     local function DisplayMainBar(parent)
@@ -477,7 +478,6 @@ function srslylawlUI.PowerBar.Set(parent, unit)
     if not parent.powerBars then
         parent.powerBars = {}
     end
-    -- HideActiveBars()
     local barType = srslylawlUI.PowerBar.GetType()
     if barType == srslylawlUI.PowerBar.Type.None then
         --No Additional Bar
@@ -489,10 +489,9 @@ function srslylawlUI.PowerBar.Set(parent, unit)
         local powerToken = srslylawlUI.PowerBar.GetPowerToken()
         local bar = srslylawlUI.PowerBar.GetBar(parent, "resource", powerToken)
         if powerToken == "Stagger" then
-            srslylawlUI.PowerBar.SetupStaggerBar(bar)
+            srslylawlUI.PowerBar.SetupStaggerBar(bar, parent)
         end
         parent:RegisterBar(bar, 5, floor(height *.5))
-        -- srslylawlUI.PowerBar.PlaceBar(bar, parent, 2)
     elseif barType == srslylawlUI.PowerBar.Type.PointBar then
         --Point Bar
         DisplayMainBar(parent)
@@ -517,6 +516,7 @@ function srslylawlUI.PowerBar.Set(parent, unit)
         --player is druid
         srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
     end
+    parent:SortBars()
 end
 function srslylawlUI.PowerBar.GetType()
     local specIndex = GetSpecialization()
@@ -581,73 +581,72 @@ function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
         Travel Form - 3
         Tree of Life - 2
     ]]
-
-    if specID ~= 102 then
-        parent:UnregisterBar(astralPowerBar)
-    end
-
+    local height = 40
+    local height2 = 20
+    local height3 = 15
+    rageBar:Hide() -- since it resets to 25 on bear enter anyway
     if specID ~= 103 then
-        parent:UnregisterBar(energyBar)
+        energyBar:Hide()
     end
-    parent:UnregisterBar(rageBar) --since rage gets reset to 25 on shift anyway, we dont care about tracking it
-
-
+    if specID ~= 102 then
+        astralPowerBar:Hide()
+    end
     if currentStance == nil or currentStance == 31 then
         --human/owl
         if specID == 102 then -- balance
             -- main bar is now astral power, show mana and cp if needed
-            parent:RegisterBar(astralPowerBar, 1)
-            parent:RegisterBar(manaBar, 2)
-            parent:RegisterBar(cpBar, 3)
+            parent:RegisterBar(astralPowerBar, 1, height)
+            parent:RegisterBar(manaBar, 2, height2)
+            parent:RegisterBar(cpBar, 3, height3)
         elseif specID == 103 then -- feral
-            parent:RegisterBar(energyBar, 1)
-            parent:RegisterBar(cpBar, 2)
-            parent:RegisterBar(manaBar, 3)
+            parent:RegisterBar(energyBar, 1, height)
+            parent:RegisterBar(cpBar, 2, height2)
+            parent:RegisterBar(manaBar, 3, height3)
         else
-            parent:RegisterBar(manaBar, 1)
-            parent:RegisterBar(cpBar, 2)
+            parent:RegisterBar(manaBar, 1, height)
+            parent:RegisterBar(cpBar, 2, height2)
         end
     elseif currentStance == 3 or currentStance == 4 or currentStance == 27 or currentStance == 29 then
         --travelforms, default main bar is now mana
         if specID == 102 then -- balance
-            parent:RegisterBar(astralPowerBar, 1)
-            parent:RegisterBar(manaBar, 2)
-            parent:RegisterBar(cpBar, 3)
+            parent:RegisterBar(astralPowerBar, 1, height)
+            parent:RegisterBar(manaBar, 2, height2)
+            parent:RegisterBar(cpBar, 3, height3)
         elseif specID == 103 then -- feral
-            parent:RegisterBar(energyBar, 1)
-            parent:RegisterBar(cpBar, 2)
-            parent:RegisterBar(manaBar, 3)
+            parent:RegisterBar(energyBar, 1, height)
+            parent:RegisterBar(cpBar, 2, height2)
+            parent:RegisterBar(manaBar, 3, height3)
         else
-            parent:RegisterBar(manaBar, 1)
-            parent:RegisterBar(cpBar, 2)
+            parent:RegisterBar(manaBar, 1, height)
+            parent:RegisterBar(cpBar, 2, height2)
         end
     elseif currentStance == 1 then
         --cat form, default is energy
-        parent:RegisterBar(energyBar, 1)
-        parent:RegisterBar(cpBar, 2)
+        parent:RegisterBar(energyBar, 1, height)
+        parent:RegisterBar(cpBar, 2, height2)
         local index = 3
         if specID == 102 then -- balance
-            parent:RegisterBar(astralPowerBar, index)
+            parent:RegisterBar(astralPowerBar, index, height3)
             index = index + 1
         end
-        parent:RegisterBar(manaBar, index)
+        parent:RegisterBar(manaBar, index, height3)
     elseif currentStance == 5 then
         --bear, default is rage
-        parent:RegisterBar(rageBar, 1)
+        parent:RegisterBar(rageBar, 1, height2)
         local index = 2
         if specID == 102 then -- balance
-            parent:RegisterBar(astralPowerBar, index)
+            parent:RegisterBar(astralPowerBar, index, height2)
             index = index + 1
-        elseif specID == 103 then
-            parent:RegisterBar(energyBar, index)
+        elseif specID == 103 then -- feral
+            parent:RegisterBar(energyBar, index, height2)
             index = index + 1
         end
-        parent:RegisterBar(manaBar, index)
+        parent:RegisterBar(manaBar, index, height3)
         index = index + 1
-        parent:RegisterBar(cpBar, index)
+        parent:RegisterBar(cpBar, index, height3)
     end
 end
-function srslylawlUI.PowerBar.SetupStaggerBar(bar)
+function srslylawlUI.PowerBar.SetupStaggerBar(bar, parent)
     function bar:UpdateMax()
         self.max = UnitHealthMax(self.unit)
         self.statusBar:SetMinMaxValues(0, self.max)
@@ -705,7 +704,7 @@ function srslylawlUI.PowerBar.Update(parent, powerToken)
     powerToken = eventToToken and eventToToken or powerToken
     if powerToken then
         local bar = srslylawlUI.PowerBar.GetBar(parent, nil, powerToken)
-        if not bar.disabled then
+        if not bar.disabled and not bar.isUnparented then
             --since bars we dont want to see can still get events(druid's rage in other forms, since it gets reset to 25 anyway), check for that here
             bar:Update()
         end

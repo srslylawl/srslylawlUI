@@ -236,27 +236,33 @@ function srslylawlUI.CreateCustomFontString(frame, name, fontSize)
 end
 
 function srslylawlUI.FrameSetup()
-    local function CreateCCBar(unitFrame, unit)
-        local CCDurationBar = CreateFrame("StatusBar", "$parent_CCDurBar"..unit, unitFrame.unit.auraAnchor)
+    local function CreateCCBar(unitFrame)
+        local CCDurationBar = CreateFrame("Frame", "$parent_CCDurationBar", unitFrame.unit)
+        CCDurationBar.name = "CCDurationBar"
         unitFrame.unit.CCDurBar = CCDurationBar
-        CCDurationBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
-        local h = srslylawlUI.GetSetting("party.hp.height")*srslylawlUI.GetSetting("party.ccbar.heightPercent")
-        local w = srslylawlUI.GetSetting("party.ccbar.width")
-        local petW = srslylawlUI.GetSetting("party.pet.width")
-        local iconSize = (w > h and h) or w
-        srslylawlUI.Utils_SetSizePixelPerfect(CCDurationBar, w, h)
-        CCDurationBar:SetMinMaxValues(0, 1)
-        unitFrame.unit.CCDurBar.icon = unitFrame.unit.CCDurBar:CreateTexture("icon", "OVERLAY", nil, 2)
-        srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CCDurBar.icon, "BOTTOMLEFT", unitFrame.unit, "BOTTOMRIGHT", petW+6, 0)
-        srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar, "LEFT", unitFrame.unit.CCDurBar.icon, "RIGHT", 1, 0)
-        srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CCDurBar.icon, iconSize, iconSize)
-        unitFrame.unit.CCDurBar.icon:SetTexCoord(.08, .92, .08, .92)
-        unitFrame.unit.CCDurBar.icon:SetTexture(408)
-        unitFrame.unit.CCDurBar.timer = unitFrame.unit.CCDurBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
-        unitFrame.unit.CCDurBar.timer:SetText("5")
-        unitFrame.unit.CCDurBar.timer:SetPoint("LEFT")
+        CCDurationBar.statusBar = CreateFrame("StatusBar", "$parent_StatusBar", CCDurationBar)
+        CCDurationBar.statusBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
+        CCDurationBar.statusBar:SetMinMaxValues(0, 1)
+        CCDurationBar.icon = CCDurationBar:CreateTexture("icon", "OVERLAY", nil, 2)
+        srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.icon, "BOTTOMLEFT", CCDurationBar, "BOTTOMLEFT", 0, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.statusBar, "BOTTOMLEFT", CCDurationBar.icon, "BOTTOMRIGHT", 1, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.statusBar, "TOPRIGHT", CCDurationBar, "TOPRIGHT", 0, 0)
+        CCDurationBar.icon:SetTexCoord(.08, .92, .08, .92)
+        CCDurationBar.icon:SetTexture(408)
+        CCDurationBar.timer = srslylawlUI.CreateCustomFontString(CCDurationBar.statusBar, "Timer", 15)
+        CCDurationBar.timer:SetText("5")
+        srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.timer, "LEFT", CCDurationBar.statusBar, "LEFT", 1, 0)
         srslylawlUI.CreateBackground(CCDurationBar, 0)
-        unitFrame.unit.CCDurBar:Hide()
+        CCDurationBar:Hide()
+
+        function CCDurationBar:SetPoints(w, h)
+            if h then
+                srslylawlUI.Utils_SetSizePixelPerfect(self, w, h)
+                srslylawlUI.Utils_SetSizePixelPerfect(self.icon, h, h)
+            else
+                srslylawlUI.Utils_SetSizePixelPerfect(self.icon, w, w)
+            end
+        end
     end
     local function CreateUnitFrame(header, unit, faux, party)
         local name = party and "$parent_"..unit or "srslylawlUI_Main_"..unit
@@ -328,7 +334,9 @@ function srslylawlUI.FrameSetup()
         if party then
             header[unit] = unitFrame
         end
-        CreateCCBar(unitFrame, unit)
+        if unitsType ~= "mainUnits" or unit == "target" then
+            CreateCCBar(unitFrame)
+        end
         
         return unitFrame
     end
@@ -489,7 +497,7 @@ end
 function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     local unit = buttonFrame:GetAttribute("unit")
     srslylawlUI.SetupUnitFrame(buttonFrame, unit)
-    
+
     srslylawlUI.RegisterEvents(buttonFrame)
     RegisterUnitWatch(buttonFrame)
     buttonFrame:SetMovable(false)
@@ -535,15 +543,11 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
 
     if unit == "target" then
         srslylawlUI.Frame_SetupTargetFrame(buttonFrame)
-        srslylawlUI.BarHandler_Create(buttonFrame, buttonFrame.unit)
-
-        buttonFrame.CastBar = srslylawlUI.CreateCastBar(buttonFrame, unit)
-        buttonFrame:RegisterBar(buttonFrame.CastBar, 0)
-    elseif unit == "targettarget" then
-        buttonFrame.unit.healthBar.rightText:Hide()
     end
 
-    if unit ~= "targettarget" then
+    if unit == "targettarget" then
+        buttonFrame.unit.healthBar.rightText:Hide()
+    else
         buttonFrame.unit.CombatIcon:SetScript("OnUpdate", srslylawlUI.Frame_UpdateCombatIcon)
     end
 
@@ -551,155 +555,14 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     srslylawlUI.Frame_ResetDimensions_PowerBar(buttonFrame)
     srslylawlUI.Frame_ResetDimensions(buttonFrame)
 end
-function srslylawlUI.RegisterEvents(buttonFrame)
-    local unit = buttonFrame:GetAttribute("unit")
-    buttonFrame:RegisterUnitEvent("UNIT_HEALTH", unit, "pet")
-    buttonFrame:RegisterUnitEvent("UNIT_MAXHEALTH", unit, "pet")
-    buttonFrame:RegisterUnitEvent("UNIT_POWER_FREQUENT", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_DISPLAYPOWER", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_MAXPOWER", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_NAME_UPDATE", unit)
 
-    if unit ~= "targettarget" then
-        buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
-        buttonFrame:RegisterUnitEvent("UNIT_CONNECTION", unit)
-        buttonFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", unit)
-        buttonFrame:RegisterUnitEvent("UNIT_AURA", unit)
-        buttonFrame:RegisterUnitEvent("UNIT_HEAL_PREDICTION", unit)
-        buttonFrame:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", unit)
-        buttonFrame:RegisterUnitEvent("UNIT_PHASE", unit)
-        buttonFrame:RegisterUnitEvent("READY_CHECK_CONFIRM", unit)
-        buttonFrame:RegisterEvent("READY_CHECK")
-        buttonFrame:RegisterEvent("READY_CHECK_FINISHED")
-        buttonFrame:RegisterEvent("PARTY_LEADER_CHANGED")
-        buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
-        buttonFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-        buttonFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
-    end
-end
-function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
-    local function UpdatePowerBar(unit, token)
-        if unit == "player" and unitsType == "mainUnits" then
-            srslylawlUI.PowerBar.Update(self, token)
-        else
-            self.unit.powerBar:SetValue(UnitPower(unit))
-        end
-    end
-    local unit = self:GetAttribute("unit")
-    local unitExists = UnitExists(unit)
-    local unitsType = self:GetAttribute("unitsType")
-    if not unitExists then return end
-    -- Handle any events that don’t accept a unit argument
-    if event == "PLAYER_ENTERING_WORLD" then
-        srslylawlUI.HandleAuras(self.unit, unit)
-        UpdatePowerBar(unit, nil)
-    elseif event == "GROUP_ROSTER_UPDATE" then
-        self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
-    elseif event == "PLAYER_TARGET_CHANGED" then
-        if unitsType == "partyUnits" then
-            if UnitIsUnit(unit, "target") then
-                self.unit.selected:Show()
-            else
-                self.unit.selected:Hide()
-            end
-        elseif unitsType == "mainUnits" then
-            if unit == "target" then
-                if self.CastBar then
-                    self.CastBar:Hide()
-                    self.CastBar:Show()
-                end
-                self.portrait:PortraitUpdate()
-                self:UpdateUnitLevel()
-                self:UpdateUnitFaction()
-                srslylawlUI.HandleAuras(self.unit, unit)
-                srslylawlUI.SetAuraPointsAll(unit, unitsType)
-            end
-            srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
-            srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
-        end
-    elseif event == "PLAYER_SPECIALIZATION_CHANGED" and unit == "player" then
-        srslylawlUI.PowerBar.Set(self, unit)
-    elseif event == "UPDATE_INSTANCE_INFO" then
-        UpdatePowerBar(unit, nil)
-    elseif event == "PARTY_LEADER_CHANGED" then
-        self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
-    elseif event == "READY_CHECK" then
-            srslylawlUI.Frame_ReadyCheck(self, arg1 == UnitName(unit) and "ready" or "start")
-    elseif event == "READY_CHECK_CONFIRM" then
-            srslylawlUI.Frame_ReadyCheck(self, arg2 and "ready" or "notready")
-    elseif event == "READY_CHECK_FINISHED" then
-            srslylawlUI.Frame_ReadyCheck(self, "end")
-    elseif arg1 and UnitIsUnit(unit, arg1) and arg1 ~= "nameplate1" then
-        if event == "UNIT_MAXHEALTH" then
-            if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
-                if unit ~= "targettarget" then
-                    srslylawlUI.HandleAuras(self.unit, unit)
-                end
-                srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
-            end
-            self.unit.healthBar:SetMinMaxValues(0, UnitHealthMax(unit))
-            self.unit.healthBar:SetValue(UnitHealth(unit))
-        elseif event == "UNIT_HEALTH" then
-            srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
-            if unit ~= "targettarget" then
-                srslylawlUI.HandleAuras(self.unit, unit)
-            end
-        elseif event == "UNIT_DISPLAYPOWER" then
-            srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
-            if unit == "player" and unitsType == "mainUnits" then
-                srslylawlUI.PowerBar.Set(self, unit)
-            end
-        elseif event == "UNIT_POWER_FREQUENT" then
-            UpdatePowerBar(unit, arg2)
-        elseif event == "UNIT_MAXPOWER" then
-            if unit == "player" and unitsType == "mainUnits" then
-                srslylawlUI.PowerBar.UpdateMax(self, arg2)
-            else
-                self.unit.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
-            end
-        elseif event == "UNIT_NAME_UPDATE" then
-            if unit == "target" then
-                srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
-            else
-                srslylawlUI.Frame_ResetName(self.unit, unit)
-            end
-        elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
-            local status = UnitThreatSituation(unit)
-            if status and status > 0 then
-                local r, g, b = GetThreatStatusColor(status)
-                self.unit.healthBar.leftText:SetTextColor(r, g, b)
-            else
-                self.unit.healthBar.leftText:SetTextColor(1, 1, 1)
-            end
-        elseif event == "UNIT_CONNECTION" then
-            srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
-            srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
-            if unitsType == "partyUnits" then
-                if UnitName(unit) ~= "Unknown" then
-                    srslylawlUI.Log(UnitName(unit) .. (UnitIsConnected(unit) and " is now online." or " is now offline."))
-                end
-            end
-        elseif event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_PREDICTION" then
-            srslylawlUI.HandleAuras(self.unit, unit)
-        elseif event == "UNIT_PHASE" then
-            srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
-        elseif event == "UNIT_PORTRAIT_UPDATE" and unit == "target" then
-            self.portrait:PortraitUpdate()
-        elseif event == "UNIT_MODEL_CHANGED" and unit == "target" then
-            self.portrait:ModelUpdate()
-        elseif event == "UNIT_FACTION" and unit == "target" then
-            self:UpdateUnitFaction()
-        end
-    elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
-        if event == "UNIT_MAXHEALTH" then
-            self.pet.healthBar:SetMinMaxValues(0, UnitHealthMax(arg1))
-            self.pet.healthBar:SetValue(UnitHealth(arg1))
-        elseif event == "UNIT_HEALTH" then
-            self.pet.healthBar:SetValue(UnitHealth(arg1))
-        end
-    end
-end
+
 function srslylawlUI.Frame_SetupTargetFrame(frame)
+    srslylawlUI.BarHandler_Create(frame, frame.unit)
+    frame.CastBar = srslylawlUI.CreateCastBar(frame, frame:GetAttribute("unit"))
+    frame:RegisterBar(frame.CastBar, 0)
+    frame:RegisterBar(frame.unit.CCDurBar)
+
     frame:RegisterEvent("UNIT_PORTRAIT_UPDATE", "target")
 	frame:RegisterEvent("UNIT_MODEL_CHANGED", "target")
     frame:RegisterEvent("UNIT_FACTION", "target")
@@ -1102,12 +965,34 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             height = srslylawlUI.GetSettingByUnit("cast.height", unitsType, unit)
             disabled = srslylawlUI.GetSettingByUnit("cast.disabled", unitsType, unit)
             bar.disabled = disabled
+        elseif bar.name == "CCDurationBar" then
+            priority = srslylawlUI.GetSettingByUnit("ccbar.priority", unitsType, unit)
+            height = srslylawlUI.GetSettingByUnit("ccbar.height", unitsType, unit)
+            disabled = srslylawlUI.GetSettingByUnit("ccbar.disabled", unitsType, unit)
         elseif unit == "player" then
             local specIndex = GetSpecialization()
             local specID = GetSpecializationInfo(specIndex)
 
             if specID < 102 or specID > 105 then -- not druid
                 local path = "player.playerFrame.power.overrides."..specID.."."..bar.name.."."
+                priority = srslylawlUI.GetSetting(path.."priority", true) or priority
+                height = srslylawlUI.GetSetting(path.."height", true) or height
+                disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
+            else
+                local currentStance = GetShapeshiftFormID()
+                --[[
+                    humanoid form - nil
+                    Aquatic Form - 4
+                    Bear Form - 5
+                    Cat Form - 1
+                    Flight Form - 29
+                    Moonkin Form - 31
+                    Swift Flight Form - 27
+                    Travel Form - 3
+                    Tree of Life - 2
+                ]]
+                if currentStance == nil then currentStance = 0 end
+                local path = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..bar.name.."."
                 priority = srslylawlUI.GetSetting(path.."priority", true) or priority
                 height = srslylawlUI.GetSetting(path.."height", true) or height
                 disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
@@ -1142,7 +1027,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
 
         bar:SetScript("OnHide", function() self:SetPoints() end)
 
-        self:SortBars()
+        -- self:SortBars()
     end
     function frame:UnregisterBar(bar)
         local found
@@ -1157,10 +1042,24 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
 
         table.remove(bh.bars, found)
         bar.isUnparented = true
-        bar:Hide()
         self:SortBars()
     end
-
+    function frame:UnregisterAll()
+        local actualIndex = 1
+        for i=1,#bh.bars do
+            if bh.bars[i].bar.name == "CastBar" then
+                -- Move i's kept value to actualIndex's position, if it's not already there.
+                if i ~= actualIndex then
+                    bh.bars[actualIndex] = bh.bars[i];
+                    bh.bars[i] = nil;
+                end
+                actualIndex = actualIndex + 1; -- Increment position of where we'll place the next kept value.
+            else
+                bh.bars[i].bar.isUnparented = true
+                bh.bars[i] = nil;
+            end
+        end
+    end
     function frame:SortBars()
         table.sort(bh.bars, function(a, b)
             return a.priority < b.priority
@@ -1168,7 +1067,6 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
 
         self:SetPoints()
     end
-
     function frame:SetPoints()
         local currentBar
         local lastBar
@@ -1185,17 +1083,16 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                     srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "BOTTOMRIGHT", lastBar, "BOTTOMRIGHT", 0, -1-height)
                 end
                 if currentBar.SetPoints then
-                    currentBar:SetPoints()
+                    currentBar:SetPoints(height)
                     currentBar.pointsSet = true
                 end
                 lastBar = currentBar
             elseif currentBar.SetPoints and not currentBar.pointsSet then
-                currentBar:SetPoints()
+                currentBar:SetPoints(height)
                 currentBar.pointsSet = true
             end
         end
     end
-
     function frame:SetDemoMode(active)
         if not bh.demoBars then
             bh.demoBars = {}
@@ -1204,7 +1101,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             local timer = 0
             bh:SetScript("OnUpdate", function(self, elapsed)
                 timer = timer + elapsed
-                if timer <= 0.1 then return end
+                if timer <= .1 then return end
                 local currentBar, currentDemoBar, lastBar, height, token, resourceName
                 for i=1, #bh.bars do
                     if not bh.demoBars[i] then
@@ -1236,6 +1133,9 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                     currentDemoBar:Show()
                     lastBar = currentDemoBar
                 end
+                for i=#bh.bars+1, #bh.demoBars do
+                    bh.demoBars[i]:Hide()
+                end
                 timer = 0
             end)
         else
@@ -1245,7 +1145,6 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             bh:SetScript("OnUpdate", nil)
         end
     end
-
     function frame:ReRegisterAll()
         for i=1, #bh.bars do
             local b = bh.bars[i]
@@ -1395,12 +1294,22 @@ function srslylawlUI.Frame_Main_ResetDimensions_ALL()
     end
 end
 function srslylawlUI.Frame_ResetCCDurBar(button)
+    local unit, unitsType = button:GetAttribute("unit"), button:GetAttribute("unitsType")
+    local h = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
+    if button:GetAttribute("unit") == "target" then
+
+
+    else
+
+
+    end
     local h = srslylawlUI.GetSetting("party.hp.height")
     local h2 = h*srslylawlUI.GetSetting("party.ccbar.heightPercent")
     local w = srslylawlUI.GetSetting("party.ccbar.width")
-    local iconSize = (w > h2 and h2) or w
-    srslylawlUI.Utils_SetSizePixelPerfect(button.unit.CCDurBar, w, h2)
-    srslylawlUI.Utils_SetSizePixelPerfect(button.unit.CCDurBar.icon, iconSize, iconSize)
+    -- local iconSize = (w > h2 and h2) or w
+    button.unit.CCDurBar:SetPoints(w, h2)
+    -- srslylawlUI.Utils_SetSizePixelPerfect(button.unit.CCDurBar, w, h2)
+    -- srslylawlUI.Utils_SetSizePixelPerfect(button.unit.CCDurBar.icon, iconSize, iconSize)
 end
 function srslylawlUI.PlayerFrame_OnDragStart(self)
     self = self:GetParent()
@@ -1417,6 +1326,153 @@ function srslylawlUI.PlayerFrame_OnDragStop(self)
         local points = {self:GetPoint()}
         local offsets = {srslylawlUI.Utils_PixelFromScreenToCode(points[4], points[5])}
         srslylawlUI.ChangeSetting("player."..self:GetAttribute("unit").."Frame.position", {points[1], points[2], points[3], unpack(offsets)})
+    end
+end
+
+--events
+function srslylawlUI.RegisterEvents(buttonFrame)
+    local unit = buttonFrame:GetAttribute("unit")
+    buttonFrame:RegisterUnitEvent("UNIT_HEALTH", unit, "pet")
+    buttonFrame:RegisterUnitEvent("UNIT_MAXHEALTH", unit, "pet")
+    buttonFrame:RegisterUnitEvent("UNIT_POWER_FREQUENT", unit)
+    buttonFrame:RegisterUnitEvent("UNIT_DISPLAYPOWER", unit)
+    buttonFrame:RegisterUnitEvent("UNIT_MAXPOWER", unit)
+    buttonFrame:RegisterUnitEvent("UNIT_NAME_UPDATE", unit)
+
+    if unit ~= "targettarget" then
+        buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_CONNECTION", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_AURA", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_HEAL_PREDICTION", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_PHASE", unit)
+        buttonFrame:RegisterUnitEvent("READY_CHECK_CONFIRM", unit)
+        buttonFrame:RegisterEvent("READY_CHECK")
+        buttonFrame:RegisterEvent("READY_CHECK_FINISHED")
+        buttonFrame:RegisterEvent("PARTY_LEADER_CHANGED")
+        buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+        buttonFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    end
+end
+function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
+    local function UpdatePowerBar(unit, unitsType, token)
+        if unit == "player" and unitsType == "mainUnits" then
+            srslylawlUI.PowerBar.Update(self, token)
+        else
+            self.unit.powerBar:SetValue(UnitPower(unit))
+        end
+    end
+    local unit = self:GetAttribute("unit")
+    local unitExists = UnitExists(unit)
+    local unitsType = self:GetAttribute("unitsType")
+    if not unitExists then return end
+    -- Handle any events that don’t accept a unit argument
+    if event == "PLAYER_ENTERING_WORLD" then
+        srslylawlUI.HandleAuras(self.unit, unit)
+        UpdatePowerBar(unit, nil)
+    elseif event == "GROUP_ROSTER_UPDATE" then
+        self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
+    elseif event == "PLAYER_TARGET_CHANGED" then
+        if unitsType == "partyUnits" then
+            if UnitIsUnit(unit, "target") then
+                self.unit.selected:Show()
+            else
+                self.unit.selected:Hide()
+            end
+        elseif unitsType == "mainUnits" then
+            if unit == "target" then
+                if self.CastBar then
+                    self.CastBar:Hide()
+                    self.CastBar:Show()
+                end
+                self.portrait:PortraitUpdate()
+                self:UpdateUnitLevel()
+                self:UpdateUnitFaction()
+                srslylawlUI.HandleAuras(self.unit, unit)
+                srslylawlUI.SetAuraPointsAll(unit, unitsType)
+            end
+            srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
+            srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
+        end
+    elseif event == "PLAYER_SPECIALIZATION_CHANGED" and unit == "player" then
+        srslylawlUI.PowerBar.Set(self, unit)
+    elseif event == "PARTY_LEADER_CHANGED" then
+        self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
+    elseif event == "READY_CHECK" then
+            srslylawlUI.Frame_ReadyCheck(self, arg1 == UnitName(unit) and "ready" or "start")
+    elseif event == "READY_CHECK_CONFIRM" then
+            srslylawlUI.Frame_ReadyCheck(self, arg2 and "ready" or "notready")
+    elseif event == "READY_CHECK_FINISHED" then
+            srslylawlUI.Frame_ReadyCheck(self, "end")
+    elseif arg1 and UnitIsUnit(unit, arg1) and arg1 ~= "nameplate1" then
+        if event == "UNIT_MAXHEALTH" then
+            if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
+                if unit ~= "targettarget" then
+                    srslylawlUI.HandleAuras(self.unit, unit)
+                end
+                srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
+            end
+            self.unit.healthBar:SetMinMaxValues(0, UnitHealthMax(unit))
+            self.unit.healthBar:SetValue(UnitHealth(unit))
+        elseif event == "UNIT_HEALTH" then
+            srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
+            if unit ~= "targettarget" then
+                srslylawlUI.HandleAuras(self.unit, unit)
+            end
+        elseif event == "UNIT_DISPLAYPOWER" then
+            srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
+            if unit == "player" and unitsType == "mainUnits" then
+                srslylawlUI.PowerBar.Set(self, unit)
+            end
+        elseif event == "UNIT_POWER_FREQUENT" then
+            UpdatePowerBar(unit, unitsType, arg2)
+        elseif event == "UNIT_MAXPOWER" then
+            if unit == "player" and unitsType == "mainUnits" then
+                srslylawlUI.PowerBar.UpdateMax(self, arg2)
+            else
+                self.unit.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
+            end
+        elseif event == "UNIT_NAME_UPDATE" then
+            if unit == "target" then
+                srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
+            else
+                srslylawlUI.Frame_ResetName(self.unit, unit)
+            end
+        elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
+            local status = UnitThreatSituation(unit)
+            if status and status > 0 then
+                local r, g, b = GetThreatStatusColor(status)
+                self.unit.healthBar.leftText:SetTextColor(r, g, b)
+            else
+                self.unit.healthBar.leftText:SetTextColor(1, 1, 1)
+            end
+        elseif event == "UNIT_CONNECTION" then
+            srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
+            srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
+            if unitsType == "partyUnits" then
+                if UnitName(unit) ~= "Unknown" then
+                    srslylawlUI.Log(UnitName(unit) .. (UnitIsConnected(unit) and " is now online." or " is now offline."))
+                end
+            end
+        elseif event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_PREDICTION" then
+            srslylawlUI.HandleAuras(self.unit, unit)
+        elseif event == "UNIT_PHASE" then
+            srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
+        elseif event == "UNIT_PORTRAIT_UPDATE" and unit == "target" then
+            self.portrait:PortraitUpdate()
+        elseif event == "UNIT_MODEL_CHANGED" and unit == "target" then
+            self.portrait:ModelUpdate()
+        elseif event == "UNIT_FACTION" and unit == "target" then
+            self:UpdateUnitFaction()
+        end
+    elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
+        if event == "UNIT_MAXHEALTH" then
+            self.pet.healthBar:SetMinMaxValues(0, UnitHealthMax(arg1))
+            self.pet.healthBar:SetValue(UnitHealth(arg1))
+        elseif event == "UNIT_HEALTH" then
+            self.pet.healthBar:SetValue(UnitHealth(arg1))
+        end
     end
 end
 
@@ -1572,7 +1628,7 @@ function srslylawlUI.Frame_ResetDimensions_Pet(button)
     if unitsType ~= "mainUnits" then
         srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "TOPLEFT", button.unit, "TOPRIGHT", 1, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMRIGHT", button.unit, "BOTTOMRIGHT", srslylawlUI.GetSetting("party.pet.width"), 0)
-        srslylawlUI.Utils_SetPointPixelPerfect(button.unit.CCDurBar.icon, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", srslylawlUI.GetSetting("party.pet.width")+4, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(button.unit.CCDurBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", srslylawlUI.GetSetting("party.pet.width")+4, 0)
     else
         local unit = button:GetAttribute("unit")
         if unit == "player" then

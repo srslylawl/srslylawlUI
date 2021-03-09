@@ -82,7 +82,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     timerCC = timerCC + elapsed
                     if timerCC >= 0.025 then
                         remaining = expirationTime-GetTime()
-                        self:SetValue(remaining/duration)
+                        self.statusBar:SetValue(remaining/duration)
                         local timerstring = tostring(remaining)
                         timerstring = timerstring:match("%d+%p?%d")
                         self.timer:SetText(timerstring)
@@ -95,7 +95,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame.unit.CCDurBar:SetShown(srslylawlUI.GetSetting("party.ccbar.enabled"))
             frame.unit.CCDurBar.icon:SetTexture(fauxUnit.CCIcon)
             local color = DebuffTypeColor[fauxUnit.CCColor]
-            frame.unit.CCDurBar:SetStatusBarColor(color.r, color.g, color.b)
+            frame.unit.CCDurBar.statusBar:SetStatusBarColor(color.r, color.g, color.b)
 
             color = RAID_CLASS_COLORS[fauxUnit.class]
 
@@ -220,9 +220,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.pet, h)
                     local h2 = h*srslylawlUI.GetSetting("party.ccbar.heightPercent")
                     local w = srslylawlUI.GetSetting("party.ccbar.width")
-                    local iconSize = (w > h2 and h2) or w
-                    srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar, w, h2)
-                    srslylawlUI.Utils_SetSizePixelPerfect(self.unit.CCDurBar.icon, iconSize, iconSize)
+                    self.unit.CCDurBar:SetPoints(w, h2)
                     srslylawlUI.Frame_ResetDimensions_Pet(self)
                     srslylawlUI.Frame_ResetDimensions_PowerBar(self)
 

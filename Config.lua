@@ -22,6 +22,7 @@ function srslylawlUI.CreateConfigWindow()
         srslylawlUI.mainUnits.target.unitFrame:SetMovable(bool)
         srslylawlUI.mainUnits.targettarget.unitFrame:SetMovable(bool)
         srslylawlUI.mainUnits.player.unitFrame:SetDemoMode(bool)
+        srslylawlUI.mainUnits.target.unitFrame:SetDemoMode(bool)
         srslylawlUI.Log((bool and "Frames now moveable!" or "Frames can no longer be moved."))
 
         srslylawlUI.ToggleFauxFrames(bool)
@@ -73,6 +74,34 @@ function srslylawlUI.CreateConfigWindow()
             self.title:SetText(title)
         end
         return editBox
+    end
+    local function CreateInfoBox(parent, content, width)
+        local bounds = CreateFrame("Frame", "$parent_Bounds", parent, "BackdropTemplate")
+        local infoBox = bounds:CreateFontString("$parent_InfoBox", "ARTWORK")
+        infoBox.bounds = bounds
+        infoBox.bounds:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 12,
+        insets = {left = 4, right = 4, top = 4, bottom = 4}
+        })
+        infoBox.bounds:SetBackdropColor(0.05, 0.05, .05, .5)
+        infoBox:SetPoint("CENTER")
+        infoBox:SetWidth(width)
+        infoBox:SetFont("Fonts\\FRIZQT__.TTF", 11)
+        infoBox:SetTextColor(0.980, 0.862, 0.180)
+
+        infoBox:SetText(content)
+
+        bounds:SetSize(width + 8, infoBox:GetStringHeight()+8)
+
+        local oldSetText = infoBox.SetText
+        function infoBox:SetText(str)
+            oldSetText(self, str)
+            bounds:SetSize(width + 8, infoBox:GetStringHeight()+8)
+        end
+
+        return infoBox
     end
     local function CreateCustomEditBox(parent, title)
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
@@ -276,6 +305,15 @@ function srslylawlUI.CreateConfigWindow()
                 onChangeFunc()
             end
         end
+
+        function slider:SetValueClean(val)
+            local isDirty = srslylawlUI.unsaved.flag
+            slider:SetValue(val)
+
+            if not isDirty then
+                srslylawlUI.RemoveDirtyFlag()
+            end
+        end
         slider.editbox = editBox
         table.insert(srslylawlUI.ConfigElements.Sliders, slider)
         srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+45, 110)
@@ -468,7 +506,7 @@ function srslylawlUI.CreateConfigWindow()
             for i=1, rowIndex do
                 totalheight = totalheight + self.rowBounds[i].height
             end
-            local height = totalheight + (rowIndex+1)*offset + inset*2
+            local height = totalheight + (rowIndex+2)*offset + inset*2
             local w = self.useFullWidth and availableWidth or totalWidth + offset + inset*2
             srslylawlUI.Utils_SetSizePixelPerfect(self.bounds, w, height)
         end
@@ -496,6 +534,17 @@ function srslylawlUI.CreateConfigWindow()
                 srslylawlUI.Utils_SetPointPixelPerfect(self, "TOPLEFT", control.bounds, "TOPRIGHT", -15, 0)
             end
         end
+
+        frame:SetScript("OnHide", function(self)
+            for _, v in pairs(frame.elements) do
+                v:Hide()
+            end
+        end)
+        frame:SetScript("OnShow", function(self)
+            for _, v in pairs(frame.elements) do
+                v:Show()
+            end
+        end)
 
         return frame
     end
@@ -868,6 +917,9 @@ function srslylawlUI.CreateConfigWindow()
                 playerFrameControl:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -50)
             else
                 playerFrameControl:ChainToControl(anchor)
+                if unit == "target" then
+                    cFrame.nextControlAfterPlayerPower = playerFrameControl
+                end
             end
 
             local enable = CreateSettingsCheckButton("Enable", tab, path.."enabled", function(self)
@@ -957,10 +1009,14 @@ function srslylawlUI.CreateConfigWindow()
                     anchor = petControl
 
                     --powerbarsetup
-                    local function Refresh()
+                    local function SetPlayerPowerBarOptions()
                         local specIndex = GetSpecialization()
                         local specID = GetSpecializationInfo(specIndex)
-                        if specID >= 102 and specID <= 105 then return end --not dealing with druid right now
+                        local isDruid = specID >= 102 and specID <= 105
+                        local currentStance = isDruid and GetShapeshiftFormID() or 0
+                        currentStance = currentStance or 0
+
+
 
                         local barTable = srslylawlUI.mainUnits.player.unitFrame.BarHandler.bars
                         local newTable = {}
@@ -973,49 +1029,127 @@ function srslylawlUI.CreateConfigWindow()
                             cFrame.playerPowerBarControls = {}
                         end
 
-                        local cAnchor = cFrame.lastPlayerPowerBarAnchor or anchor
+                        for i, frame in ipairs(cFrame.playerPowerBarControls) do
+                            frame.control:Hide()
+                        end
 
+                        local cAnchor = petControl
+
+                        local exists
                         for i=1, #newTable do
-                            local exists = false
+                            exists = false
                             local name = newTable[i].bar.name
-                            for _, v in pairs(cFrame.playerPowerBarControls) do
-                                if v.name == name then
-                                    exists = true
+                            for _, v in ipairs(cFrame.playerPowerBarControls) do
+                                if v.name == name and v.spec == specID and v.stance == currentStance then
+                                    exists = v
                                     break
                                 end
                             end
+                            local p = "player.playerFrame.power.overrides."..specID.."."..name
+                            if isDruid then
+                                local currentStance = GetShapeshiftFormID() or 0
+                                p = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..name
+                            end
+                            if name == "CastBar" then
+                                p = "player.playerFrame.cast"
+                            end
 
                             if not exists then
-                                local p = "player.playerFrame.power.overrides."..specID.."."..name
-                                if name == "CastBar" then
-                                    p = "player.playerFrame.cast"
-                                end
                                 local barControl = CreateConfigControl(tab, "Player "..name)
                                 local barEnabled = CreateSettingsCheckButton("Disable", tab, p..".disabled", function()
                                     unitFrame:ReRegisterAll()
                                 end, true)
                                 local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height", newTable[i].height, function()
-                                    -- srslylawlUI.PowerBar.Set(unitFrame, unit)
                                     unitFrame:ReRegisterAll()
                                 end)
                                 local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority", newTable[i].priority, function()
-                                    -- srslylawlUI.PowerBar.Set(unitFrame, unit)
                                     unitFrame:ReRegisterAll()
                                 end)
                                 barControl:Add(barEnabled, barHeight, barPriority)
 
                                 barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
 
+                                table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls+1, {name=newTable[i].bar.name, control=barControl, enabled=barEnabled, height=barHeight, prio=barPriority, spec = specID, stance = currentStance})
+
                                 cAnchor = barControl
                                 anchor = barControl
+                                cFrame.lastPlayerPowerBarAnchor = barControl
+                            else
+                                exists.control:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
+                                cAnchor = exists.control
+                                anchor = exists.control
+                                exists.control:Show()
+                                cFrame.lastPlayerPowerBarAnchor = exists.control
+
+                                exists.enabled:SetChecked(srslylawlUI.GetSetting(p..".disabled", true) or false)
+                                exists.height:SetValueClean(srslylawlUI.GetSetting(p..".height", true) or newTable[i].height)
+                                exists.prio:SetValueClean(srslylawlUI.GetSetting(p..".priority", true) or newTable[i].priority)
+                            end
+                            if i == 1 and not cFrame.infoBox then
+                                cFrame.infoBox = CreateInfoBox(tab, "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings.", 280)
+                                cFrame.infoBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 0)
+                            elseif i == 2 and isDruid then
+                                --[[
+                                    humanoid form - nil
+                                    Aquatic Form - 4
+                                    Bear Form - 5
+                                    Cat Form - 1
+                                    Flight Form - 29
+                                    Moonkin Form - 31
+                                    Swift Flight Form - 27
+                                    Travel Form - 3
+                                    Tree of Life - 2
+                                ]]
+                                local form = currentStance == 0 and "Humanoid" or currentStance == 1 and "Cat Form" or currentStance == 5 and "Bear Form" or currentStance == 31 and "Moonkin Form" or "Travel Form"
+                                if not cFrame.shapeShiftBox then
+                                    cFrame.shapeShiftBox = CreateInfoBox(tab, "Settings for current shapeshift form: "..form, 280)
+                                else
+                                    cFrame.shapeShiftBox:SetText("Settings for current shapeshift form: "..form)
+                                end
+                                cFrame.shapeShiftBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 0)
                             end
                         end
-                        cFrame.lastPlayerPowerBarAnchor = barControl
-                        
+                        if cFrame.nextControlAfterPlayerPower then
+                            cFrame.nextControlAfterPlayerPower:ChainToControl(cFrame.lastPlayerPowerBarAnchor)
+                        end
                     end
+                    tab:SetScript("OnShow", SetPlayerPowerBarOptions)
+                    tab:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+                    tab:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "player")
+                    tab:SetScript("OnEvent", SetPlayerPowerBarOptions)
 
-                    Refresh()
+                    SetPlayerPowerBarOptions()
                     --should place bars again once spec/druidform changes
+                end
+
+                if unit == "target" then
+                    local castBarControl = CreateConfigControl(tab, "Target CastBar")
+                    local castBarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.cast.disabled", function()
+                        unitFrame:ReRegisterAll()
+                    end, true)
+                    local castBarHeight = CreateCustomSlider("Height", tab, 0, 100, "player.targetFrame.cast.height", 1, 0, function()
+                        unitFrame:ReRegisterAll()
+                    end)
+                    local castBarPriority = CreateCustomSlider("Order", tab, 0, 10, "player.targetFrame.cast.priority", 1, 0, function()
+                        unitFrame:ReRegisterAll()
+                    end)
+                    castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority)
+                    castBarControl:SetPoint("TOPLEFT", anchor.bounds, "BOTTOMLEFT", 0, 0)
+
+                    local ccbarControl = CreateConfigControl(tab, "Target CrowdControl")
+                    local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.ccbar.disabled", function()
+                        unitFrame:ReRegisterAll()
+                    end, true)
+                    local ccbarHeight = CreateCustomSlider("Height", tab, 0, 100, "player.targetFrame.ccbar.height", 1, 0, function()
+                        unitFrame:ReRegisterAll()
+                    end)
+                    local ccbarPriority = CreateCustomSlider("Order", tab, 0, 10, "player.targetFrame.ccbar.priority", 1, 0, function()
+                        unitFrame:ReRegisterAll()
+                    end)
+                    ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority)
+                    ccbarControl:SetPoint("TOPLEFT", castBarControl.bounds, "BOTTOMLEFT", 0, 0)
+                    anchor = ccbarControl
+
                 end
             else
                 anchor = playerPosControl

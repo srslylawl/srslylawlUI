@@ -78,6 +78,11 @@ srslylawlUI.defaultSettings = {
                 fontSize = 15,
                 height = 40,
                 priority = 0
+            },
+            ccbar = {
+                disabled = false,
+                height = 40,
+                priority = 1,
             }
         },
         targettargetFrame = {

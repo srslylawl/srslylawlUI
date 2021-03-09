@@ -95,9 +95,17 @@ local partyUnitsTable = srslylawlUI.partyUnitsTable
 local debugString = ""
 
 
+--[[
+#############################################################
+#                                                           #
+#             Created by srslylawl#5257 (discord)           #
+#                                                           #
+#############################################################
+]]
+
 --[[ TODO:
 
-ccdurbar on player/target/targettarget
+ccdurbar on target
 alt powerbar
 hide blizzard default frames
 UnitHasIncomingResurrection(unit)
@@ -830,6 +838,11 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
 
     --see if we want to display our cced frame
     local displayCC = #appliedCC > 0 and srslylawlUI.GetSetting("party.ccbar.enabled")
+    if unitsType == "partyUnits" then
+        displayCC = displayCC and srslylawlUI.GetSetting("party.ccbar.enabled")
+    elseif unit == "target" then
+        displayCC = displayCC and not srslylawlUI.GetSetting("player.targetFrame.ccbar.disabled")
+    end
     if displayCC then
         --Decide which cc to display
         table.sort(appliedCC, function(a, b) return b.remaining < a.remaining end)
@@ -856,7 +869,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             --not being displayed
             unitbutton.CCDurBar.spellData = CCToDisplay
             unitbutton.CCDurBar.icon:SetTexture(CCToDisplay.icon)
-            unitbutton.CCDurBar:SetStatusBarColor(color.r, color.g, color.b)
+            unitbutton.CCDurBar.statusBar:SetStatusBarColor(color.r, color.g, color.b)
             local timer, duration, expirationTime, remaining = 0, 0, 0, 0
             local updateInterval = 0.02
             unitbutton.CCDurBar:SetScript("OnUpdate", 
@@ -870,7 +883,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                             self.timer:SetText("")
                         else
                             remaining = expirationTime-GetTime()
-                            self:SetValue(remaining/duration)
+                            self.statusBar:SetValue(remaining/duration)
                             local timerstring = tostring(remaining)
                             timerstring = timerstring:match("%d+%p?%d")
                             self.timer:SetText(timerstring)
