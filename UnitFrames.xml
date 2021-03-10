@@ -26,13 +26,13 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 						<BarTexture name="$parent_texture" file="Interface\AddOns\srslylawlUI\media\healthBar"/>
 						<BarColor r="1.0" g="1.0" b="1.0" />
 					</StatusBar>
-					<Frame name="$parent_AuraAnchor" parentKey="auraAnchor">
+					<!-- <Frame name="$parent_AuraAnchor" parentKey="auraAnchor">
 						<Anchors>
 							<Anchor point="TOPLEFT">
 							<Offset x="0" y="0" />
 						</Anchor>
 						</Anchors>
-					</Frame>		
+					</Frame>		 -->
 				</Frames>
 				<Scripts>
 					<OnDragStart function="srslylawlUI_PartyFrame_OnDragStart"/>

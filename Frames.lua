@@ -1599,7 +1599,7 @@ function srslylawlUI.Frame_ResetDimensions(button)
     local tolerance = 0.1
     local needsResize = widthDiff > tolerance or heightDiff > tolerance
     if needsResize or unitsType == "mainUnits" then
-        srslylawlUI.Utils_SetSizePixelPerfect(button.unit.auraAnchor, w, h)
+        -- srslylawlUI.Utils_SetSizePixelPerfect(button.unit.auraAnchor, w, h)
         srslylawlUI.Utils_SetSizePixelPerfect(button.unit.healthBar, w, h)
         srslylawlUI.Utils_SetHeightPixelPerfect(button.unit.powerBar, h)
 
@@ -1777,32 +1777,34 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
     if unitsTable[unit][auraType.."Anchor"] then
         unitsTable[unit][auraType.."Anchor"]:SetScript("OnHide", nil)
     end
-    local rowAnchorScaled = false
+    local rowHasScaledFrame = false
+    local lastRowHasScaledFrame = rowAnchor.rowHasScaledFrame or false
+    local rowAnchorIsScaled = rowAnchor.isScaled or false
+    local lastAnchorWasOffset = false
     local anchorFrame
     for i=1, #frames do
         local frame = frames[i]
         local frameSize = frame.size or defaultSize
-
-        if anchorFrame and frameSize > anchorFrame.size and not rowAnchorScaled then
-            rowAnchorScaled = true
-            scaledSize = frameSize
-            local scaledOffset = (frameSize-anchorFrame.size)/2
-            if anchorFrame == frames[1] then
-                srslylawlUI.Utils_SetPointPixelPerfect(anchorFrame, initialAnchorPoint, frame.anchor, initialAnchorPointRelative, (initialXOffset*offset)+frameXOffset+(initialXOffset*scaledOffset), (initialYOffset*offset)+frameYOffset+(initialYOffset*scaledOffset))
-            else
-                srslylawlUI.Utils_SetPointPixelPerfect(anchorFrame, initialAnchorPoint, frame.anchor, initialAnchorPointRelative, (initialXOffset*offset)+(initialXOffset*scaledOffset), (initialYOffset*offset)+(initialYOffset*scaledOffset))
-            end
+        if frameSize > defaultSize then
+            rowHasScaledFrame = true
         end
         frame:ClearAllPoints()
         if i == 1 then
             frame.anchor = rowAnchor
-            srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset)+frameXOffset, (initialYOffset*offset)+frameYOffset)
+            if not rowAnchorIsScaled and lastRowHasScaledFrame and rowAnchor.size then --if rowanchor is not scaled and their row had a scaled frame
+                local scaledOffset = (frameSize-rowAnchor.size) / 2
+                srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset)+frameXOffset+(initialXOffset*scaledOffset), (initialYOffset*offset)+frameYOffset+(initialYOffset*scaledOffset))
+            else
+                srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset)+frameXOffset, (initialYOffset*offset)+frameYOffset)
+            end
             rowAnchor = frame
             if frame:IsShown() then
                 unitsTable[unit][auraType.."Anchor"] = frame
                 anchorFrame = frame
                 anchorFrame.size = frameSize
-                rowAnchorScaled = frameSize > defaultSize
+                rowHasScaledFrame = frameSize > defaultSize
+                rowAnchorIsScaled = rowHasScaledFrame
+                lastAnchorWasOffset = false
             else
                 unitsTable[unit][auraType.."Anchor"] = unitFrame.unit
             end
@@ -1812,14 +1814,22 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
             if currentRowLength + frameSize + offset > maxRowLength then
                 --doesnt fit into row
                 frame.anchor = rowAnchor
-                srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset), (initialYOffset*offset))
+                if rowHasScaledFrame and not rowAnchorIsScaled and rowAnchor.size then
+                    local scaledOffset = (frameSize-rowAnchor.size) / 2
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset)+(initialXOffset*scaledOffset), (initialYOffset*offset)+(initialYOffset*scaledOffset))
+                else
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset), (initialYOffset*offset))
+                end
 
                 rowAnchor = frame
                 if frame:IsShown() then
                     unitsTable[unit][auraType.."Anchor"] = frame
                     anchorFrame = frame
                     anchorFrame.size = frameSize
-                    rowAnchorScaled = frameSize > defaultSize
+                    frame.rowHasScaledFrame = rowHasScaledFrame
+                    rowHasScaledFrame = frameSize > defaultSize
+                    rowAnchorIsScaled = rowHasScaledFrame
+                    lastAnchorWasOffset = false
                 end
                 ReparentOnHideShow(frame)
                 currentRowLength = frameSize
@@ -1829,6 +1839,22 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
                 frame:SetScript("OnHide", nil)
                 frame:SetScript("OnShow", nil)
             end
+        end
+        if rowHasScaledFrame and anchorFrame and not rowAnchorIsScaled and not lastAnchorWasOffset then
+            lastAnchorWasOffset = true
+            scaledSize = frameSize
+            local scaledOffset = (frameSize-anchorFrame.size) / 2
+            if anchorFrame.anchor.size and anchorFrame.anchor.size == anchorFrame.size then
+                scaledOffset = scaledOffset * 2
+            end
+            if anchorFrame == frames[1] then
+                srslylawlUI.Utils_SetPointPixelPerfect(anchorFrame, initialAnchorPoint, anchorFrame.anchor, initialAnchorPointRelative, (initialXOffset*offset)+frameXOffset+(initialXOffset*scaledOffset), (initialYOffset*offset)+frameYOffset+(initialYOffset*scaledOffset))
+            else
+                srslylawlUI.Utils_SetPointPixelPerfect(anchorFrame, initialAnchorPoint, anchorFrame.anchor, initialAnchorPointRelative, (initialXOffset*offset)+(initialXOffset*scaledOffset), (initialYOffset*offset)+(initialYOffset*scaledOffset))
+            end
+
+            anchorFrame.rowHasScaledFrame = true
+            anchorFrame.isScaled = anchorFrame.size > defaultSize
         end
         srslylawlUI.Utils_SetSizePixelPerfect(frame, frameSize, frameSize)
     end

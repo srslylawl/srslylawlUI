@@ -105,7 +105,6 @@ local debugString = ""
 ]]
 
 --[[ TODO:
-base aura anchor needs to account for scaled size
 alt powerbar
 focus frame
 faux frames for player/target auras, player pet

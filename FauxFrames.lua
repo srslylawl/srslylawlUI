@@ -213,7 +213,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     scaledWidth = scaledWidth < minWidth and minWidth or scaledWidth
                     -- srslylawlUI.Utils_SetSizePixelPerfect(self, srslylawlUI.GetSetting("party.hp.width")+2, h+2)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit, srslylawlUI.GetSetting("party.hp.width"), h)
-                    srslylawlUI.Utils_SetSizePixelPerfect(self.unit.auraAnchor, scaledWidth, h)
+                    -- srslylawlUI.Utils_SetSizePixelPerfect(self.unit.auraAnchor, scaledWidth, h)
                     srslylawlUI.Utils_SetSizePixelPerfect(self.unit.healthBar, scaledWidth, h)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.unit.powerBar, h)
                     srslylawlUI.Utils_SetHeightPixelPerfect(self.pet.healthBar, h)
@@ -255,6 +255,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 unitFrame = fauxFrame
             }
             srslylawlUI.CreateBuffFrames(fauxFrame, unit)
+            srslylawlUI.CreateDebuffFrames(fauxFrame, unit)
 
             local timer = 0
             fauxFrame:SetScript("OnUpdate", function(self, elapsed)
@@ -269,12 +270,11 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
                 local buffFrames = srslylawlUI.mainFauxUnits[unit].buffFrames
                 local maxBuffs = srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
-                print(maxBuffs)
                 local defaultSize, scaledSize = srslylawlUI.GetSetting("player."..unit.."Frame.buffs.size"), srslylawlUI.GetSetting("player."..unit.."Frame.buffs.scaledSize")
                 for i=1, maxBuffs do
                     local f = buffFrames[i]
                     f.icon:SetTexture(135932)
-                    f.size = math.fmod(i, 5) == 0 and scaledSize or defaultSize
+                    f.size = math.fmod(i+1, 3) == 0 and scaledSize or defaultSize
                     f:Show()
                 end
 
@@ -282,8 +282,21 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     buffFrames[i]:Hide()
                 end
 
+                local debuffFrames = srslylawlUI.mainFauxUnits[unit].debuffFrames
+                local maxDebuffs = srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.maxDebuffs")
+                local defaultSize, scaledSize = srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.size"), srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.scaledSize")
+                for i=1, maxDebuffs do
+                    local f = debuffFrames[i]
+                    f.icon:SetTexture(136207)
+                    f.size = math.fmod(i+1, 3) == 0 and scaledSize or defaultSize
+                    f:Show()
+                end
 
-                srslylawlUI.SetAuraPoints(unit, "mainFauxUnits", "buffs")
+                for i=maxDebuffs+1, #debuffFrames do
+                    debuffFrames[i]:Hide()
+                end
+
+                srslylawlUI.SetAuraPointsAll(unit, "mainFauxUnits")
             end)
         end
 
