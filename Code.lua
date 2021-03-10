@@ -107,7 +107,7 @@ local debugString = ""
 --[[ TODO:
 alt powerbar
 focus frame
-faux frames for player/target auras, player pet
+faux frames for player pet
 powerbar fadeout
 incoming ressurection
 incoming summon

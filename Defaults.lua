@@ -15,10 +15,10 @@ srslylawlUI.defaultSettings = {
         pet = {
             width = 15
         },
-        buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 16, scaledSize = 32, growthDir = "LEFT",
-                showCastByPlayer = true, maxBuffs = 5, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = false, showLongDuration = false},
-        debuffs = { anchor = "BOTTOMLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 16, scaledSize = 32, growthDir = "LEFT", showCastByPlayer = true,
-                maxDebuffs = 5, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false},
+        buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 7, yOffset = 50, size = 27, scaledSize = 27,
+            showCastByPlayer = true, maxBuffs = 5, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = false, showLongDuration = false },
+        debuffs = { anchor = "LEFTTOP", anchoredTo = "Frame", xOffset = -20, yOffset = 0, size = 27, scaledSize = 27, 
+            showCastByPlayer = true, maxDebuffs = 10, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false },
         maxAbsorbFrames = 20,
         ccbar = {
             enabled = true,
@@ -49,7 +49,18 @@ srslylawlUI.defaultSettings = {
             },
             power = {
                 fontSize = 15,
-                overrides = {}
+                overrides = {
+					["70"] = {
+						HolyPower = {
+							height = 30,
+							priority = 3,
+						},
+						Mana = {
+							height = 25,
+							priority = 4,
+						},
+					},
+                }
             },
             cast = {
                 disabled = false,
