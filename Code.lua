@@ -106,7 +106,6 @@ local debugString = ""
 
 --[[ TODO:
 base aura anchor needs to account for scaled size
-aura button stack count fontsize
 alt powerbar
 focus frame
 faux frames for player/target auras, player pet
@@ -687,9 +686,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     end
     -- process buffs on unit
     local auraPointsChanged = false
-    local buffBaseColor = {0.960, 0.952, 0.760}
-    local buffIsStealableColor = {0.760, 1, 0.984}
-    local buffIsEnemyColor = {0.603, 0.137, 0.1521}
+    local buffBaseColor = srslylawlUI.GetSetting("colors.buffBaseColor")
+    local buffIsStealableColor = srslylawlUI.GetSetting("colors.buffIsStealableColor")
+    local buffIsEnemyColor = srslylawlUI.GetSetting("colors.buffIsEnemyColor")
     local currentBuffFrame = 1
     local maxBuffs = srslylawlUI.GetSettingByUnit("buffs.maxBuffs", unitsType, unit)
     local buffSize = srslylawlUI.GetSettingByUnit("buffs.size", unitsType, unit)
@@ -1742,7 +1741,7 @@ function srslylawlUI.GetSettingByUnit(path, unitsType, unit, canBeNil)
     local s
     if unitsType == "partyUnits" or unitsType == "fauxUnits" then
         s = "party."..path
-    elseif unit and unitsType == "mainUnits" then
+    elseif unit and unitsType == "mainUnits" or unitsType == "mainFauxUnits" then
         s = "player."..unit.."Frame."..path
     else
         error("couldnt get setting by unit")

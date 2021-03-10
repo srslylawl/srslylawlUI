@@ -18,8 +18,8 @@ function srslylawlUI.CreateConfigWindow()
 
         srslylawlUI_ConfigFrame.fakeFramesToggled = bool
         srslylawlUI_PartyHeader:SetMovable(bool)
-        srslylawlUI.mainUnits.player.unitFrame:SetMovable(bool)
-        srslylawlUI.mainUnits.target.unitFrame:SetMovable(bool)
+        srslylawlUI.mainUnits.player.unitFrame.unit:SetMovable(bool)
+        srslylawlUI.mainUnits.target.unitFrame.unit:SetMovable(bool)
         srslylawlUI.mainUnits.targettarget.unitFrame:SetMovable(bool)
         srslylawlUI.mainUnits.player.unitFrame:SetDemoMode(bool)
         srslylawlUI.mainUnits.target.unitFrame:SetDemoMode(bool)
@@ -227,6 +227,14 @@ function srslylawlUI.CreateConfigWindow()
             self:SetValue(setting)
             self.editbox:SetText(setting)
         end
+        function slider:SetValueClean(val)
+            local isDirty = srslylawlUI.unsaved.flag
+            slider:SetValue(val)
+
+            if not isDirty then
+                srslylawlUI.RemoveDirtyFlag()
+            end
+        end
         slider.editbox = editBox
         table.insert(srslylawlUI.ConfigElements.Sliders, slider)
         srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+45, 110)
@@ -346,6 +354,10 @@ function srslylawlUI.CreateConfigWindow()
             end
         end
 
+        function dropDown:SetValueClean(newValue)
+            UIDropDownMenu_SetText(dropDown, newValue)
+        end
+
         UIDropDownMenu_Initialize(dropDown, function(self)
             local info = UIDropDownMenu_CreateInfo()
             info.func = self.SetValue
@@ -410,6 +422,10 @@ function srslylawlUI.CreateConfigWindow()
             if onChangeFunc then
                 onChangeFunc()
             end
+        end
+
+        function dropDown:SetValueClean(newValue)
+            UIDropDownMenu_SetText(dropDown, newValue)
         end
 
         table.insert(srslylawlUI.ConfigElements.Dropdowns, dropDown)
@@ -743,6 +759,14 @@ function srslylawlUI.CreateConfigWindow()
         elements[4] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".4", 1, 0, Reanchor)
         elements[5] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path..".5", 1, 0, Reanchor)
 
+        function frame:ResetAnchoringPanel(...)
+            local e1, e2, e3, e4, e5 = ...
+            elements[1]:SetValueClean(e1)
+            elements[2]:SetValueClean(e2)
+            elements[3]:SetValueClean(e3)
+            elements[4]:SetValueClean(e4)
+            elements[5]:SetValueClean(e5)
+        end
         return elements
     end
     local function FillGeneralTab(tab)
@@ -955,7 +979,7 @@ function srslylawlUI.CreateConfigWindow()
 
             local playerPosControl = CreateConfigControl(tab, unitName.." Frame Position")
             playerPosControl:SetPoint("TOPLEFT", playerFrameControl.bounds, "BOTTOMLEFT", 0, 0)
-            local anchorElements = CreateAnchoringPanel(tab, path.."position", unitFrame)
+            local anchorElements = CreateAnchoringPanel(tab, path.."position", unitFrame.unit)
             playerPosControl:Add(unpack(anchorElements))
 
             if unit ~= "targettarget" then
@@ -1737,8 +1761,7 @@ function srslylawlUI.CreateConfigWindow()
     ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -22, -20)
     ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 20)
     ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", ScrollFrame)
-    -- ScrollFrame.child:SetAllPoints(true)
-    ScrollFrame.child:SetSize(playerFrames:GetWidth()-30, 10000)
+    ScrollFrame.child:SetSize(playerFrames:GetWidth()-30, 1600)
     ScrollFrame:SetScrollChild(ScrollFrame.child)
     FillPlayerFramesTab(ScrollFrame.child)
 
@@ -1768,7 +1791,7 @@ function srslylawlUI.CreateConfigWindow()
     ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 20)
     ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", ScrollFrame)
     ScrollFrame.child:SetAllPoints(true)
-    ScrollFrame.child:SetSize(partyFramesTab:GetWidth()-30, 10000)
+    ScrollFrame.child:SetSize(partyFramesTab:GetWidth()-30, 700)
     ScrollFrame:SetScrollChild(ScrollFrame.child)
     FillPartyFramesTab(ScrollFrame.child)
 

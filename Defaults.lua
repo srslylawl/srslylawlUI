@@ -102,5 +102,10 @@ srslylawlUI.defaultSettings = {
         party = {enabled = false},
         auras = { enabled = false},
         castbar = {enabled = false}
+    },
+    colors = {
+        buffBaseColor = {0.960, 0.952, 0.760},
+        buffIsStealableColor = {0.760, 1, 0.984},
+        buffIsEnemyColor = {0.603, 0.137, 0.1521}
     }
 }

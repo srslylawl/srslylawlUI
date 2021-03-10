@@ -232,7 +232,70 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame:Show()
             lastFrame = frame
         end
+
+        --create fake aura frames for player and target frames
+
+        srslylawlUI.mainFauxUnits = {}
+        for _, unit in pairs({"player", "target"}) do
+            local fauxFrame = CreateFrame("Frame", "srslylawlUI_FAUX_"..unit, nil)
+            fauxFrame.unit = fauxFrame
+            fauxFrame:SetAttribute("unit", unit)
+            fauxFrame:SetAttribute("unitsType", "mainFauxUnits")
+            
+            srslylawlUI.mainFauxUnits[unit] = {
+                absorbAuras = {},
+                absorbFrames = {},
+                absorbFramesOverlap = {},
+                buffFrames = {},
+                debuffFrames = {},
+                defensiveAuras = {},
+                effectiveHealthFrames = {},
+                effectiveHealthSegments = {},
+                trackedAurasByIndex = {},
+                unitFrame = fauxFrame
+            }
+            srslylawlUI.CreateBuffFrames(fauxFrame, unit)
+
+            local timer = 0
+            fauxFrame:SetScript("OnUpdate", function(self, elapsed)
+                timer = timer + elapsed
+                if timer < .1 then return end
+                timer = 0
+
+            
+                local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
+                srslylawlUI.Utils_SetPointPixelPerfect(fauxFrame, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
+                srslylawlUI.Utils_SetSizePixelPerfect(fauxFrame, srslylawlUI.GetSetting("player."..unit.."Frame.hp.width"), srslylawlUI.GetSetting("player."..unit.."Frame.hp.height"))
+
+                local buffFrames = srslylawlUI.mainFauxUnits[unit].buffFrames
+                local maxBuffs = srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
+                print(maxBuffs)
+                local defaultSize, scaledSize = srslylawlUI.GetSetting("player."..unit.."Frame.buffs.size"), srslylawlUI.GetSetting("player."..unit.."Frame.buffs.scaledSize")
+                for i=1, maxBuffs do
+                    local f = buffFrames[i]
+                    f.icon:SetTexture(135932)
+                    f.size = math.fmod(i, 5) == 0 and scaledSize or defaultSize
+                    f:Show()
+                end
+
+                for i=maxBuffs+1, #buffFrames do
+                    buffFrames[i]:Hide()
+                end
+
+
+                srslylawlUI.SetAuraPoints(unit, "mainFauxUnits", "buffs")
+            end)
+        end
+
+
+        
+
+
+
         srslylawlUI_FAUX_PartyHeader.initiated = true
     end
+
+    srslylawlUI_FAUX_player:SetShown(visible)
+    srslylawlUI_FAUX_target:SetShown(visible)
 
 end
