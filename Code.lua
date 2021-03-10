@@ -91,7 +91,6 @@ local unitHealthBars = srslylawlUI.unitHealthBars
 srslylawlUI.sortTimerActive = false
 
 local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrabber", UIParent, "GameTooltipTemplate")
-local partyUnitsTable = srslylawlUI.partyUnitsTable
 local debugString = ""
 
 
@@ -106,20 +105,20 @@ local debugString = ""
 ]]
 
 --[[ TODO:
+base aura anchor needs to account for scaled size
+aura button stack count fontsize
 alt powerbar
-UnitHasIncomingResurrection(unit)
+focus frame
+faux frames for player/target auras, player pet
 powerbar fadeout
+incoming ressurection
 incoming summon
 more sort methods?
-focus frame
-config window:
 faux frames absorb auras
-faux frames for target/player/targettarget/pet/auras
-revisit some of the sorting/resize logic, probably firing way more often than necessary
-enable/disable sorting? maybe enable manual sorting by hand?
-totem bar?
+revisit some of the sorting/resize logic, probably firing more often than necessary
+enable/disable features such as sorting/resizing
+totem bar
 ]]
-
 
 --Utils
 function srslylawlUI.Log(text, ...)
@@ -833,13 +832,13 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     end
 
     --see if we want to display our cced frame
-    local displayCC = #appliedCC > 0 and srslylawlUI.GetSetting("party.ccbar.enabled")
+    local displayCC = #appliedCC > 0
     if unitsType == "partyUnits" then
         displayCC = displayCC and srslylawlUI.GetSetting("party.ccbar.enabled")
     elseif unit == "target" then
         displayCC = displayCC and not srslylawlUI.GetSetting("player.targetFrame.ccbar.disabled")
     end
-    if displayCC then
+    if displayCC and unitbutton.CCDurBar then
         --Decide which cc to display
         table.sort(appliedCC, function(a, b) return b.remaining < a.remaining end)
         local CCToDisplay = appliedCC[1]
@@ -908,7 +907,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     srslylawlUI.HandleAbsorbFrames(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
 end
 function srslylawlUI.Party_HandleAuras_ALL()
-    for k, v in pairs(partyUnitsTable) do
+    for k, v in pairs(srslylawlUI.partyUnitsTable) do
         local f = srslylawlUI.Frame_GetFrameByUnit(v, "partyUnits")
 
         if f.unit then

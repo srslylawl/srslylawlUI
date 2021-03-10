@@ -43,6 +43,8 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "TOPLEFT", f, "TOPLEFT", -1, 1)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.cooldown:SetSwipeTexture(swipeTexture)
+            f.count:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(size/2), "OUTLINE")
+            f.count:SetPoint("BOTTOMRIGHT")
             srslylawlUI[unitsType][unit].buffFrames[i] = f
             f:Hide()
         end
@@ -95,6 +97,8 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "TOPLEFT", f, "TOPLEFT", -1, 1)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.cooldown:SetSwipeTexture(swipeTexture)
+            f.count:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(size/2), "OUTLINE")
+            f.count:SetPoint("BOTTOMRIGHT")
 
             srslylawlUI[unitsType][unit].debuffFrames[i] = f
             f:Hide()
@@ -290,7 +294,7 @@ function srslylawlUI.FrameSetup()
             -- unitFrame.unit.CombatIcon.texture:SetTexCoord(0, .5, 0, .5)
             -- unitFrame.CombatIcon.texture:SetTexCoord(0.5, 1, 0, .5)
             srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CombatIcon, 16, 16)
-            srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CombatIcon, "BOTTOMLEFT", unitFrame.unit, "BOTTOMLEFT", -2, -1)
+            srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CombatIcon, "BOTTOMLEFT", unitFrame.unit, "BOTTOMLEFT", -1, -1)
             unitFrame.unit.CombatIcon:SetFrameLevel(4)
             unitFrame.unit.CombatIcon.texture:Hide()
         end
@@ -434,11 +438,11 @@ function srslylawlUI.SetupUnitFrame(buttonFrame, unit)
     buttonFrame.unit:SetAttribute("unit", buttonFrame:GetAttribute("unit"))
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
     buttonFrame.unit.powerBar:ClearAllPoints()
-    if unit == "target" then
-        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit.healthBar, "BOTTOMLEFT", 2, 2)
-    else
+    -- if unit == "target" then
+    --     srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit.healthBar, "BOTTOMLEFT", 12, 2)
+    -- else
         srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit.healthBar, "BOTTOMLEFT", 12, 2)
-    end
+    -- end
     srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.rightText, "BOTTOMRIGHT", buttonFrame.unit.healthBar, "BOTTOMRIGHT", -2, 2)
 end
 function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
@@ -574,7 +578,8 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
     portrait:SetUnit("target")
     portrait:SetPortraitZoom(1)
     frame.unitLevel = srslylawlUI.CreateCustomFontString(portrait, "Level", 12)
-    srslylawlUI.Utils_SetPointPixelPerfect(frame.unitLevel, "BOTTOMRIGHT", portrait, "BOTTOMRIGHT", 0, 0)
+    frame.unitLevel:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(12), "OUTLINE")
+    srslylawlUI.Utils_SetPointPixelPerfect(frame.unitLevel, "CENTER", portrait, "BOTTOMRIGHT", 2, 5)
     frame.unitLevel:SetText("??")
 
     frame.factionIcon = portrait:CreateTexture("$parent_FactionIcon", "OVERLAY")
