@@ -31,7 +31,8 @@ srslylawlUI.defaultSettings = {
             showSolo = true,
             showRaid = false,
             showPlayer = true,
-        }
+        },
+        sorting = enabled
     },
     player = {
         playerFrame = {
@@ -48,13 +49,13 @@ srslylawlUI.defaultSettings = {
                 width = 20
             },
             power = {
-                fontSize = 15,
+                fontSize = 10,
                 overrides = {
                 }
             },
             cast = {
                 disabled = false,
-                fontSize = 15,
+                fontSize = 10,
                 height = 40,
                 priority = 0
             },
@@ -76,7 +77,7 @@ srslylawlUI.defaultSettings = {
             },
             cast = {
                 disabled = false,
-                fontSize = 15,
+                fontSize = 10,
                 height = 40,
                 priority = 0
             },

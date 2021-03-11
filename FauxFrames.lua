@@ -238,6 +238,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
         srslylawlUI.mainFauxUnits = {}
         for _, unit in pairs({"player", "target"}) do
             local fauxFrame = CreateFrame("Frame", "srslylawlUI_FAUX_"..unit, nil)
+            fauxFrame:SetPoint("TOPLEFT", srslylawlUI.mainUnits[unit].unitFrame.unit, "TOPLEFT", 0, 0)
             fauxFrame.unit = fauxFrame
             fauxFrame:SetAttribute("unit", unit)
             fauxFrame:SetAttribute("unitsType", "mainFauxUnits")
@@ -265,7 +266,6 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
             
                 local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
-                srslylawlUI.Utils_SetPointPixelPerfect(fauxFrame, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
                 srslylawlUI.Utils_SetSizePixelPerfect(fauxFrame, srslylawlUI.GetSetting("player."..unit.."Frame.hp.width"), srslylawlUI.GetSetting("player."..unit.."Frame.hp.height"))
 
                 local buffFrames = srslylawlUI.mainFauxUnits[unit].buffFrames

@@ -904,6 +904,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
                 local newSize = srslylawlUI.Utils_ScuffedRound(fSize*fontSizeScale)
                 newSize = newSize > 25 and 25 or newSize
                 self.StatusBar.Timer:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(newSize))
+                self.StatusBar.SpellName:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(newSize))
             end
         end
     end
