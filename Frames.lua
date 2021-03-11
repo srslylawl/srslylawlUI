@@ -194,12 +194,12 @@ local function CreateCustomFrames(buttonFrame, unit)
         f.texture:SetAllPoints()
         f.texture:SetTexture(srslylawlUI.textures.HealthBar, true, "MIRROR")
         -- srslylawlUI.CreateBackground(f)
-        f.texture.bg = f:CreateTexture(nil, "BACKGROUND")
+        f.texture.bg = f:CreateTexture(nil, "ARTWORK")
         f.texture.bg:SetTexture(srslylawlUI.textures.EffectiveHealth, true, "MIRROR")
         f.texture.bg:SetVertTile(true)
         f.texture.bg:SetHorizTile(true)
         f.texture.bg:SetAllPoints()
-        f.texture.bg:SetVertexColor(1, 1, 1, 1)
+        f.texture.bg:SetVertexColor(1, 1, 1, .5)
         f.texture.bg:SetBlendMode("MOD")
         
         
@@ -1576,7 +1576,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     button.healthBar:SetValue(health)
     button.healthBar:SetStatusBarColor(unpack(SBColor))
     if button:GetAttribute("unitsType") ~= "fauxUnits" and unit ~= "targettarget" then
-        button.healthBar.effectiveHealthFrame.texture:SetVertexColor(unpack(SBColor))
+        button.healthBar.effectiveHealthFrame.texture:SetVertexColor(SBColor[1], SBColor[2], SBColor[3], .5)
     end
 end
 function srslylawlUI.Frame_ResetPowerBar(button, unit)
