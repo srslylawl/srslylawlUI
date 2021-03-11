@@ -104,13 +104,14 @@ srslylawlUI.sortTimerActive = false
 local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrabber", UIParent, "GameTooltipTemplate")
 local debugString = ""
 
+
+
 --[[ TODO:
-fauxparty not showing on solo
 target powerbar anchor/size
 aurapanel editbox size
-aff shows timer sometimes
-fauxaura not moving with frames
+non destro shards show timer sometimes
 alt powerbar
+fauxparty not showing on solo
 totem bar GetTotemInfo(1)
 focus frame
 faux frames for player pet
@@ -229,64 +230,62 @@ function srslylawlUI.Utils_CCTableTranslation(string)
     else return "none"
     end
 end
+function srslylawlUI.Utils_GetPixelScale()
+    if not srslylawlUI.pixelScaleX then
+        local physicalWidth, physicalHeight
+        local isMaximized = GetCVar("gxMaximize") == 1 and true or false
+        if isMaximized then
+            physicalWidth, physicalHeight = GetPhysicalScreenSize()
+        else
+            local res = string.gmatch((GetScreenResolutions()), "%d+")
+            physicalWidth, physicalHeight = res(), res()
+        end
+        local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
+        local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
+        srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+    end
+    if srslylawlUI.pixelScaleX ~= 0.533203125 then
+    print(srslylawlUI.pixelScaleX)
+    end
+    return srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY
+end
 function srslylawlUI.Utils_SetWidthPixelPerfect(frame, width)
-    local physicalWidth, _ = GetPhysicalScreenSize()
-    local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
-    local scaleX = ingameWidth/physicalWidth
+    local scaleX = srslylawlUI.Utils_GetPixelScale()
     width = srslylawlUI.Utils_ScuffedRound(width)
     frame:SetWidth(width*scaleX)
 end
 function srslylawlUI.Utils_SetHeightPixelPerfect(frame, height)
-    local _, physicalHeight = GetPhysicalScreenSize()
-    local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
-    local scaleY = ingameHeight/physicalHeight
+    local _, scaleY = srslylawlUI.Utils_GetPixelScale()
     height = srslylawlUI.Utils_ScuffedRound(height)
     frame:SetHeight(height*scaleY)
 end
 function srslylawlUI.Utils_SetSizePixelPerfect(frame, width, height)
     width = srslylawlUI.Utils_ScuffedRound(width)
     height = srslylawlUI.Utils_ScuffedRound(height)
-    local physicalWidth, physicalHeight = GetPhysicalScreenSize()
-    local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
-    local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
-    local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+    local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
     frame:SetSize(width*scaleX, height*scaleY)
 end
 function srslylawlUI.Utils_SetPointPixelPerfect(frame, point, parent, relativeTo, offsetX, offsetY)
-    local physicalWidth, physicalHeight = GetPhysicalScreenSize()
-    local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
-    local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
-    local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+    local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
     frame:SetPoint(point, parent, relativeTo, offsetX*scaleX, offsetY*scaleY)
 end
 function srslylawlUI.Utils_PixelFromCodeToScreen(width, height)
     if width and height then
-        local physicalWidth, physicalHeight = GetPhysicalScreenSize()
-        local ingameHeight = GetScreenHeight() * UIParent:GetScale()
-        local ingameWidth = GetScreenWidth() * UIParent:GetScale()
-        local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+        local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
 
         return width*scaleX, height*scaleY
     elseif not height then
-        local physicalWidth  = GetPhysicalScreenSize()
-        local ingameWidth = GetScreenWidth() * UIParent:GetScale()
-        local scaleX = ingameWidth/physicalWidth
+        local scaleX = srslylawlUI.Utils_GetPixelScale()
 
         return width*scaleX
     end
 end
 function srslylawlUI.Utils_PixelFromScreenToCode(width, height)
     if width and height then
-        local physicalWidth, physicalHeight = GetPhysicalScreenSize()
-        local ingameHeight = GetScreenHeight() * UIParent:GetScale()
-        local ingameWidth = GetScreenWidth() * UIParent:GetScale()
-        local scaleX, scaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
-
+        local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
         return srslylawlUI.Utils_PixelRound(width/scaleX, 1*scaleX), srslylawlUI.Utils_PixelRound(height/scaleX, 1*scaleY)
     elseif not height then
-        local physicalWidth = GetPhysicalScreenSize()
-        local ingameWidth = GetScreenWidth() * UIParent:GetScale()
-        local scaleX = ingameWidth/physicalWidth
+        local scaleX = srslylawlUI.Utils_GetPixelScale()
 
         return srslylawlUI.Utils_PixelRound(width/scaleX, 1*scaleX)
     end
@@ -708,7 +707,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             UnitAura(unit, i, "HELPFUL")
             if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(i, unit)
-            if (unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayBuff(UnitAura(unit, i, "HELPFUL"))) and currentBuffFrame <= maxBuffs then
+            if srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= maxBuffs then
                 CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
                 if isStealable then
 	                f.border:SetVertexColor(unpack(buffIsStealableColor))
@@ -787,7 +786,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 }
                 table.insert(appliedCC, cc)
             end
-            if (unitsType == "mainUnits" or srslylawlUI.Auras_ShouldDisplayDebuff(UnitAura(unit, i, "HARMFUL"))) and currentDebuffFrame <= maxDebuffs then
+            if srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= maxDebuffs then
                 f.icon:SetTexture(icon)
                 if ( count > 1 ) then
 		            local countText = count;
@@ -964,13 +963,13 @@ function srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], "TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], "TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset-srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset, 0)
 end
-function srslylawlUI.Auras_ShouldDisplayBuff(...)
+function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
     local name, icon, count, debuffType, duration, expirationTime, source,
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
     local function NotDefault(bool)
-        return bool ~= srslylawlUI.GetSetting("party.buffs.showDefault")
+        return bool ~= srslylawlUI.GetSettingByUnit("buffs.showDefault", unitsType, unit)
     end
     if srslylawlUI_Saved.buffs.whiteList[spellId] then
         --always show whitelisted spells
@@ -989,32 +988,33 @@ function srslylawlUI.Auras_ShouldDisplayBuff(...)
 
     if srslylawlUI_Saved.buffs.defensives[spellId] then
         --its a defensive spell
-        return srslylawlUI.GetSetting("party.buffs.showDefensives")
+        return srslylawlUI.GetSettingByUnit("buffs.showDefensives", unitsType, unit)
     end
 
     if duration == 0 then
-        return srslylawlUI.GetSetting("party.buffs.showInfiniteDuration")
+        return srslylawlUI.GetSettingByUnit("buffs.showInfiniteDuration", unitsType, unit)
     end
-    if duration > srslylawlUI.GetSetting("party.buffs.maxDuration") then
-        return srslylawlUI.GetSetting("party.buffs.showLongDuration")
+    if duration > srslylawlUI.GetSettingByUnit("buffs.maxDuration", unitsType, unit) then
+        return srslylawlUI.GetSettingByUnit("buffs.showLongDuration", unitsType, unit)
     end
 
     if source == "player" and castByPlayer then
-        if NotDefault(srslylawlUI.GetSetting("party.buffs.showCastByPlayer")) then
-            return srslylawlUI.GetSetting("party.buffs.showCastByPlayer")
+        local b = srslylawlUI.GetSettingByUnit("buffs.showCastByPlayer", unitsType, unit)
+        if NotDefault(b) then
+            return b
         end
     end
 
 
-    return srslylawlUI.GetSetting("party.buffs.showDefault")
+    return srslylawlUI.GetSettingByUnit("buffs.showDefault", unitsType, unit)
 end
-function srslylawlUI.Auras_ShouldDisplayDebuff(...)
+function srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, ...)
     local name, icon, count, debuffType, duration, expirationTime, source,
         isStealable, nameplateShowPersonal, spellId, canApplyAura,
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
     local function NotDefault(bool)
-        return bool ~= srslylawlUI.GetSetting("party.debuffs.showDefault")
+        return bool ~= srslylawlUI.GetSettingByUnit("debuffs.showDefault", unitsType, unit)
     end
     if srslylawlUI_Saved.debuffs.whiteList[spellId] then
         --always show whitelisted spells
@@ -1027,25 +1027,28 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(...)
     end
 
     if source == "player" and castByPlayer then
-        if NotDefault(srslylawlUI.GetSetting("party.debuffs.showCastByPlayer")) then
-            return srslylawlUI.GetSetting("party.debuffs.showCastByPlayer")
+        local b = srslylawlUI.GetSettingByUnit("debuffs.showCastByPlayer", unitsType, unit)
+        if NotDefault(b) then
+            return b
         end
     end
 
     if duration == 0 then
-        if NotDefault(srslylawlUI.GetSetting("party.debuffs.showInfiniteDuration")) then
-            return srslylawlUI.GetSetting("party.debuffs.showInfiniteDuration")
+        local b = srslylawlUI.GetSettingByUnit("debuffs.showInfiniteDuration", unitsType, unit)
+        if NotDefault(b) then
+            return b
         end
     end
 
-    if duration > srslylawlUI.GetSetting("party.debuffs.maxDuration") then
-        if NotDefault(srslylawlUI.GetSetting("party.debuffs.showLongDuration")) then
-            return srslylawlUI.GetSetting("party.debuffs.showLongDuration")
+    if duration > srslylawlUI.GetSettingByUnit("debuffs.maxDuration", unitsType, unit) then
+        local b = srslylawlUI.GetSettingByUnit("debuffs.showLongDuration", unitsType, unit)
+        if NotDefault(b) then
+            return b
         end
     end
 
 
-    return srslylawlUI.GetSetting("party.debuffs.showDefault")
+    return srslylawlUI.GetSettingByUnit("debuffs.showDefault", unitsType, unit)
 end
 function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
     local function GetPercentValue(tooltipText)
@@ -1218,7 +1221,11 @@ function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
     local name, rank, icon, castTime, minRange, maxRange, spellId = GetSpellInfo(IDorName)
 
     if name == nil then
-        srslylawlUI.Log("Spell " .. IDorName .. " not found. Make sure you typed the name/spell ID correctly.")
+        if IDorName == "" or IDorName == nil then
+            srslylawlUI.Log("No spell ID entered, type one into the textbox.")
+        else
+            srslylawlUI.Log("Spell " .. IDorName .. " not found. Make sure you typed the name/spell ID correctly.")
+        end
         return
     end
 

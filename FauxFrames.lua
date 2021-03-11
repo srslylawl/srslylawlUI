@@ -1,6 +1,9 @@
 function srslylawlUI.ToggleFauxFrames(visible)
     srslylawlUI_FAUX_PartyHeader:SetShown(visible)
-    srslylawlUI_PartyHeader_player:SetShown(not visible)
+    if srslylawlUI_PartyHeader.fauxState == nil then
+        srslylawlUI_PartyHeader.fauxState = srslylawlUI_PartyHeader:IsShown()
+    end
+    srslylawlUI_PartyHeader:SetShown(visible and srslylawlUI_PartyHeader.fauxState or not visible)
 
     if not srslylawlUI_FAUX_PartyHeader.initiated then
         local lastFrame

@@ -263,6 +263,7 @@ function srslylawlUI.FrameSetup()
         function CCDurationBar:SetPoints(w, h)
             if h then
                 srslylawlUI.Utils_SetSizePixelPerfect(self, w, h)
+                h = math.min(w/2, h)
                 srslylawlUI.Utils_SetSizePixelPerfect(self.icon, h, h)
             else
                 srslylawlUI.Utils_SetSizePixelPerfect(self.icon, w, w)
@@ -492,6 +493,7 @@ function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
         end
         RegisterUnitWatch(buttonFrame)
         RegisterUnitWatch(buttonFrame.pet)
+        buttonFrame.unit.registered = true
     end
 
     buttonFrame.unit.CombatIcon:SetScript("OnUpdate", srslylawlUI.Frame_UpdateCombatIcon)
@@ -507,6 +509,7 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
 
     srslylawlUI.RegisterEvents(buttonFrame)
     RegisterUnitWatch(buttonFrame)
+    buttonFrame.unit.registered = true
     buttonFrame:SetMovable(true)
     buttonFrame.unit:RegisterForDrag("LeftButton")
     buttonFrame.unit:EnableMouse(true)
@@ -2063,18 +2066,33 @@ function srslylawlUI.SortAfterLogin()
 end
 function srslylawlUI.SortPartyFrames()
     if not srslylawlUI.GetSetting("party.sorting.enabled") then
-        if not srslylawlUI.partyFramesDefaultSortActive then
-            local parent
-            for _, unit in pairs(srslylawlUI.partyUnits) do
-                local buttonFrame = unit.unitFrame.unit
-                if (buttonFrame) then
+        local showPlayer = srslylawlUI.GetSetting("party.visibility.showPlayer")
+        if not srslylawlUI.partyFramesDefaultSortActive or (showPlayer ~= srslylawlUI.partyUnits["player"].unitFrame.unit.registered) then
+            local parent = srslylawlUI_PartyHeader
+            for i, unit in ipairs(srslylawlUI.partyUnitsTable) do
+                local buttonFrame = srslylawlUI.partyUnits[unit].unitFrame.unit
+                if buttonFrame and not (unit == "player" and not showPlayer) then
                     buttonFrame:ClearAllPoints()
-                    if buttonFrame:GetAttribute("unit") == "player" then
-                        buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
+                    if parent == srslylawlUI_PartyHeader then
+                        buttonFrame:SetPoint("TOPLEFT", parent, "TOPLEFT")
                     else
                         srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
                     end
                     parent = buttonFrame
+                end
+                if unit == "player" then
+                    if not showPlayer then
+                        if buttonFrame.registered then
+                            UnregisterUnitWatch(buttonFrame)
+                            buttonFrame.registered = false
+                            buttonFrame:Hide()
+                        end
+                    else
+                        if not buttonFrame.registered then
+                            RegisterUnitWatch(buttonFrame)
+                            buttonFrame.registered = true
+                        end
+                    end
                 end
             end
             srslylawlUI.partyFramesDefaultSortActive = true
@@ -2102,18 +2120,35 @@ function srslylawlUI.SortPartyFrames()
         return
     end
 
+    local parent = srslylawlUI_PartyHeader
     for i = 1, #list do
         local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(list[i].unit, "partyUnits").unit
+        local showPlayer = srslylawlUI.GetSetting("party.visibility.showPlayer")
 
-        if (buttonFrame) then
+        if buttonFrame and not (list[i].unit == "player" and not showPlayer) then
             buttonFrame:ClearAllPoints()
-            if i == 1 then
-                buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
+            if parent == srslylawlUI_PartyHeader then
+                buttonFrame:SetPoint("TOPLEFT", parent, "TOPLEFT")
             else
-                local parent = srslylawlUI.Frame_GetFrameByUnit(list[i - 1].unit, "partyUnits").unit
                 srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
             end
+            parent = buttonFrame
             srslylawlUI.Frame_ResetUnitButton(buttonFrame, list[i].unit)
+        end
+
+        if list[i].unit == "player" then
+            if not showPlayer then
+                if buttonFrame.registered then
+                    UnregisterUnitWatch(buttonFrame)
+                    buttonFrame.registered = false
+                    buttonFrame:Hide()
+                end
+            else
+                if not buttonFrame.registered then
+                    RegisterUnitWatch(buttonFrame)
+                    buttonFrame.registered = true
+                end
+            end
         end
     end
 
