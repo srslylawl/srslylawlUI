@@ -27,54 +27,6 @@ function srslylawlUI.CreateConfigWindow()
 
         srslylawlUI.ToggleFauxFrames(bool)
     end
-    local function CreateEditBox(parent, valuePath, isNumeric, onChangeFunc)
-        local bounds = CreateFrame("Frame", nil, parent)
-        srslylawlUI.Utils_SetSizePixelPerfect(bounds, 100, 50)
-        local editBox = CreateFrame("EditBox", nil, bounds, "BackdropTemplate")
-        editBox.bounds = bounds
-        editBox:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 12,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
-        })
-        editBox:SetPoint("CENTER")
-        editBox:SetBackdropColor(0.05, 0.05, .05, .5)
-        editBox:SetTextInsets(5, 5, 0, 0)
-        srslylawlUI.Utils_SetSizePixelPerfect(editBox, 75, 35)
-        editBox:SetAutoFocus(false)
-        editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
-        editBox:SetNumeric(isNumeric or false)
-        if isNumeric then
-            editBox:SetNumber(srslylawlUI.GetSetting(valuePath))
-            editBox:SetScript("OnTextChanged", function(self)
-                srslylawlUI.ChangeSetting(valuePath, self:GetNumber())
-                if onChangeFunc then
-                    onChangeFunc()
-                end
-             end)
-        else
-            editBox:SetText(srslylawlUI.GetSetting(valuePath))
-            editBox:SetScript("OnTextChanged", function(self)
-                srslylawlUI.ChangeSetting(valuePath, self:GetText())
-                if onChangeFunc then
-                    onChangeFunc()
-                end
-             end)
-        end
-        editBox:SetAttribute("defaultValue", valuePath)
-        table.insert(srslylawlUI.ConfigElements.EditBoxes, editBox)
-
-        function editBox:SetTitle(title)
-            if not self.title then
-                self.title = self:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
-                self.title:SetPoint("TOP", 0, 12)
-                srslylawlUI.Utils_SetHeightPixelPerfect(self.bounds, 62)
-            end
-            self.title:SetText(title)
-        end
-        return editBox
-    end
     local function CreateInfoBox(parent, content, width)
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent, "BackdropTemplate")
         local infoBox = bounds:CreateFontString("$parent_InfoBox", "ARTWORK")
@@ -140,17 +92,16 @@ function srslylawlUI.CreateConfigWindow()
         local slider = CreateFrame("Slider", name, bounds, "OptionsSliderTemplate")
         slider.bounds = bounds
 
-        local px = srslylawlUI.Utils_PixelFromCodeToScreen(1)
 
         slider:SetPoint("LEFT", bounds, "LEFT", 5, 0)
-        local width, height = 250, 34
         name = slider:GetName()
         slider.Low:SetText(min)
         slider.High:SetText(max)
         slider.Text:SetText(title)
         slider.Text:SetTextColor(0.380, 0.705, 1, 1)
         slider.Text:SetPoint("TOP", 0, 15)
-        srslylawlUI.Utils_SetSizePixelPerfect(slider, width, height)
+        local width, height = slider:GetWidth() + 20, slider:GetHeight()+slider.Text:GetStringHeight() +15+10
+
         slider:SetMinMaxValues(min, max)
         local var = srslylawlUI.GetSetting(valuePath, canBeNil)
         var = var or 0
@@ -161,12 +112,12 @@ function srslylawlUI.CreateConfigWindow()
         editBox:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-            edgeSize = 25*px,
-            insets = {left = 4*px, right = 4*px, top = 4*px, bottom = 4*px}
+            edgeSize = 12,
+            insets = {left = 4, right = 4, top = 4, bottom = 4}
         })
         editBox:SetBackdropColor(0, 0.254, 0.478, 1)
         editBox:SetTextInsets(5, 5, 0, 0)
-        srslylawlUI.Utils_SetSizePixelPerfect(editBox, 100, 35)
+        editBox:SetSize(60, 20)
         editBox:SetPoint("TOP", slider, "BOTTOM", 0, 0)
         editBox:SetAutoFocus(false)
         editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
@@ -237,7 +188,8 @@ function srslylawlUI.CreateConfigWindow()
         end
         slider.editbox = editBox
         table.insert(srslylawlUI.ConfigElements.Sliders, slider)
-        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+45, 110)
+        bounds:SetSize(width, height)
+        -- srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+45, 110)
         return slider
     end
     local function CreatePowerBarSlider(title, parent, name, specID, value, default, onChangeFunc)
@@ -255,13 +207,12 @@ function srslylawlUI.CreateConfigWindow()
         local max = value == "priority" and 10 or 200
 
         slider:SetPoint("LEFT", bounds, "LEFT", 5, 0)
-        local width, height = 250, 34
         slider.Low:SetText(0)
         slider.High:SetText(max)
         slider.Text:SetText(title)
         slider.Text:SetTextColor(0.380, 0.705, 1, 1)
         slider.Text:SetPoint("TOP", 0, 15)
-        srslylawlUI.Utils_SetSizePixelPerfect(slider, width, height)
+        local width, height = slider:GetWidth() + 20, slider:GetHeight()+slider.Text:GetStringHeight()+15+10
         slider:SetMinMaxValues(0, max)
         local var = srslylawlUI.GetSetting(valuePath, canBeNil)
         var = var or default
@@ -269,15 +220,15 @@ function srslylawlUI.CreateConfigWindow()
         slider:SetValueStep(1)
         slider:SetObeyStepOnDrag(true)
         local editBox = CreateFrame("EditBox", name .. "_EditBox", slider, "BackdropTemplate")
+        editBox:SetSize(60, 20)
         editBox:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-            edgeSize = 25*px,
-            insets = {left = 4*px, right = 4*px, top = 4*px, bottom = 4*px}
+            edgeSize = 12,
+            insets = {left = 4, right = 4, top = 4, bottom = 4}
         })
         editBox:SetBackdropColor(0, 0.254, 0.478, 1)
         editBox:SetTextInsets(5, 5, 0, 0)
-        srslylawlUI.Utils_SetSizePixelPerfect(editBox, 100, 35)
         editBox:SetPoint("TOP", slider, "BOTTOM", 0, 0)
         editBox:SetAutoFocus(false)
         editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
@@ -313,7 +264,6 @@ function srslylawlUI.CreateConfigWindow()
                 onChangeFunc()
             end
         end
-
         function slider:SetValueClean(val)
             local isDirty = srslylawlUI.unsaved.flag
             slider:SetValue(val)
@@ -324,7 +274,7 @@ function srslylawlUI.CreateConfigWindow()
         end
         slider.editbox = editBox
         table.insert(srslylawlUI.ConfigElements.Sliders, slider)
-        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+45, 110)
+        bounds:SetSize(width, height)
         return slider
     end
     local function CreateCustomDropDown(title, width, parent, valuePath, values, onChangeFunc)
@@ -341,10 +291,12 @@ function srslylawlUI.CreateConfigWindow()
 
         srslylawlUI.Utils_SetPointPixelPerfect(dropDown, "BOTTOMLEFT", bounds, "BOTTOMLEFT", -20, 0)
 
-        UIDropDownMenu_SetWidth(dropDown, srslylawlUI.Utils_PixelFromCodeToScreen(width))
+        local width = math.max(dropDown.title:GetWidth(), 40)+10
+
+        UIDropDownMenu_SetWidth(dropDown, width)
         UIDropDownMenu_SetText(dropDown, srslylawlUI.GetSetting(valuePath, true))
 
-        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+60, 100)
+        bounds:SetSize(width+20, dropDown:GetHeight()+20)
 
         function dropDown:SetValue(newValue)
             UIDropDownMenu_SetText(dropDown, newValue)
@@ -386,7 +338,6 @@ function srslylawlUI.CreateConfigWindow()
         dropDown.title:SetTextColor(0.380, 0.705, 1, 1)
         dropDown.title:SetPoint("TOP", 0, 15)
 
-        local width = 150
         dropDown.bounds = bounds
 
         local validatedValues = {}
@@ -397,12 +348,14 @@ function srslylawlUI.CreateConfigWindow()
             end
         end
 
-        srslylawlUI.Utils_SetPointPixelPerfect(dropDown, "BOTTOMLEFT", bounds, "BOTTOMLEFT", -20, 0)
+        local width = math.max(dropDown.title:GetWidth(), 40)+10
 
-        UIDropDownMenu_SetWidth(dropDown, srslylawlUI.Utils_PixelFromCodeToScreen(width))
+        UIDropDownMenu_SetWidth(dropDown, width)
         UIDropDownMenu_SetText(dropDown, srslylawlUI.GetSetting(valuePath, true))
 
-        srslylawlUI.Utils_SetSizePixelPerfect(bounds, width+60, 100)
+        bounds:SetSize(width+20, dropDown:GetHeight()+20)
+
+        srslylawlUI.Utils_SetPointPixelPerfect(dropDown, "BOTTOMLEFT", bounds, "BOTTOMLEFT", -20, 0)
 
         UIDropDownMenu_Initialize(dropDown, function(self)
             local info = UIDropDownMenu_CreateInfo()
@@ -452,7 +405,7 @@ function srslylawlUI.CreateConfigWindow()
             edgeSize = pixel*20,
             insets = {left = pixel*8, right = pixel*8, top = pixel*8, bottom = pixel*8}
         })
-        frame:SetBackdropColor(0, 0, 0, .4)
+        frame:SetBackdropColor(0.592, 0, 0.678, .4)
         frame.title = frame:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
         frame.title:SetText(title)
         srslylawlUI.Utils_SetPointPixelPerfect(frame.title, "BOTTOMLEFT", frame, "TOPLEFT", 20, 0)
@@ -753,9 +706,9 @@ function srslylawlUI.CreateConfigWindow()
             srslylawlUI.Utils_SetPointPixelPerfect(frame, unpack(anchors))
         end
         local elements = {}
-        elements[1] = CreateCustomDropDown("Point", 160, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
+        elements[1] = CreateCustomDropDown("Point", 100, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
         elements[2] = CreateFrameAnchorDropDown("To Frame", parent, frame, path..".2", srslylawlUI.FramesToAnchorTo, Reanchor)
-        elements[3] = CreateCustomDropDown("Relative To", 160, parent, path..".3", srslylawlUI.anchorTable, Reanchor)
+        elements[3] = CreateCustomDropDown("Relative To", 100, parent, path..".3", srslylawlUI.anchorTable, Reanchor)
         elements[4] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".4", 1, 0, Reanchor)
         elements[5] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path..".5", 1, 0, Reanchor)
 
@@ -965,12 +918,14 @@ function srslylawlUI.CreateConfigWindow()
                 local checked = self:GetChecked()
                 if checked then
                     RegisterUnitWatch(unitFrame)
+                    if UnitExists(unit) then
+                        unitFrame:SetShown(checked)
+                    end
                 else
                     UnregisterUnitWatch(unitFrame)
-                end
-                if unitFrame:IsVisible() ~= checked then
                     unitFrame:SetShown(checked)
                 end
+
             end)
             local hpWidth = CreateCustomSlider("Width", tab, 1, 3000, path.."hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
             local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path.."hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)

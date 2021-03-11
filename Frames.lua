@@ -556,8 +556,10 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     end
 
     buttonFrame.PartyLeader:SetShown(UnitIsGroupLeader(unit))
-    srslylawlUI.Frame_ResetDimensions_PowerBar(buttonFrame)
     srslylawlUI.Frame_ResetDimensions(buttonFrame)
+    if unit ~= "player" then
+        srslylawlUI.Frame_ResetDimensions_PowerBar(buttonFrame)
+    end
 end
 
 
@@ -1290,9 +1292,10 @@ function srslylawlUI.Frame_Main_ResetDimensions_ALL()
         local button = srslylawlUI.mainUnits[unit].unitFrame
         if button then
             srslylawlUI.Frame_ResetDimensions(button)
-            srslylawlUI.Frame_ResetDimensions_PowerBar(button)
             if unit == "player" then
                 srslylawlUI.Frame_ResetDimensions_Pet(button)
+            else
+                srslylawlUI.Frame_ResetDimensions_PowerBar(button)
             end
             --srslylawlUI.Frame_ResetCCDurBar(button)
         end
@@ -1660,6 +1663,28 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width")), 0)
         end
     end
+end
+
+function srslylawlUI.ToggleAllFrames(bool)
+    local function ActivateFrame(frame, bool)
+        if bool then
+            RegisterUnitWatch(frame)
+        else
+            UnregisterUnitWatch(frame)
+        end
+
+        if UnitExists(frame:GetAttribute("unit")) then
+            frame:SetShown(bool)
+        end
+    end
+local playerEnabled = srslylawlUI.GetSetting("player.playerFrame.enabled") and bool
+local targetEnabled = srslylawlUI.GetSetting("player.targetFrame.enabled") and bool
+local ttargetEnabled = srslylawlUI.GetSetting("player.targettargetFrame.enabled") and bool
+
+ActivateFrame(srslylawlUI_Main_player, playerEnabled)
+ActivateFrame(srslylawlUI_Main_target, targetEnabled)
+ActivateFrame(srslylawlUI_Main_targettarget, ttargetEnabled)
+srslylawlUI_PartyHeader:SetShown(bool)
 end
 
 function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)

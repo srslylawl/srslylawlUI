@@ -1,5 +1,16 @@
 srslylawlUI = srslylawlUI or {}
 
+--[[
+#############################################################
+#                                                           #
+#                  Created by Andreas S. G.                 #
+#                  Discord: srslylawl#5257                  #
+#                  BNET: INSANITY#22914                     #
+#                                                           #
+#############################################################
+]]
+
+
 srslylawlUI.loadedSettings = {}
 srslylawlUI.buffs = {
     known = {},
@@ -92,17 +103,6 @@ srslylawlUI.sortTimerActive = false
 
 local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrabber", UIParent, "GameTooltipTemplate")
 local debugString = ""
-
-
---[[
-#############################################################
-#                                                           #
-#                  Created by Andreas S. G.                 #
-#                  Discord: srslylawl#5257                  #
-#                  BNET: INSANITY#22914                     #
-#                                                           #
-#############################################################
-]]
 
 --[[ TODO:
 alt powerbar
@@ -1812,10 +1812,10 @@ local function Initialize()
         end
 
         UIParent:HookScript("OnHide", function(self)
-            print("hide")
+            srslylawlUI.ToggleAllFrames(false)
         end)
         UIParent:HookScript("OnShow", function(self)
-            print("show")
+            srslylawlUI.ToggleAllFrames(true)
         end)
     end
     srslylawlUI.LoadSettings()

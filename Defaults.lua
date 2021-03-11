@@ -15,7 +15,7 @@ srslylawlUI.defaultSettings = {
         pet = {
             width = 15
         },
-        buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 7, yOffset = 50, size = 27, scaledSize = 27,
+        buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 7, yOffset = -50, size = 27, scaledSize = 27,
             showCastByPlayer = true, maxBuffs = 5, maxDuration = 60, showDefensives = true, showInfiniteDuration = false, showDefault = false, showLongDuration = false },
         debuffs = { anchor = "LEFTTOP", anchoredTo = "Frame", xOffset = -20, yOffset = 0, size = 27, scaledSize = 27, 
             showCastByPlayer = true, maxDebuffs = 10, maxDuration = 180, showInfiniteDuration = false, showDefault = true, showLongDuration = false },
@@ -40,9 +40,9 @@ srslylawlUI.defaultSettings = {
             hp = {
                 width = 300, height = 70, fontSize = 12
             },
-            buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 32, scaledSize = 48, maxBuffs = 40
+            buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 30, maxBuffs = 25
             },
-            debuffs = { anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 32, scaledSize = 48, maxDebuffs = 40
+            debuffs = { anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 20, scaledSize = 30, maxDebuffs = 15
             },
             pet = {
                 width = 20
@@ -50,16 +50,6 @@ srslylawlUI.defaultSettings = {
             power = {
                 fontSize = 15,
                 overrides = {
-					["70"] = {
-						HolyPower = {
-							height = 30,
-							priority = 3,
-						},
-						Mana = {
-							height = 25,
-							priority = 4,
-						},
-					},
                 }
             },
             cast = {
@@ -76,10 +66,10 @@ srslylawlUI.defaultSettings = {
                 width = 300, height = 70, fontSize = 12
             },
             buffs = {
-                anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 32, scaledSize = 48, maxBuffs = 40
+                anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 30, maxBuffs = 25
             },
             debuffs = {
-                anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 32, scaledSize = 48, maxDebuffs = 40
+                anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 20, scaledSize = 30, maxDebuffs = 40
             },
             power = {
                 width = 15

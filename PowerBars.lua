@@ -463,11 +463,13 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
     return frame
 end
 
+local height = 25
+local height2 = 20
+local height3 = 15
 
 
 function srslylawlUI.PowerBar.Set(parent, unit)
     parent:UnregisterAll()
-    local height = 40
     local specID = srslylawlUI.GetSpecID()
     local function DisplayMainBar(parent)
         local _, powerToken = UnitPowerType("player")
@@ -491,13 +493,13 @@ function srslylawlUI.PowerBar.Set(parent, unit)
         if powerToken == "Stagger" then
             srslylawlUI.PowerBar.SetupStaggerBar(bar, parent)
         end
-        parent:RegisterBar(bar, 5, floor(height *.5))
+        parent:RegisterBar(bar, 5, floor(height2))
     elseif barType == srslylawlUI.PowerBar.Type.PointBar then
         --Point Bar
         DisplayMainBar(parent)
         local powerToken = srslylawlUI.PowerBar.GetPowerToken()
         local bar = srslylawlUI.PowerBar.GetBar(parent, "point", powerToken)
-        parent:RegisterBar(bar, 5, floor(height *.5))
+        parent:RegisterBar(bar, 5, floor(height2))
         if specID >= 250 and specID <= 252 and not bar.isRegistered then --dk spec, use rune update
             bar:RegisterEvent("RUNE_POWER_UPDATE")
             bar:SetScript("OnEvent", function(self, event, ...)
@@ -581,9 +583,7 @@ function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
         Travel Form - 3
         Tree of Life - 2
     ]]
-    local height = 40
-    local height2 = 20
-    local height3 = 15
+
     rageBar:Hide() -- since it resets to 25 on bear enter anyway
     if specID ~= 103 then
         energyBar:Hide()
