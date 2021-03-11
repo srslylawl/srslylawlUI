@@ -106,6 +106,7 @@ local debugString = ""
 
 --[[ TODO:
 alt powerbar
+totem bar GetTotemInfo(1)
 focus frame
 faux frames for player pet
 powerbar fadeout
@@ -115,7 +116,6 @@ more sort methods?
 faux frames absorb auras
 revisit some of the sorting/resize logic, probably firing more often than necessary
 enable/disable features such as sorting/resizing
-totem bar
 ]]
 
 --Utils

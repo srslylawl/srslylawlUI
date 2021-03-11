@@ -146,7 +146,7 @@ srslylawlUI.PowerBar.BarDefaults = {
     Stagger = {hideWhenInactive = true, inactiveState = "EMPTY"},
 }
 
-function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken)
+function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken, specID)
     if amount < 1 then error("Param1 'Amount' must be 1 or higher") return end
     local frame = CreateFrame("Frame", "$parent_PointResourceBar_"..powerToken, parent)
     frame.padding = padding
@@ -160,6 +160,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
     frame.inactiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inactiveState
     frame.alwaysShowInCombat = srslylawlUI.PowerBar.BarDefaults[powerToken].alwaysShowInCombat
+    frame.specID = specID
 
     local function CreatePointFrame(parent, i)
         local pointFrame = CreateFrame("StatusBar", "$parent_PointBar"..i, parent)
@@ -246,21 +247,16 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         end
     end
     function frame:Update()
+        if self.specID >= 265 and self.specID <= 267 then --warlock
+            self:SoulshardFragmentUpdate()
+            return
+        elseif self.specID >= 259 and self.specID <= 261 then --rogue
+            self:RogueUpdate()
+            return
+        end
         local displayCount = UnitPower(self.unit, self.powerToken)
         for i=1, self.desiredButtonCount do
-            -- print(i, self.pointFrames[i].isCharged)
-            if not self.pointFrames[i].isCharged then
-                self.pointFrames[i]:SetShown(i <= displayCount)
-            else
-                local show = i <= displayCount
-                if show then
-                    self.pointFrames[i]:Show()
-                    self.pointFrames[i]:SetAlpha(1)
-                else
-                    self.pointFrames[i]:Show()
-                    self.pointFrames[i]:SetAlpha(.4)
-                end
-            end
+            self.pointFrames[i]:SetShown(i <= displayCount)
         end
 
         local visible = true
@@ -273,11 +269,9 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
                 visible = false
             end
         end
-        visible = self.hasChargedPoint or visible
         if self:IsShown() ~= visible then
             self:SetShown(visible)
         end
-
     end
     function frame:UpdateMax()
         local maxPoints = UnitPowerMax(self.unit, self.powerToken)
@@ -363,6 +357,81 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             self:SetShown(visible)
         end
     end
+    function frame:SoulshardFragmentUpdate()
+        local displayCount = UnitPower(self.unit, self.powerToken, true)
+        local pointsToDisplay = ceil(displayCount/10)
+        local progressLast = math.fmod(displayCount, 10)
+
+        for i=1, self.desiredButtonCount do
+            if i < pointsToDisplay then
+                self.pointFrames[i]:Show()
+                self.pointFrames[i]:SetAlpha(1)
+                self.pointFrames[i].text:SetText("")
+                self.pointFrames[i]:SetValue(1)
+            elseif i == pointsToDisplay then
+                if progressLast > 0 then
+                    self.pointFrames[i]:Show()
+                    self.pointFrames[i]:SetAlpha(.5)
+                    self.pointFrames[i].text:SetText(progressLast)
+                    self.pointFrames[i]:SetValue(progressLast/10)
+                else
+                    self.pointFrames[i]:Show()
+                    self.pointFrames[i]:SetAlpha(1)
+                    self.pointFrames[i].text:SetText("")
+                    self.pointFrames[i]:SetValue(1)
+                end
+            else
+                self.pointFrames[i]:Hide()
+            end
+        end
+
+        local visible = true
+        if self.hideWhenInactive then
+            if self.alwaysShowInCombat and InCombatLockdown() then
+                visible = true
+            elseif self.inactiveState == "EMPTY" and displayCount == 0 then
+                visible = false
+            elseif self.inactiveState == "FULL" and displayCount == self.desiredButtonCount then
+                visible = false
+            end
+        end
+        if self:IsShown() ~= visible then
+            self:SetShown(visible)
+        end
+    end
+    function frame:RogueUpdate()
+        local displayCount = UnitPower(self.unit, self.powerToken)
+        for i=1, self.desiredButtonCount do
+            -- print(i, self.pointFrames[i].isCharged)
+            if not self.pointFrames[i].isCharged then
+                self.pointFrames[i]:SetShown(i <= displayCount)
+            else
+                local show = i <= displayCount
+                if show then
+                    self.pointFrames[i]:Show()
+                    self.pointFrames[i]:SetAlpha(1)
+                else
+                    self.pointFrames[i]:Show()
+                    self.pointFrames[i]:SetAlpha(.4)
+                end
+            end
+        end
+
+        local visible = true
+        if self.hideWhenInactive then
+            if self.alwaysShowInCombat and InCombatLockdown() then
+                visible = true
+            elseif self.inactiveState == "EMPTY" and displayCount == 0 then
+                visible = false
+            elseif self.inactiveState == "FULL" and displayCount == self.desiredButtonCount then
+                visible = false
+            end
+        end
+        visible = self.hasChargedPoint or visible
+        if self:IsShown() ~= visible then
+            self:SetShown(visible)
+        end
+    end
     function frame:OnComboPointCharged()
         --rogue animacharge
         local chargedPointsTable = GetUnitChargedPowerPoints(self.unit)
@@ -392,7 +461,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
 
     return frame
 end
-function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
+function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
     local frame = CreateFrame("Frame", "$parent_ResourceBar_"..powerToken, parent)
     srslylawlUI.CreateBackground(frame, 1)
     frame.statusBar = CreateFrame("StatusBar", "$parent_StatusBar", frame)
@@ -409,8 +478,8 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken)
     frame.name = powerToken
     frame:SetAttribute("type", "resourceBar")
     frame.statusBar.rightText = srslylawlUI.CreateCustomFontString(frame.statusBar, "leftText", srslylawlUI.GetSetting("player.playerFrame.power.fontSize"))
-    -- frame.statusBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
     frame.statusBar.rightText:SetPoint("CENTER", frame.statusBar, "CENTER", 0, 0)
+    frame.specID = specID
 
     frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
     frame.inactiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inactiveState
@@ -471,6 +540,7 @@ local height3 = 15
 function srslylawlUI.PowerBar.Set(parent, unit)
     parent:UnregisterAll()
     local specID = srslylawlUI.GetSpecID()
+    parent:SetAttribute("specID", specID)
     local function DisplayMainBar(parent)
         local _, powerToken = UnitPowerType("player")
         powerToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
@@ -543,28 +613,30 @@ function srslylawlUI.PowerBar.GetPowerToken()
     return srslylawlUI.PowerBar.SpecToPowerType[srslylawlUI.GetSpecID()]
 end
 function srslylawlUI.PowerBar.GetBar(parent, type, token)
+    local specID = parent:GetAttribute("specID")
     if not parent.powerBars[token] then
         if token == "Stagger" then
-            parent.powerBars[token] = srslylawlUI.PowerBar.CreateResourceBar(parent, token)
+            parent.powerBars[token] = srslylawlUI.PowerBar.CreateResourceBar(parent, token, specID)
         end
         if type == "resource" or type == nil then
-            parent.powerBars[token] = srslylawlUI.PowerBar.CreateResourceBar(parent, token)
+            parent.powerBars[token] = srslylawlUI.PowerBar.CreateResourceBar(parent, token, specID)
         elseif type == "point" then
             local maxPoints = UnitPowerMax("player", Enum.PowerType[token])
-            parent.powerBars[token] = srslylawlUI.PowerBar.CreatePointBar(maxPoints, parent, 1, token)
+            parent.powerBars[token] = srslylawlUI.PowerBar.CreatePointBar(maxPoints, parent, 1, token, specID)
         end
         srslylawlUI.PowerBar.SetColorByToken(parent.powerBars[token], Enum.PowerType[token])
         parent.powerBars[token]:SetAttribute("powerToken", token)
     end
+    parent.powerBars[token].specID = specID
     return parent.powerBars[token]
 end
 function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
+    local specID = srslylawlUI.GetSpecID()
     local manaBar = srslylawlUI.PowerBar.GetBar(parent, "resource", "Mana")
     local cpBar = srslylawlUI.PowerBar.GetBar(parent, "point", "ComboPoints")
     local energyBar = srslylawlUI.PowerBar.GetBar(parent, "resource", "Energy")
     local rageBar = srslylawlUI.PowerBar.GetBar(parent, "resource", "Rage")
     local astralPowerBar = srslylawlUI.PowerBar.GetBar(parent, "resource", "LunarPower")
-    local specID = srslylawlUI.GetSpecID()
     --[[
     102 -> Balance
     103 -> Feral
