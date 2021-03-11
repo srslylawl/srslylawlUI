@@ -780,6 +780,13 @@ function srslylawlUI.PowerBar.Update(parent, powerToken)
             --since bars we dont want to see can still get events(druid's rage in other forms, since it gets reset to 25 anyway), check for that here
             bar:Update()
         end
+    else
+        for _, bar in pairs(parent.powerBars) do
+            if not bar.disabled and not bar.isUnparented then
+                --since bars we dont want to see can still get events(druid's rage in other forms, since it gets reset to 25 anyway), check for that here
+                bar:Update()
+            end
+        end
     end
 end
 function srslylawlUI.PowerBar.UpdateMax(parent, powerToken)

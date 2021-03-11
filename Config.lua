@@ -296,7 +296,7 @@ function srslylawlUI.CreateConfigWindow()
         UIDropDownMenu_SetWidth(dropDown, width)
         UIDropDownMenu_SetText(dropDown, srslylawlUI.GetSetting(valuePath, true))
 
-        bounds:SetSize(width+20, dropDown:GetHeight()+20)
+        bounds:SetSize(width+30, dropDown:GetHeight()+20)
 
         function dropDown:SetValue(newValue)
             UIDropDownMenu_SetText(dropDown, newValue)
@@ -353,7 +353,7 @@ function srslylawlUI.CreateConfigWindow()
         UIDropDownMenu_SetWidth(dropDown, width)
         UIDropDownMenu_SetText(dropDown, srslylawlUI.GetSetting(valuePath, true))
 
-        bounds:SetSize(width+20, dropDown:GetHeight()+20)
+        bounds:SetSize(width+30, dropDown:GetHeight()+20)
 
         srslylawlUI.Utils_SetPointPixelPerfect(dropDown, "BOTTOMLEFT", bounds, "BOTTOMLEFT", -20, 0)
 

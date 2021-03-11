@@ -113,6 +113,7 @@ powerbar fadeout
 incoming ressurection
 incoming summon
 more sort methods?
+vehiclestuff
 faux frames absorb auras
 revisit some of the sorting/resize logic, probably firing more often than necessary
 enable/disable features such as sorting/resizing

@@ -1347,6 +1347,8 @@ function srslylawlUI.RegisterEvents(buttonFrame)
     buttonFrame:RegisterUnitEvent("UNIT_DISPLAYPOWER", unit)
     buttonFrame:RegisterUnitEvent("UNIT_MAXPOWER", unit)
     buttonFrame:RegisterUnitEvent("UNIT_NAME_UPDATE", unit)
+    buttonFrame:RegisterUnitEvent("UNIT_ENTERED_VEHICLE", unit)
+    buttonFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", unit)
 
     if unit ~= "targettarget" then
         buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
@@ -1474,6 +1476,10 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             self.portrait:ModelUpdate()
         elseif event == "UNIT_FACTION" and unit == "target" then
             self:UpdateUnitFaction()
+        elseif event == "UNIT_ENTERED_VEHICLE" then
+            srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
+        elseif event == "UNIT_EXITED_VEHICLE" then
+            srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
         end
     elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
         if event == "UNIT_MAXHEALTH" then
