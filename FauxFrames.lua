@@ -300,11 +300,6 @@ function srslylawlUI.ToggleFauxFrames(visible)
             end)
         end
 
-
-        
-
-
-
         srslylawlUI_FAUX_PartyHeader.initiated = true
     end
 

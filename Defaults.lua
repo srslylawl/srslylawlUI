@@ -32,7 +32,9 @@ srslylawlUI.defaultSettings = {
             showRaid = false,
             showPlayer = true,
         },
-        sorting = enabled
+        sorting = {
+            enabled = true,
+        }
     },
     player = {
         playerFrame = {

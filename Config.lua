@@ -28,16 +28,18 @@ function srslylawlUI.CreateConfigWindow()
         srslylawlUI.ToggleFauxFrames(bool)
     end
     local function CreateInfoBox(parent, content, width)
-        local bounds = CreateFrame("Frame", "$parent_Bounds", parent, "BackdropTemplate")
+        local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
         local infoBox = bounds:CreateFontString("$parent_InfoBox", "ARTWORK")
         infoBox.bounds = bounds
-        infoBox.bounds:SetBackdrop({
+        infoBox.background = CreateFrame("Frame", "$parent_BG", bounds, "BackdropTemplate")
+        infoBox:SetParent(infoBox.background)
+        infoBox.background:SetBackdrop({
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 12,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
+        -- edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        -- edgeSize = 0,
+        insets = {left = 0, right = 0, top = 0, bottom = 0}
         })
-        infoBox.bounds:SetBackdropColor(0.05, 0.05, .05, .5)
+        infoBox.background:SetBackdropColor(0.05, 0.05, .05, .5)
         infoBox:SetPoint("CENTER")
         infoBox:SetWidth(width)
         infoBox:SetFont("Fonts\\FRIZQT__.TTF", 11)
@@ -45,12 +47,15 @@ function srslylawlUI.CreateConfigWindow()
 
         infoBox:SetText(content)
 
-        bounds:SetSize(width + 8, infoBox:GetStringHeight()+8)
+        bounds:SetSize(width + 20, infoBox:GetStringHeight()+20)
+        infoBox.background:SetPoint("TOPLEFT", bounds, "TOPLEFT", 8, -8)
+        infoBox.background:SetPoint("BOTTOMRIGHT", bounds, "BOTTOMRIGHT", -8, 8)
+
 
         local oldSetText = infoBox.SetText
         function infoBox:SetText(str)
             oldSetText(self, str)
-            bounds:SetSize(width + 8, infoBox:GetStringHeight()+8)
+            bounds:SetSize(width + 20, infoBox:GetStringHeight()+20)
         end
 
         return infoBox
@@ -743,8 +748,14 @@ function srslylawlUI.CreateConfigWindow()
 
         partyVisibility:Add(showParty, showPlayer, showSolo, showArena, showRaid)
 
+        local partySorting = CreateConfigControl(tab, "Party Frames Sorting")
+        local sortingEnabled = CreateSettingsCheckButton("Enabled", tab, "party.sorting.enabled", function() srslylawlUI.SortPartyFrames() end)
+        local sortInfoBox = CreateInfoBox(partySorting, "If enabled, party members will be sorted by their maximum hp, descending. This means that the highest hp party member will always be the first frame.", 650)
+        partySorting:Add(sortInfoBox, sortingEnabled)
+        partySorting:ChainToControl(partyVisibility)
+
         local buffVisibility = CreateConfigControl(tab, "Party Buffs Visibility")
-        buffVisibility:ChainToControl(partyVisibility)
+        buffVisibility:ChainToControl(partySorting)
 
         local buffsDefault = CreateSettingsCheckButton("Default", tab, "party.buffs.showDefault", function() srslylawlUI.Party_HandleAuras_ALL() end)
         AddTooltip(buffsDefault, "Show/hide all buffs per default, except if they are in/excluded by another setting.\n\nRecommended: Hiding all per default, while showing defensives and whitelisted auras.")
@@ -1081,7 +1092,7 @@ function srslylawlUI.CreateConfigWindow()
                             end
                             if i == 1 and not cFrame.infoBox then
                                 cFrame.infoBox = CreateInfoBox(tab, "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings.", 280)
-                                cFrame.infoBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 0)
+                                cFrame.infoBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 8)
                             elseif i == 2 and isDruid then
                                 --[[
                                     humanoid form - nil

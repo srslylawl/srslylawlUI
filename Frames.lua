@@ -2062,15 +2062,34 @@ function srslylawlUI.SortAfterLogin()
     end
 end
 function srslylawlUI.SortPartyFrames()
+    if not srslylawlUI.GetSetting("party.sorting.enabled") then
+        if not srslylawlUI.partyFramesDefaultSortActive then
+            local parent
+            for _, unit in pairs(srslylawlUI.partyUnits) do
+                local buttonFrame = unit.unitFrame.unit
+                if (buttonFrame) then
+                    buttonFrame:ClearAllPoints()
+                    if buttonFrame:GetAttribute("unit") == "player" then
+                        buttonFrame:SetPoint("TOPLEFT", srslylawlUI_PartyHeader, "TOPLEFT")
+                    else
+                        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
+                    end
+                    parent = buttonFrame
+                end
+            end
+            srslylawlUI.partyFramesDefaultSortActive = true
+        end
+        return
+    end
     local list, _, _, hasUnknownMember = srslylawlUI.GetPartyHealth()
-
+    
     if not list then return end
-
+    
     if InCombatLockdown() then
         srslylawlUI.SortAfterCombat()
         return
     end
-
+    srslylawlUI.partyFramesDefaultSortActive = false
     if hasUnknownMember then
         -- not all units are properly loaded yet, lets check again in a few secs
         if not srslylawlUI.sortTimerActive then

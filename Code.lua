@@ -105,6 +105,7 @@ local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrab
 local debugString = ""
 
 --[[ TODO:
+target powerbar anchor/size
 aurapanel editbox size
 disable sorting
 aff shows timer sometimes
