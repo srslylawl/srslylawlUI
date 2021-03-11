@@ -1558,6 +1558,9 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
         button.wasInRange = inRange
     else
         SBColor = {UnitSelectionColor(unit, true)}
+        if not UnitPlayerControlled(unit) and UnitIsTapDenied(unit) and UnitCanAttack("player", unit) then
+            SBColor = {0.5, 0.5, 0.5, 1}
+        end
     end
     local health = UnitHealth(unit)
     local healthMax = UnitHealthMax(unit)
