@@ -166,7 +166,7 @@ local function CreateCustomFrames(buttonFrame, unit)
         f:SetWidth(40)
         f.background = CreateFrame("Frame", "$parent_background", f)
         f.background.texture = f.background:CreateTexture("$parent_texture", "BACKGROUND")
-        f.background.texture:SetColorTexture(0, 0, 0, .5)
+        f.background.texture:SetColorTexture(0, 0, 0, .1)
         f.background.texture:SetAllPoints(true)
         f.background.texture:Show()
         srslylawlUI.Utils_SetPointPixelPerfect(f.background, "TOPLEFT", f, "TOPLEFT", -1, 0)
@@ -338,12 +338,6 @@ function srslylawlUI.FrameSetup()
         unitFrame.PartyLeader.texture:SetTexture("Interface/GROUPFRAME/UI-Group-LeaderIcon")
         unitFrame.PartyLeader.texture:SetAllPoints(true)
         unitFrame.PartyLeader:Hide()
-        if not faux then
-            unitFrame.unit.healthBar.immuneTex = unitFrame.unit.healthBar:CreateTexture("srslylawlUI_Textures_ImmuneTextureObject"..unit, "BACKGROUND")
-            unitFrame.unit.healthBar.immuneTex:SetHorizTile(true)
-            unitFrame.unit.healthBar.immuneTex:SetBlendMode("BLEND")
-            unitFrame.unit.healthBar.isImmune = false
-        end
         if party then
             header[unit] = unitFrame
         end
@@ -2043,21 +2037,6 @@ function srslylawlUI.Frame_ReadyCheck(button, state)
         button.ReadyCheck:SetAlpha(1)
         button.ReadyCheck:Show()
     end
-end
-function srslylawlUI.Frame_ShowImmunity(healthBar, isImmune)
-    if isImmune then
-        local unit = healthBar:GetParent():GetAttribute("unit")
-        local class = select(2, UnitClass(unit)) or "WARRIOR"
-        local classColor = RAID_CLASS_COLORS[class]
-        --textureobject seems to reset after being switched from the object to the texturefile below
-        --needs texture assigned again
-        healthBar.immuneTex:SetTexture(srslylawlUI.textures.Immunity, true, "REPEAT", "NEAREST")
-        healthBar.immuneTex:SetVertexColor(classColor.r, classColor.g, classColor.b, classColor.a)
-        healthBar:SetStatusBarTexture(healthBar.immuneTex)
-    else
-        healthBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
-    end
-    healthBar.isImmune = isImmune
 end
 function srslylawlUI.Frame_UpdateCombatIcon(self, elapsed)
     self.timer = (self.timer or 0) + elapsed

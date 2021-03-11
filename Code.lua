@@ -109,7 +109,6 @@ aurapanel editbox size
 disable sorting
 aff shows timer sometimes
 fauxaura not moving with frames
-soulshard bar not hiding
 alt powerbar
 totem bar GetTotemInfo(1)
 focus frame
@@ -1576,20 +1575,11 @@ function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
         local maxWidth = playerMissingHP*pixelPerHp - 1
         local barWidth
 
-        if effectiveHealthMod > 0 then
-            eHealth = playerCurrentHP / effectiveHealthMod
-            local additionalHealth = eHealth - playerCurrentHP
-            barWidth = math.min(pixelPerHp*playerHealthMax, additionalHealth * pixelPerHp)
-            srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset = math.max(barWidth - maxWidth, 0)
-        else
-            --this means a 100% absorb has been used, target is immune
-            eHealth = 0
-            barWidth = maxWidth > 2 and maxWidth or 0
-            --show immunity texture
-            if not hpBar.isImmune then
-                srslylawlUI.Frame_ShowImmunity(hpBar, true)
-            end
-        end
+        eHealth = playerCurrentHP / effectiveHealthMod
+        local additionalHealth = eHealth - playerCurrentHP
+        barWidth = math.min(pixelPerHp*playerHealthMax, additionalHealth * pixelPerHp)
+        srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset = math.max(barWidth - maxWidth, 0)
+
         showFrames = barWidth >= 2
         if showFrames then
             srslylawlUI.ChangeAbsorbSegment(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], barWidth, eHealth, height)
@@ -1597,10 +1587,6 @@ function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
         srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:SetShown(showFrames)
     else
         srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:Hide()
-    end
-
-    if hpBar.isImmune and effectiveHealthMod > 0 then
-        srslylawlUI.Frame_ShowImmunity(hpBar, false)
     end
 end
 
