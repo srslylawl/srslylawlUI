@@ -211,6 +211,7 @@ local function CreateCustomFrames(buttonFrame, unit)
         f:SetFrameLevel(5)
         buttonFrame.unit.healthBar.effectiveHealthFrame = f
         srslylawlUI[unitsType][unit]["effectiveHealthFrames"][i] = f
+        f.offset = 0
     end
     --create absorb frames
     for i = 1, srslylawlUI.GetSetting("party.maxAbsorbFrames") do
@@ -254,7 +255,7 @@ function srslylawlUI.FrameSetup()
         CCDurationBar.icon:SetTexCoord(.08, .92, .08, .92)
         CCDurationBar.icon:SetTexture(408)
         CCDurationBar.timer = srslylawlUI.CreateCustomFontString(CCDurationBar.statusBar, "Timer", 15)
-        CCDurationBar.timer:SetText("5")
+        CCDurationBar.timer:SetText("0")
         srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.timer, "LEFT", CCDurationBar.statusBar, "LEFT", 1, 0)
         srslylawlUI.CreateBackground(CCDurationBar, 0)
         CCDurationBar:Hide()
@@ -265,6 +266,14 @@ function srslylawlUI.FrameSetup()
                 srslylawlUI.Utils_SetSizePixelPerfect(self.icon, h, h)
             else
                 srslylawlUI.Utils_SetSizePixelPerfect(self.icon, w, w)
+            end
+        end
+
+        function CCDurationBar:UpdateVisible()
+            local timer = self.timer:GetText()
+            local n = tonumber(string.match(timer, "%d"))
+            if self.disabled or type(n) ~= "number" or n < 0 then
+                self:Hide()
             end
         end
     end
@@ -872,6 +881,39 @@ function srslylawlUI.CreateCastBar(parent, unit)
             self:ChangeBarColor("cast")
         end
     end
+    function cBar:UpdateVisible()
+        -- if self.isChannelled then
+	    -- 	if self.elapsed and self.elapsed <= 0 then
+	    -- 		self.StatusBar.Timer:SetText("0.0")
+        --         self.StatusBar:SetValue(0)
+        --         self.spellName = nil
+        --         self.castID = nil
+        --         self:FadeOut()
+        --     end
+        -- elseif self.endSeconds and self.elapsed then
+	    -- 	if self.elapsed >= self.endSeconds then
+        --         self.spellName = nil
+        --         self.castID = nil
+        --         self:FadeOut()
+        --     else
+        --         self:Show()
+    end
+
+    function cBar:SetPoints(h)
+        if h then
+            h = math.max(1, h)
+            srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, h, h)
+            local fSize = srslylawlUI.GetSettingByUnit("cast.fontSize", unitsType, unit)
+
+            if h > 0 then
+                local fontSizeScale = h/fSize
+                local newSize = srslylawlUI.Utils_ScuffedRound(fSize*fontSizeScale)
+                newSize = newSize > 25 and 25 or newSize
+                self.StatusBar.Timer:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(newSize))
+            end
+        end
+    end
+
     cBar.unit = unit
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_START", unit)
 	cBar:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
@@ -897,7 +939,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
     cBar.StatusBar.Timer:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
     cBar.StatusBar.SpellName = cBar.StatusBar:CreateFontString("$parent_SpellName", "OVERLAY", "GameFontHIGHLIGHT")
     cBar.StatusBar.SpellName:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
-    srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, 40, height)
+    srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, height, height)
     cBar.Icon:SetPoint("TOPLEFT", cBar, "TOPLEFT", 0, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar, "TOPLEFT", cBar.Icon, "TOPRIGHT", 1, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar, "BOTTOMRIGHT", cBar, "BOTTOMRIGHT", 0, 0)
@@ -1006,11 +1048,13 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             end
         end
 
+
         for _, v in pairs(bh.bars) do
             if v.bar == bar then
                 v.priority = priority
                 v.height = height
                 v.disabled = disabled
+                bar.disabled = disabled
                 self:SortBars()
                 return
             end
@@ -1098,6 +1142,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 currentBar:SetPoints(height)
                 currentBar.pointsSet = true
             end
+            currentBar:UpdateVisible()
         end
     end
     function frame:SetDemoMode(active)

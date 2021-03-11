@@ -259,19 +259,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             self.pointFrames[i]:SetShown(i <= displayCount)
         end
 
-        local visible = true
-        if self.hideWhenInactive then
-            if self.alwaysShowInCombat and InCombatLockdown() then
-                visible = true
-            elseif self.inactiveState == "EMPTY" and displayCount == 0 then
-                visible = false
-            elseif self.inactiveState == "FULL" and displayCount == self.desiredButtonCount then
-                visible = false
-            end
-        end
-        if self:IsShown() ~= visible then
-            self:SetShown(visible)
-        end
+        self:UpdateVisible()
     end
     function frame:UpdateMax()
         local maxPoints = UnitPowerMax(self.unit, self.powerToken)
@@ -343,19 +331,8 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             UpdateRuneTimer(rune, unpack(runeTable[i]))
         end
 
-
-        local visible = true
-        if self.hideWhenInactive then
-            if self.alwaysShowInCombat and InCombatLockdown() then
-                visible = true
-            elseif self.inactiveState == "FULL" and runesReady == #runeTable then
-                visible = false
-            end
-        end
-
-        if self:IsShown() ~= visible then
-            self:SetShown(visible)
-        end
+        self.runesFull = runesReady == #runeTable
+        self:UpdateVisible()
     end
     function frame:SoulshardFragmentUpdate()
         local displayCount = UnitPower(self.unit, self.powerToken, true)
@@ -457,6 +434,40 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         end
     end
 
+    function frame:UpdateVisible()
+        if specID >= 250 and specID <= 252 then --dk
+            local visible = true
+            if self.hideWhenInactive then
+                if self.alwaysShowInCombat and InCombatLockdown() then
+                    visible = true
+                elseif self.inactiveState == "FULL" and self.runesFull then
+                    visible = false
+                end
+            end
+            if self:IsShown() ~= visible then
+                self:SetShown(visible)
+            end
+            return
+        end
+        local visible = true
+        if self.hideWhenInactive then
+            if self.alwaysShowInCombat and InCombatLockdown() then
+                visible = true
+            elseif self.inactiveState == "EMPTY" and displayCount == 0 then
+                visible = false
+            elseif self.inactiveState == "FULL" and displayCount == self.desiredButtonCount then
+                visible = false
+            end
+        end
+        if self.specID >= 259 and self.specID <= 261 then --rogue
+            visible = self.hasChargedPoint or visible
+        end
+        if self.disabled then visible = false end
+        if self:IsShown() ~= visible then
+            self:SetShown(visible)
+        end
+    end
+
     frame:SetPoints()
 
     return frame
@@ -489,11 +500,8 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
         self.color = color
         self.statusBar:SetStatusBarColor(color.r, color.g, color.b)
     end
-    function frame:Update()
+    function frame:UpdateVisible()
         local amount = UnitPower(self.unit, self.powerToken)
-        self.statusBar.rightText:SetText(amount > 0 and amount or "")
-        self.statusBar:SetValue(amount)
-
         local visible = true
         if self.hideWhenInactive then
             if self.alwaysShowInCombat and InCombatLockdown() then
@@ -505,9 +513,19 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
             end
         end
 
+        if self.disabled then visible = false end
+
         if self:IsShown() ~= visible then
             self:SetShown(visible)
         end
+
+    end
+    function frame:Update()
+        local amount = UnitPower(self.unit, self.powerToken)
+        self.statusBar.rightText:SetText(amount > 0 and amount or "")
+        self.statusBar:SetValue(amount)
+
+        self:UpdateVisible()
     end
     function frame:UpdateMax()
         self.max = UnitPowerMax(self.unit, self.powerToken)
@@ -528,6 +546,8 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
     if frame.powerToken then
         frame:UpdateMax()
     end
+
+
 
     return frame
 end

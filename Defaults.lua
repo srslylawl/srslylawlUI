@@ -82,7 +82,7 @@ srslylawlUI.defaultSettings = {
             },
             ccbar = {
                 disabled = false,
-                height = 40,
+                height = 20,
                 priority = 1,
             }
         },

@@ -105,6 +105,13 @@ local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrab
 local debugString = ""
 
 --[[ TODO:
+aurapanel editbox size
+disable sorting
+powerbar background opacity
+castbar icon not scaling
+aff shows timer sometimes
+fauxaura not moving with frames
+soulshard bar not hiding
 alt powerbar
 totem bar GetTotemInfo(1)
 focus frame
@@ -866,7 +873,13 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             unitbutton.CCDurBar.statusBar:SetStatusBarColor(color.r, color.g, color.b)
             local timer, duration, expirationTime, remaining = 0, 0, 0, 0
             local updateInterval = 0.02
-            unitbutton.CCDurBar:SetScript("OnUpdate", 
+            remaining = expirationTime-GetTime()
+            unitbutton.CCDurBar.statusBar:SetValue(remaining/duration)
+            local timerstring = tostring(remaining)
+            timerstring = timerstring:match("%d+%p?%d")
+            unitbutton.CCDurBar.timer:SetText(timerstring)
+
+            unitbutton.CCDurBar:SetScript("OnUpdate",
                 function(self, elapsed)
                     timer = timer + elapsed
                     _, _, _, _, duration, expirationTime = UnitAura(unit, self.spellData.index, "HARMFUL")
@@ -878,7 +891,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                         else
                             remaining = expirationTime-GetTime()
                             self.statusBar:SetValue(remaining/duration)
-                            local timerstring = tostring(remaining)
+                            timerstring = tostring(remaining)
                             timerstring = timerstring:match("%d+%p?%d")
                             self.timer:SetText(timerstring)
                         end
@@ -951,7 +964,7 @@ function srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
     end
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFrames"][1], "TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], "TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
-    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], "TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], "TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset-srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset, 0)
 end
 function srslylawlUI.Auras_ShouldDisplayBuff(...)
     local name, icon, count, debuffType, duration, expirationTime, source,
@@ -1568,8 +1581,8 @@ function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
         if effectiveHealthMod > 0 then
             eHealth = playerCurrentHP / effectiveHealthMod
             local additionalHealth = eHealth - playerCurrentHP
-            barWidth = additionalHealth * pixelPerHp
-            barWidth = barWidth < maxWidth and barWidth or maxWidth
+            barWidth = math.min(pixelPerHp*playerHealthMax, additionalHealth * pixelPerHp)
+            srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset = math.max(barWidth - maxWidth, 0)
         else
             --this means a 100% absorb has been used, target is immune
             eHealth = 0
