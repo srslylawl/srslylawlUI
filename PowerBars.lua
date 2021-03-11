@@ -151,7 +151,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     local frame = CreateFrame("Frame", "$parent_PointResourceBar_"..powerToken, parent)
     frame.padding = padding
     frame.desiredButtonCount = amount
-    srslylawlUI.CreateBackground(frame, 1)
+    srslylawlUI.CreateBackground(frame, 1, .8)
     frame:SetAttribute("type", "pointBar")
     frame.powerToken = Enum.PowerType[powerToken]
     frame.unit = parent:GetAttribute("unit")
@@ -474,7 +474,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
 end
 function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
     local frame = CreateFrame("Frame", "$parent_ResourceBar_"..powerToken, parent)
-    srslylawlUI.CreateBackground(frame, 1)
+    srslylawlUI.CreateBackground(frame, 1, .8)
     frame.statusBar = CreateFrame("StatusBar", "$parent_StatusBar", frame)
     frame.statusBar:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
     srslylawlUI.Utils_SetPointPixelPerfect(frame.statusBar, "TOPLEFT", frame, "TOPLEFT", 0, 0)

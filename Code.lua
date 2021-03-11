@@ -107,7 +107,6 @@ local debugString = ""
 --[[ TODO:
 aurapanel editbox size
 disable sorting
-powerbar background opacity
 aff shows timer sometimes
 fauxaura not moving with frames
 soulshard bar not hiding
