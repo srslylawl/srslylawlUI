@@ -1013,7 +1013,6 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             priority = srslylawlUI.GetSettingByUnit("cast.priority", unitsType, unit)
             height = srslylawlUI.GetSettingByUnit("cast.height", unitsType, unit)
             disabled = srslylawlUI.GetSettingByUnit("cast.disabled", unitsType, unit)
-            bar.disabled = disabled
         elseif bar.name == "CCDurationBar" then
             priority = srslylawlUI.GetSettingByUnit("ccbar.priority", unitsType, unit)
             height = srslylawlUI.GetSettingByUnit("ccbar.height", unitsType, unit)
@@ -1047,14 +1046,12 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
             end
         end
-
+        bar.disabled = disabled
 
         for _, v in pairs(bh.bars) do
             if v.bar == bar then
                 v.priority = priority
                 v.height = height
-                v.disabled = disabled
-                bar.disabled = disabled
                 self:SortBars()
                 return
             end
@@ -1125,7 +1122,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         for i=1, #bh.bars do
             currentBar = bh.bars[i].bar
             height = bh.bars[i].height or 40
-            if currentBar:IsShown() and currentBar:GetAlpha() > .9 and not bh.bars[i].disabled then --ignore if the bar isnt visible
+            if currentBar:IsShown() and currentBar:GetAlpha() > .9 and not currentBar.disabled then --ignore if the bar isnt visible
                 if not lastBar then
                     srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "TOPLEFT", bh.barParent, "BOTTOMLEFT", 0, -1)
                     srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "BOTTOMRIGHT", bh.barParent, "BOTTOMRIGHT", 0, -1-height)

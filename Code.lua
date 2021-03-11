@@ -108,7 +108,6 @@ local debugString = ""
 aurapanel editbox size
 disable sorting
 powerbar background opacity
-castbar icon not scaling
 aff shows timer sometimes
 fauxaura not moving with frames
 soulshard bar not hiding
