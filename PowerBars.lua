@@ -746,6 +746,22 @@ function srslylawlUI.PowerBar.SetupStaggerBar(bar, parent)
     end
 
     function bar:Update()
+        self:UpdateVisible()
+        local amount = UnitStagger(self.unit)
+
+        if not self:IsShown() then
+            return
+        end
+        self.statusBar:SetValue(amount)
+        self.statusBar.rightText:SetText(amount)
+	    local percent = amount/self.max
+	    local color = percent < STAGGER_YELLOW_TRANSITION and {0.662, 1, 0.541}
+        or percent < STAGGER_RED_TRANSITION and {0.945, 0.933, 0.074}
+        or {1, 0.039, 0.141}
+        self.statusBar:SetStatusBarColor(unpack(color))
+    end
+
+    function bar:UpdateVisible()
         local amount = UnitStagger(self.unit)
 
         local visible = true
@@ -762,17 +778,6 @@ function srslylawlUI.PowerBar.SetupStaggerBar(bar, parent)
         if self:IsShown() ~= visible then
             self:SetShown(visible)
         end
-
-        if not self:IsShown() then
-            return
-        end
-        self.statusBar:SetValue(amount)
-        self.statusBar.rightText:SetText(amount)
-	    local percent = amount/self.max
-	    local color = percent < STAGGER_YELLOW_TRANSITION and {0.662, 1, 0.541}
-        or percent < STAGGER_RED_TRANSITION and {0.945, 0.933, 0.074}
-        or {1, 0.039, 0.141}
-        self.statusBar:SetStatusBarColor(unpack(color))
     end
 
     bar:SetScript("OnEvent", function(self, event, unit)

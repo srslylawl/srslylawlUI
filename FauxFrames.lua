@@ -15,7 +15,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
             ["powerToken"] = powerToken,
             ["CCIcon"] = 132298,
             ["CCColor"] = "none",
-            ["CCMaxDur"] = 6
+            ["CCMaxDur"] = 6,
+            ["pethp"] = 1
         }
         for i,unit in pairs(srslylawlUI.partyUnitsTable) do
             local frame = _G["srslylawlUI_FAUX_PartyHeader_"..unit]
@@ -29,6 +30,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 fauxUnit.CCIcon = 136071 --poly
                 fauxUnit.CCColor = "Magic"
                 fauxUnit.CCMaxDur = 8
+                fauxUnit.pethp = .8
             elseif unit == "party2" then
                 fauxUnit.class = "ROGUE"
                 fauxUnit.hpmax = ceil(fauxUnit.hpmax * 0.90)
@@ -38,6 +40,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 fauxUnit.CCIcon = 132310 -- sap
                 fauxUnit.CCColor = "none"
                 fauxUnit.CCMaxDur = 8
+                fauxUnit.pethp = .5
             elseif unit == "party3" then
                 fauxUnit.class = "MAGE"
                 fauxUnit.hpmax = ceil(fauxUnit.hpmax)
@@ -47,6 +50,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 fauxUnit.CCIcon = 136183 -- fear
                 fauxUnit.CCColor = "Magic"
                 fauxUnit.CCMaxDur = 6
+                fauxUnit.pethp = .2
             elseif unit == "party4" then
                 fauxUnit.class = "SHAMAN"
                 fauxUnit.hpmax = ceil(fauxUnit.hpmax * 0.2)
@@ -56,6 +60,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 fauxUnit.CCIcon = 458230 -- silence
                 fauxUnit.CCColor = "Magic"
                 fauxUnit.CCMaxDur = 4
+                fauxUnit.pethp = .6
             end
             frame:SetAttribute("hpMax", fauxUnit.hpmax)
 
@@ -106,6 +111,9 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame.unit.powerBar:SetStatusBarColor(powerColor.r, powerColor.g, powerColor.b)
             frame.unit.powerBar:SetMinMaxValues(0, 1)
             frame.unit.powerBar:SetValue(fauxUnit.mana)
+
+            frame.pet.healthBar:SetMinMaxValues(0, 1)
+            frame.pet.healthBar:SetValue(fauxUnit.pethp)
 
             if unit == "player" then
                 frame.unit:SetPoint("TOPLEFT", srslylawlUI_FAUX_PartyHeader, "TOPLEFT")

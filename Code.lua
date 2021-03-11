@@ -105,9 +105,9 @@ local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrab
 local debugString = ""
 
 --[[ TODO:
+fauxparty not showing on solo
 target powerbar anchor/size
 aurapanel editbox size
-disable sorting
 aff shows timer sometimes
 fauxaura not moving with frames
 alt powerbar
