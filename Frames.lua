@@ -685,7 +685,6 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
             frame.portrait:ResetPosition()
             frame.portrait:Show()
             frame.factionIcon:SetPoint("CENTER", frame.portrait, "TOPRIGHT", 0, 0)
-            srslylawlUI.Utils_SetPointPixelPerfect(frame.unitLevel, "CENTER", frame.portrait, "BOTTOMRIGHT", 2, 5)
         elseif not enabled then
             frame:UnregisterEvent("UNIT_PORTRAIT_UPDATE")
 	        frame:UnregisterEvent("UNIT_MODEL_CHANGED")
@@ -693,8 +692,10 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
                 frame.portrait:Hide()
             end
             frame.factionIcon:SetPoint("CENTER", frame.unit, "TOPRIGHT", 0, 0)
-            srslylawlUI.Utils_SetPointPixelPerfect(frame.unitLevel, "CENTER", frame.unit, "RIGHT", 2, 0)
         end
+    end
+    function frame:ResetUnitLevelIcon()
+        srslylawlUI.Frame_AnchorFromSettings(self.unitLevel, "player.targetFrame.unitLevel.position")
     end
     local oldSetSize = frame.SetSize
     function frame:SetSize(x, y)
@@ -742,6 +743,7 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
         end
     end
     frame:TogglePortrait()
+    frame:ResetUnitLevelIcon()
     frame:UpdateUnitLevel()
 end
 function srslylawlUI.CreateCastBar(parent, unit)
@@ -1062,6 +1064,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
     local unitsType = barParent:GetAttribute("unitsType")
     bh.barParent = barParent
     bh.bars = {}
+    bh.unit = unit
 
     function frame:RegisterBar(bar, priority, height)
         local disabled = false
@@ -1103,6 +1106,8 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             end
         end
         bar.disabled = disabled
+        bar.isUnparented = false
+
 
         for _, v in pairs(bh.bars) do
             if v.bar == bar then
@@ -1126,12 +1131,6 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         else
             bar:HookScript("OnHide", function() self:SetPoints() end)
         end
-
-        bar.isUnparented = false
-
-        bar:SetScript("OnHide", function() self:SetPoints() end)
-
-        -- self:SortBars()
     end
     function frame:UnregisterBar(bar)
         local found
@@ -1150,6 +1149,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
     end
     function frame:UnregisterAll()
         local actualIndex = 1
+        local removed = {}
         for i=1,#bh.bars do
             if bh.bars[i].bar.name == "CastBar" then
                 -- Move i's kept value to actualIndex's position, if it's not already there.
@@ -1160,8 +1160,12 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 actualIndex = actualIndex + 1; -- Increment position of where we'll place the next kept value.
             else
                 bh.bars[i].bar.isUnparented = true
+                table.insert(removed, bh.bars[i].bar)
                 bh.bars[i] = nil;
             end
+        end
+        for _, bar in pairs(removed) do
+            bar:UpdateVisible()
         end
     end
     function frame:SortBars()
@@ -1175,10 +1179,12 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         local currentBar
         local lastBar
         local height
+        local started = true
+        
         for i=1, #bh.bars do
             currentBar = bh.bars[i].bar
             height = bh.bars[i].height or 40
-            if currentBar:IsShown() and currentBar:GetAlpha() > .9 and not currentBar.disabled then --ignore if the bar isnt visible
+            if currentBar:IsShown() and currentBar:GetAlpha() > .9 and not currentBar.disabled and not currentBar.isUnparented then --ignore if the bar isnt visible
                 if not lastBar then
                     srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "TOPLEFT", bh.barParent, "BOTTOMLEFT", 0, -1)
                     srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "BOTTOMRIGHT", bh.barParent, "BOTTOMRIGHT", 0, -1-height)
@@ -1195,7 +1201,9 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 currentBar:SetPoints(height)
                 currentBar.pointsSet = true
             end
-            currentBar:UpdateVisible()
+        end
+        for i=1, #bh.bars do
+            bh.bars[i].bar:UpdateVisible()
         end
     end
     function frame:SetDemoMode(active)

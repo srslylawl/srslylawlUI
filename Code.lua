@@ -107,8 +107,7 @@ local debugString = ""
 
 
 --[[ TODO:
-anchor for target level icon
-player buff scaledsize and tooltip
+powerbar % indicator
 hide powerbar when inactive setting
 non destro shards show timer sometimes
 alt powerbar
@@ -693,7 +692,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     local currentBuffFrame = 1
     local maxBuffs = srslylawlUI.GetSettingByUnit("buffs.maxBuffs", unitsType, unit)
     local buffSize = srslylawlUI.GetSettingByUnit("buffs.size", unitsType, unit)
-    local scaledBuffSize = srslylawlUI.GetSettingByUnit("buffs.scaledSize", unitsType, unit)
+    local scaledBuffSize = buffSize + srslylawlUI.GetSettingByUnit("buffs.scaledSize", unitsType, unit)
     local size
     for i = 1, 40 do
         -- loop through all buffs and assign them to frames
@@ -712,6 +711,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 elseif source and UnitIsEnemy(source, "player") then
                     f.border:SetVertexColor(unpack(buffIsEnemyColor))
                     size = buffSize
+                elseif unitsType == "mainUnits" and source and UnitIsUnit(source, "player") and unit == "player" then
+                    f.border:SetVertexColor(unpack(buffBaseColor))
+                    size = scaledBuffSize
                 else
                     f.border:SetVertexColor(unpack(buffBaseColor))
                     size = buffSize
@@ -760,7 +762,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     currentDebuffFrame = 1
 
     local debuffSize = srslylawlUI.GetSettingByUnit("debuffs.size", unitsType, unit)
-    local scaledDebuffSize = srslylawlUI.GetSettingByUnit("debuffs.scaledSize", unitsType, unit)
+    local scaledDebuffSize = debuffSize + srslylawlUI.GetSettingByUnit("debuffs.scaledSize", unitsType, unit)
     local maxDebuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
     for i = 1, 40 do
         local f = srslylawlUI[unitsType][unit].debuffFrames[currentDebuffFrame]

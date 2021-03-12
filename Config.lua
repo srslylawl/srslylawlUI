@@ -717,7 +717,7 @@ function srslylawlUI.CreateConfigWindow()
         local c = frame.CloseButton
         c:SetPoint("TOPRIGHT", 0, 0)
     end
-    local function CreateAnchoringPanel(parent, path, frame)
+    local function CreateAnchoringPanel(parent, path, frame, frameAnchorTable)
         function Reanchor()
             frame:ClearAllPoints()
             local anchors = srslylawlUI.GetSetting(path)
@@ -726,7 +726,7 @@ function srslylawlUI.CreateConfigWindow()
         end
         local elements = {}
         elements[1] = CreateCustomDropDown("Point", 100, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
-        elements[2] = CreateFrameAnchorDropDown("To Frame", parent, frame, path..".2", srslylawlUI.FramesToAnchorTo, Reanchor)
+        elements[2] = CreateFrameAnchorDropDown("To Frame", parent, frame, path..".2", frameAnchorTable or srslylawlUI.FramesToAnchorTo, Reanchor)
         elements[3] = CreateCustomDropDown("Relative To", 100, parent, path..".3", srslylawlUI.anchorTable, Reanchor)
         elements[4] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".4", 1, 0, Reanchor)
         elements[5] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path..".5", 1, 0, Reanchor)
@@ -966,7 +966,14 @@ function srslylawlUI.CreateConfigWindow()
 
             local playerPosControl = CreateConfigControl(tab, unitName.." Frame Position")
             playerPosControl:ChainToControl(playerFrameControl)
-            local anchorElements = CreateAnchoringPanel(tab, path.."position", unitFrame.unit)
+            local aTable
+            if unit == "player" then
+                aTable = {"Screen", "TargetFrame", "TargetFramePortrait"}
+            elseif unit == "target" then
+                aTable = {"Screen", "PlayerFrame"}
+            end
+
+            local anchorElements = CreateAnchoringPanel(tab, path.."position", unitFrame.unit, aTable)
             playerPosControl:Add(unpack(anchorElements))
 
             if unit ~= "targettarget" then
@@ -1007,14 +1014,15 @@ function srslylawlUI.CreateConfigWindow()
                     end)
                     if unit == "target" then
                         if aType == "buff" then
-                            AddTooltip(scaledAuraSize, "Size of stealable/purgeable/dispellable buffs")
+                            AddTooltip(scaledAuraSize, "Extra size of stealable/purgeable/dispellable buffs")
                         else
-                            AddTooltip(scaledAuraSize, "Size of debuffs applied by yourself")
+                            AddTooltip(scaledAuraSize, "Extra size of debuffs applied by yourself")
                         end
                     else
                         if aType == "buff" then
+                            AddTooltip(scaledAuraSize, "Extra size of buffs applied by yourself")
                         else
-                            AddTooltip(scaledAuraSize, "Size of debuffs applied by yourself")
+                            AddTooltip(scaledAuraSize, "Extra size of debuffs applied by yourself")
                         end
                     end
                     local xOffset = CreateCustomSlider("X Offset", tab, -500, 500, path..aType.."s.xOffset", 1, 0, function()
@@ -1191,7 +1199,12 @@ function srslylawlUI.CreateConfigWindow()
                     local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, "player.targetFrame.portrait.anchor", {"Frame", "Powerbar"}, function() unitFrame:TogglePortrait() end)
                     portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
                     portraitControl:ChainToControl(ccbarControl)
-                    anchor = portraitControl
+
+                    local unitLevelControl = CreateConfigControl(tab, "Target Level")
+                    local elements = CreateAnchoringPanel(tab, "player.targetFrame.unitLevel.position", unitFrame.unitLevel, {"TargetFrame", "TargetFramePortrait"})
+                    unitLevelControl:Add(unpack(elements))
+                    unitLevelControl:ChainToControl(portraitControl)
+                    anchor = unitLevelControl
                 end
             else
                 anchor = playerPosControl

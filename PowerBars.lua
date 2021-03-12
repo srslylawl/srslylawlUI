@@ -373,7 +373,6 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     function frame:RogueUpdate()
         local displayCount = UnitPower(self.unit, self.powerToken)
         for i=1, self.desiredButtonCount do
-            -- print(i, self.pointFrames[i].isCharged)
             if not self.pointFrames[i].isCharged then
                 self.pointFrames[i]:SetShown(i <= displayCount)
             else
@@ -429,8 +428,8 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     end
 
     function frame:UpdateVisible()
+        local visible = true
         if specID >= 250 and specID <= 252 then --dk
-            local visible = true
             if self.hideWhenInactive then
                 if self.alwaysShowInCombat and InCombatLockdown() then
                     visible = true
@@ -443,7 +442,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             end
             return
         end
-        local visible = true
+        local displayCount = UnitPower(self.unit, self.powerToken)
         if self.hideWhenInactive then
             if self.alwaysShowInCombat and InCombatLockdown() then
                 visible = true
@@ -456,7 +455,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         if self.specID >= 259 and self.specID <= 261 then --rogue
             visible = self.hasChargedPoint or visible
         end
-        if self.disabled then visible = false end
+        if self.disabled or self.isUnparented then visible = false end
         if self:IsShown() ~= visible then
             self:SetShown(visible)
         end
@@ -507,7 +506,7 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
             end
         end
 
-        if self.disabled then visible = false end
+        if self.disabled or self.isUnparented then visible = false end
 
         if self:IsShown() ~= visible then
             self:SetShown(visible)
@@ -546,8 +545,7 @@ local height3 = 15
 
 function srslylawlUI.PowerBar.Set(parent, unit)
     parent:UnregisterAll()
-    local specID = srslylawlUI.GetSpecID()
-    parent:SetAttribute("specID", specID)
+    parent.specID = srslylawlUI.GetSpecID()
     local function DisplayMainBar(parent)
         local _, powerToken = UnitPowerType("player")
         powerToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
@@ -620,7 +618,7 @@ function srslylawlUI.PowerBar.GetPowerToken()
     return srslylawlUI.PowerBar.SpecToPowerType[srslylawlUI.GetSpecID()]
 end
 function srslylawlUI.PowerBar.GetBar(parent, type, token)
-    local specID = parent:GetAttribute("specID")
+    local specID = parent.specID
     if not parent.powerBars[token] then
         if token == "Stagger" then
             parent.powerBars[token] = srslylawlUI.PowerBar.CreateResourceBar(parent, token, specID)
@@ -663,7 +661,7 @@ function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
         Tree of Life - 2
     ]]
 
-    rageBar:Hide() -- since it resets to 25 on bear enter anyway
+    -- rageBar:Hide() -- since it resets to 25 on bear enter anyway
     if specID ~= 103 then
         energyBar:Hide()
     end
