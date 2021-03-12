@@ -233,11 +233,43 @@ function srslylawlUI.CreateCustomFontString(frame, name, fontSize, template, mod
         if self.fontSize == size then return end
         self:SetFont("Fonts\\FRIZQT__.TTF", size, mod or nil)
         self.fontSize = size
+        if self.w and self.h and self.baseSize then
+            self.ScaleToFit(self.w, self.h, self.baseSize)
+        elseif self.isLimited then
+            self:Limit()
+        end
     end
 
     function fString:ScaleToFit(w, h, baseSize)
         local factor = math.min(w, h) / baseSize
         self:SetFont("Fonts\\FRIZQT__.TTF", (math.max(srslylawlUI.Utils_ScuffedRound(self.fontSize*factor), 1)))
+        self.w, self.h, self.baseSize = w, h, baseSize
+
+        if self.isLimited then
+            self:Limit()
+        end
+    end
+
+    function fString:Limit()
+        local substring
+        local wasShortened = false
+        for length = #self.text, 1, -1 do
+            substring = srslylawlUI.Utils_ShortenString(self.text, 1, length)
+            self:SetText(wasShortened and self.dots and substring..".." or substring)
+            if self:GetStringWidth() <= self.maxPixels then
+                return
+            end
+            wasShortened = true
+        end
+    end
+
+    function fString:SetLimitedText(maxPixels, text, dots)
+        self.isLimited = true
+        self.maxPixels = maxPixels
+        self.dots = dots
+        self.text = text
+
+        self:Limit()
     end
 
     fString:ChangeFontSize(fontSize)
@@ -326,12 +358,10 @@ function srslylawlUI.FrameSetup()
 
         local fontSize = (party or faux) and srslylawlUI.GetSetting("party.hp.fontSize") or srslylawlUI.GetSetting("player."..unit.."Frame.hp.fontSize")
         unitFrame.unit.healthBar.leftTextFrame = CreateFrame("Frame", "$parent_leftTextFrame", unitFrame.unit.healthBar)
-        unitFrame.unit.healthBar.leftText = unitFrame.unit.healthBar.leftTextFrame:CreateFontString("$parent_leftText", "OVERLAY", "GameFontHIGHLIGHT")
-        unitFrame.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", fontSize)
+        unitFrame.unit.healthBar.leftText = srslylawlUI.CreateCustomFontString(unitFrame.unit.healthBar.leftTextFrame, "LeftText", fontSize, "GameFontHIGHLIGHT")
 
         unitFrame.unit.healthBar.rightTextFrame = CreateFrame("Frame", "$parent_rightTextFrame", unitFrame.unit.healthBar)
-        unitFrame.unit.healthBar.rightText = unitFrame.unit.healthBar.rightTextFrame:CreateFontString("$parent_rightText", "OVERLAY", "GameFontHIGHLIGHT")
-        unitFrame.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", fontSize)
+        unitFrame.unit.healthBar.rightText = srslylawlUI.CreateCustomFontString(unitFrame.unit.healthBar.rightTextFrame, "rightText", fontSize, "GameFontHIGHLIGHT")
 
         unitFrame.unit.healthBar.leftTextFrame:SetFrameLevel(9)
         unitFrame.unit.healthBar.rightTextFrame:SetFrameLevel(9)
@@ -737,8 +767,6 @@ function srslylawlUI.CreateCastBar(parent, unit)
             return
         end
 
-	    -- self.StatusBar.SpellName:SetText(spell)
-        
 	    self.Icon:SetTexture(icon)
 	    self.Icon:Show()
 
@@ -759,7 +787,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
         self:SetAlpha(1)
         --trigger hook functions, such as bar ordering
         self:GetScript("OnShow")(self)
-        srslylawlUI.Utils_SetLimitedText(self.StatusBar.SpellName, self.StatusBar:GetWidth()*0.8, spell, true)
+        self.StatusBar.SpellName:SetLimitedText(self.StatusBar:GetWidth()*0.8, spell, true)
 
         
         self:SetScript("OnUpdate", CastOnUpdate)
@@ -1541,7 +1569,7 @@ function srslylawlUI.Frame_ResetName(button, unit)
         return
     end
     local name = UnitName(unit) or UNKNOWN
-    srslylawlUI.Utils_SetLimitedText(button.healthBar.leftText, button.healthBar:GetWidth()*0.5, name, true)
+    button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.5, name, true)
 end
 function srslylawlUI.Frame_ResetPetButton(button, unit)
     if UnitExists(unit) then
@@ -1601,10 +1629,10 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local healthPercent = ceil(health / healthMax * 100)
     if unit == "target" then
         local name = UnitName(unit) or UNKNOWN
-        srslylawlUI.Utils_SetLimitedText(button.healthBar.leftText, button.healthBar:GetWidth()*0.5, healthPercent .. "%".." ".. name, true)
+        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.5, healthPercent .. "%".." ".. name, true)
         button.healthBar.rightText:SetText(srslylawlUI.ShortenNumber(health).."/"..srslylawlUI.ShortenNumber(healthMax))
     else
-        srslylawlUI.Utils_SetLimitedText(button.healthBar.rightText, button.healthBar:GetWidth()*0.5, srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%")
+        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.5, srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%")
     end
     button.healthBar:SetMinMaxValues(0, healthMax)
     button.healthBar:SetValue(health)
