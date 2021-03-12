@@ -107,6 +107,7 @@ local debugString = ""
 
 
 --[[ TODO:
+player buff scaledsize and tooltip
 hide powerbar when inactive setting
 non destro shards show timer sometimes
 alt powerbar
@@ -411,16 +412,16 @@ function srslylawlUI.TranslateFrameAnchor(anchor)
         if anchor == "Screen" then
             return nil
         elseif anchor == "PlayerFrame" then
-            return srslylawlUI.mainUnits.player.unitFrame
+            return srslylawlUI.mainUnits.player.unitFrame.unit
         elseif anchor == "TargetFrame" then
-            return srslylawlUI.mainUnits.target.unitFrame
+            return srslylawlUI.mainUnits.target.unitFrame.unit
         elseif anchor == "TargetFramePortrait" then
             return srslylawlUI.mainUnits.target.unitFrame.portrait
         end
     elseif type(anchor) == "table" then
-        if anchor == srslylawlUI.mainUnits.player.unitFrame then
+        if anchor == srslylawlUI.mainUnits.player.unitFrame.unit then
             return "PlayerFrame"
-        elseif anchor == srslylawlUI.mainUnits.target.unitFrame then
+        elseif anchor == srslylawlUI.mainUnits.target.unitFrame.unit then
             return "TargetFrame"
         elseif anchor == nil or UIParent then
             return "Screen"
@@ -1629,29 +1630,11 @@ function srslylawlUI.LoadSettings(reset, announce)
             element:Reset()
         end
     end
-
-    if srslylawlUI_PartyHeader then
-        srslylawlUI_PartyHeader:ClearAllPoints()
-        srslylawlUI_PartyHeader:SetPoint(unpack(srslylawlUI.GetSetting("party.header.position")))
+    srslylawlUI.RemoveDirtyFlag()
+    if reset then
         srslylawlUI.Frame_UpdateVisibility()
-        srslylawlUI.RemoveDirtyFlag()
+        srslylawlUI.UpdateEverything()
     end
-    -- for _, unit in pairs(mainUnitsTable) do
-    --     local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
-    --     local frame = mainUnits[unit].unitFrame
-    --     if frame then
-    --         if a and #a > 1 then
-    --         srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], a[2], a[3], a[4], a[5])
-    --         elseif unit == "targettarget" then
-    --             frame:SetPoint("TOPLEFT", mainUnits.target.unitFrame, "TOPRIGHT", 0, 0)
-    --         elseif unit == "target" then
-    --             frame:SetPoint("TOPLEFT", nil, "CENTER", 0, 0)
-    --         elseif unit == "player" then
-    --             frame:SetPoint("TOPRIGHT", nil, "CENTER", 0, 0)
-    --         end
-    --     end
-    -- end
-    if (reset) then srslylawlUI.UpdateEverything() end
 end
 function srslylawlUI.SaveSettings()
     srslylawlUI.Log("Settings Saved")

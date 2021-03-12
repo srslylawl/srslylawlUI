@@ -465,7 +465,7 @@ function srslylawlUI.CreateConfigWindow()
                     local rB = GetRowBounds(rowIndex)
                     rB.height = elementHeight
                     rB.currentOffset = inset
-                    element.bounds:SetPoint("TOPLEFT", rB, "BOTTOMLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
+                    element.bounds:SetPoint("TOPLEFT", rB, "TOPLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
                     rB.currentOffset = inset+elementWidth + offset
                 end
                 totalWidth = currentWidth > totalWidth and currentWidth or totalWidth
@@ -850,7 +850,9 @@ function srslylawlUI.CreateConfigWindow()
         local minWidthPercent = CreateCustomSlider("Minimum Width %", tab, .01, 1, path.."hp.minWidthPercent", .01, 2, srslylawlUI.UpdateEverything)
         AddTooltip(minWidthPercent, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
         local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, srslylawlUI.UpdateEverything)
-        healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize)
+
+        local partyAnchors = CreateAnchoringPanel(tab, "party.header.position", srslylawlUI_PartyHeader)
+        healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize, unpack(partyAnchors))
 
         --party powerbars
         local powerBars = CreateConfigControl(tab, "Party Power")
@@ -1182,8 +1184,14 @@ function srslylawlUI.CreateConfigWindow()
                     end)
                     ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority)
                     ccbarControl:ChainToControl(castBarControl)
-                    anchor = ccbarControl
 
+                    local portraitControl = CreateConfigControl(tab, "Target Portrait")
+                    local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, "player.targetFrame.portrait.enabled", function() unitFrame:TogglePortrait() end)
+                    local portraitPosition = CreateCustomDropDown("Position", 250, tab, "player.targetFrame.portrait.position", {"LEFT", "RIGHT"}, function() unitFrame:TogglePortrait() end)
+                    local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, "player.targetFrame.portrait.anchor", {"Frame", "Powerbar"}, function() unitFrame:TogglePortrait() end)
+                    portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
+                    portraitControl:ChainToControl(ccbarControl)
+                    anchor = portraitControl
                 end
             else
                 anchor = playerPosControl

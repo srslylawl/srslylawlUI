@@ -4,7 +4,7 @@ srslylawlUI.defaultSettings = {
     party = {
         header = {
             enabled = true,
-            position = {"LEFT", 250, 200}
+            position = { "LEFT", "Screen", "LEFT", 100, 100},
         },
         hp = {
             width = 300, height = 60, minWidthPercent = 0.55, fontSize = 12
@@ -92,6 +92,11 @@ srslylawlUI.defaultSettings = {
                 disabled = false,
                 height = 20,
                 priority = 1,
+            },
+            portrait = {
+                enabled = true,
+                position = "RIGHT",
+                anchor = "Frame"
             }
         },
         targettargetFrame = {

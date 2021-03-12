@@ -384,8 +384,8 @@ function srslylawlUI.FrameSetup()
         return unitFrame
     end
     local header = CreateFrame("Frame", "srslylawlUI_PartyHeader", nil)
-    header:SetSize(srslylawlUI.GetSetting("party.hp.width"), srslylawlUI.GetSetting("party.hp.height"))
-    header:SetPoint(unpack(srslylawlUI.GetSetting("party.header.position")))
+    header:SetSize(srslylawlUI.GetSetting("party.hp.width"), srslylawlUI.GetSetting("party.hp.height")*5)
+    srslylawlUI.Frame_AnchorFromSettings(header, "party.header.position")
     header:Show()
     --Create Unit Frames
     local fauxHeader = CreateFrame("Frame", "srslylawlUI_FAUX_PartyHeader", header)
@@ -458,9 +458,7 @@ function srslylawlUI.FrameSetup()
             srslylawlUI.CreateDebuffFrames(frame, unit)
             CreateCustomFrames(frame, unit)
         end
-        local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
-        srslylawlUI.Utils_SetPointPixelPerfect(frame.unit, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
-
+        srslylawlUI.Frame_AnchorFromSettings(frame.unit, "player."..unit.."Frame.position")
         srslylawlUI.Frame_InitialMainUnitConfig(frame)
     end
     srslylawlUI.Frame_UpdateVisibility()
@@ -569,6 +567,8 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
             GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
             GameTooltip:SetUnit(unit.."pet")
         end)
+        buttonFrame:RegisterEvent("PLAYER_DEAD")
+        buttonFrame:RegisterEvent("PLAYER_UNGHOST")
         srslylawlUI.Frame_ResetDimensions_Pet(buttonFrame)
         buttonFrame.unit.powerBar:Hide()
         srslylawlUI.BarHandler_Create(buttonFrame, buttonFrame.unit)
@@ -610,41 +610,104 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
     frame:RegisterBar(frame.CastBar, 0)
     frame:RegisterBar(frame.unit.CCDurBar)
 
-    frame:RegisterEvent("UNIT_PORTRAIT_UPDATE", "target")
-	frame:RegisterEvent("UNIT_MODEL_CHANGED", "target")
-    frame:RegisterEvent("UNIT_FACTION", "target")
-    local portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame.unit)
-    srslylawlUI.Utils_SetPointPixelPerfect(portrait, "TOPLEFT", frame.unit, "TOPRIGHT", 1, 0)
-    local height = srslylawlUI.GetSetting("player.targetFrame.hp.height")
-    srslylawlUI.Utils_SetPointPixelPerfect(portrait, "BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", height+1, 0)
-    portrait:SetAlpha(1)
-    portrait:SetUnit("target")
-    portrait:SetPortraitZoom(1)
-    frame.unitLevel = srslylawlUI.CreateCustomFontString(portrait, "Level", 6, nil, "OUTLINE")
-    srslylawlUI.Utils_SetPointPixelPerfect(frame.unitLevel, "CENTER", portrait, "BOTTOMRIGHT", 2, 5)
-    frame.unitLevel:SetText("??")
+    frame.unitLevel = CreateFrame("Frame", "$parent_UnitLevel", frame.unit)
+    frame.unitLevel:SetFrameLevel(frame.unit:GetFrameLevel()+1)
+    frame.unitLevel.text = srslylawlUI.CreateCustomFontString(frame.unit, "Level", 6, nil, "OUTLINE")
+    frame.unitLevel.text:SetPoint("CENTER", frame.unitLevel)
+    srslylawlUI.Utils_SetSizePixelPerfect(frame.unitLevel, 20, 20)
+    frame.unitLevel.text:SetText("??")
 
-    frame.factionIcon = portrait:CreateTexture("$parent_FactionIcon", "OVERLAY")
+    frame.factionIcon = CreateFrame("Frame", "$parent_FactionIcon", frame.unit)
+    frame.factionIcon:SetFrameLevel(frame.unit:GetFrameLevel()+1)
+    frame.factionIcon.icon = frame.factionIcon:CreateTexture("$parent_FactionIcon", "OVERLAY")
     srslylawlUI.Utils_SetSizePixelPerfect(frame.factionIcon, 20, 20)
-    frame.factionIcon:SetPoint("CENTER", portrait, "TOPRIGHT", 0, 0)
-    frame.factionIcon:SetTexCoord(0, 0.625, 0, 0.625)
+    srslylawlUI.Utils_SetSizePixelPerfect(frame.factionIcon.icon, 20, 20)
+    frame.factionIcon.icon:SetPoint("CENTER")
+    frame.factionIcon.icon:SetTexCoord(0, 0.625, 0, 0.625)
+    frame:RegisterEvent("UNIT_FACTION", "target")
 
+
+
+    function frame:TogglePortrait()
+        local enabled = srslylawlUI.GetSetting("player.targetFrame.portrait.enabled")
+
+        if enabled and not frame.portrait then
+            frame.portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame.unit)
+            frame.portrait:SetAlpha(1)
+            frame.portrait:SetUnit("target")
+            frame.portrait:SetPortraitZoom(1)
+            frame.portrait:SetFrameLevel(frame.unit:GetFrameLevel())
+
+            function frame.portrait:ResetPosition()
+                local height = srslylawlUI.GetSetting("player.targetFrame.hp.height")
+                local anchor = srslylawlUI.GetSetting("player.targetFrame.portrait.anchor") == "Frame" and frame.unit or frame.unit.powerBar
+                local position = srslylawlUI.GetSetting("player.targetFrame.portrait.position")
+                frame.portrait:ClearAllPoints()
+                if position == "LEFT" then
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "TOPRIGHT", anchor, "TOPLEFT", -1, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMLEFT", anchor, "BOTTOMLEFT", -(height+1), 0)
+                elseif position == "RIGHT" then
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "TOPLEFT", anchor, "TOPRIGHT", 1, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMRIGHT", anchor, "BOTTOMRIGHT", height+1, 0)
+                end
+            end
+
+            srslylawlUI.CreateBackground(frame.portrait)
+            function frame.portrait:ModelUpdate()
+                --order seems very important here
+                if not UnitIsVisible("target") or not UnitIsConnected("target") then
+	                self:SetModelScale(5.5)
+	                self:SetPosition(2, 0, .9)
+                    self:SetPortraitZoom(5)
+                    self:ClearModel()
+	                self:SetModel("Interface\\Buttons\\talktomequestionmark.m2")
+                else
+		            self:SetPortraitZoom(1)
+		            self:SetPosition(0, 0, 0)
+                    self:ClearModel()
+		            self:SetUnit("target")
+                end
+            end
+            function frame.portrait:PortraitUpdate()
+                local guid = UnitGUID("target")
+	        	if self.guid ~= guid then
+                    self.guid = guid
+	        		self:ModelUpdate()
+	        	end
+            end
+            --portrait seems to be very sensitive to order of execution, needs it as onshow or else it wont update properly
+            frame.portrait:SetScript("OnShow", function(self) self:ModelUpdate() end)
+        end
+
+        if enabled then
+            frame:RegisterEvent("UNIT_PORTRAIT_UPDATE", "target")
+	        frame:RegisterEvent("UNIT_MODEL_CHANGED", "target")
+            frame.portrait:ResetPosition()
+            frame.portrait:Show()
+            frame.factionIcon:SetPoint("CENTER", frame.portrait, "TOPRIGHT", 0, 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(frame.unitLevel, "CENTER", frame.portrait, "BOTTOMRIGHT", 2, 5)
+        elseif not enabled then
+            frame:UnregisterEvent("UNIT_PORTRAIT_UPDATE")
+	        frame:UnregisterEvent("UNIT_MODEL_CHANGED")
+            if frame.portrait then
+                frame.portrait:Hide()
+            end
+            frame.factionIcon:SetPoint("CENTER", frame.unit, "TOPRIGHT", 0, 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(frame.unitLevel, "CENTER", frame.unit, "RIGHT", 2, 0)
+        end
+    end
     local oldSetSize = frame.SetSize
     function frame:SetSize(x, y)
-        srslylawlUI.Utils_SetPointPixelPerfect(portrait, "TOPLEFT", frame.unit, "TOPRIGHT", 1, 0)
-        local height = srslylawlUI.GetSetting("player.targetFrame.hp.height")
-        srslylawlUI.Utils_SetPointPixelPerfect(portrait, "BOTTOMRIGHT", frame.unit, "BOTTOMRIGHT", height+1, 0)
-
         oldSetSize(frame, x, y)
+        self:TogglePortrait()
     end
-
     function frame:UpdateUnitLevel()
         local unitLevel = UnitLevel("target")
 
         if unitLevel < 0 then
-            self.unitLevel:SetText("??")
+            self.unitLevel.text:SetText("??")
         else
-            self.unitLevel:SetText(unitLevel)
+            self.unitLevel.text:SetText(unitLevel)
         end
     end
     function frame:UpdateUnitFaction()
@@ -652,58 +715,33 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
 
         if ffa then
             if self.faction ~= faction then
-                    self.factionIcon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-FFA")
-                    self.factionIcon:Show()
+                    self.factionIcon.icon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-FFA")
+                    self.factionIcon.icon:Show()
                 self.faction = "FFA"
             end
         else
             local faction = UnitFactionGroup("target")
             if not faction or faction == "Neutral" then
                 if self.faction then
-                    self.factionIcon:Hide()
+                    self.factionIcon.icon:Hide()
                     self.faction = nil
                 end
             elseif faction == "Horde" then
                 if self.faction ~= faction then
-                    self.factionIcon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-Horde")
-                    self.factionIcon:Show()
+                    self.factionIcon.icon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-Horde")
+                    self.factionIcon.icon:Show()
                     self.faction = faction
                 end
             elseif faction == "Alliance" then
                 if self.faction ~= faction then
-                    self.factionIcon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-Alliance")
-                    self.factionIcon:Show()
+                    self.factionIcon.icon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-Alliance")
+                    self.factionIcon.icon:Show()
                     self.faction = faction
                 end
             end
         end
     end
-    srslylawlUI.CreateBackground(portrait)
-    portrait.ModelUpdate = function(self)
-        if not UnitIsVisible("target") or not UnitIsConnected("target") then
-	        self:SetModelScale(5.5)
-	        self:SetPosition(2, 0, .9)
-            self:SetPortraitZoom(5)
-            self:ClearModel()
-	        self:SetModel("Interface\\Buttons\\talktomequestionmark.m2")
-        else
-		    self:SetPortraitZoom(1)
-		    self:SetPosition(0, 0, 0)
-            self:ClearModel()
-		    self:SetUnit("target")
-        end
-    end
-    portrait.PortraitUpdate = function(self)
-        local guid = UnitGUID("target")
-		if self.guid ~= guid then
-            self.guid = guid
-			self:ModelUpdate()
-		end
-    end
-    frame.portrait = portrait
-
-    frame.portrait:SetScript("OnShow", function(self) self:ModelUpdate() end)
-    --portrait seems to be very sensitive to order of execution, needs it as onshow or else it wont update properly
+    frame:TogglePortrait()
     frame:UpdateUnitLevel()
 end
 function srslylawlUI.CreateCastBar(parent, unit)
@@ -1023,9 +1061,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
     local unit = barParent:GetAttribute("unit")
     local unitsType = barParent:GetAttribute("unitsType")
     bh.barParent = barParent
-
     bh.bars = {}
-
 
     function frame:RegisterBar(bar, priority, height)
         local disabled = false
@@ -1176,7 +1212,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                     if not bh.demoBars[i] then
                         bh.demoBars[i] = CreateFrame("StatusBar", "$parent_DemoBar"..i, bh.barParent)
                         bh.demoBars[i]:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
-                        bh.demoBars[i].text = srslylawlUI.CreateCustomFontString(bh.demoBars[i], "Text", 15)
+                        bh.demoBars[i].text = srslylawlUI.CreateCustomFontString(bh.demoBars[i], "Text", srslylawlUI.GetSetting("player.playerFrame.power.fontSize"))
                         bh.demoBars[i].text:SetPoint("CENTER")
                     end
                     currentDemoBar = bh.demoBars[i]
@@ -1198,8 +1234,9 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                     end
 
                     currentDemoBar.text:SetText(currentBar.bar.name)
+                    currentDemoBar.text:ScaleToFit(srslylawlUI.Utils_PixelFromScreenToCode(currentDemoBar:GetWidth()), height, srslylawlUI.GetSetting("player.playerFrame.power.fontSize"))
 
-                    currentDemoBar:Show()
+                    currentDemoBar:SetShown(not currentBar.bar.disabled)
                     lastBar = currentDemoBar
                 end
                 for i=#bh.bars+1, #bh.demoBars do
@@ -1279,6 +1316,10 @@ function srslylawlUI_Frame_OnHide(button)
     srslylawlUI[unitsType][unit].absorbFramesOverlap[1]:Hide()
     srslylawlUI[unitsType][unit].effectiveHealthFrames[1]:Hide()
 end
+function srslylawlUI.Frame_AnchorFromSettings(frame, path)
+    local a = srslylawlUI.GetSetting(path)
+    srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
+end
 
 --party
 function srslylawlUI.Frame_Party_ResetDimensions_ALL()
@@ -1300,7 +1341,13 @@ end
 function srslylawlUI_PartyFrame_OnDragStop()
     if srslylawlUI_PartyHeader.isMoving then
         srslylawlUI_PartyHeader:StopMovingOrSizing()
-        srslylawlUI.ChangeSetting("party.header.point", srslylawlUI_PartyHeader:GetPoint())
+        srslylawlUI_PartyHeader.isMoving = false
+        local points = {srslylawlUI_PartyHeader:GetPoint()}
+        local offsets = {srslylawlUI.Utils_PixelFromScreenToCode(points[4], points[5])}
+        srslylawlUI.ChangeSetting("party.header.position", {points[1], srslylawlUI.TranslateFrameAnchor(points[2]), points[3], unpack(offsets)})
+        if srslylawlUI_PartyHeader.ResetAnchoringPanel then
+            srslylawlUI_PartyHeader:ResetAnchoringPanel(unpack({points[1], srslylawlUI.TranslateFrameAnchor(points[2]), points[3], unpack(offsets)}))
+        end
     end
 end
 function srslylawlUI.Frame_IsHeaderVisible()
@@ -1459,7 +1506,9 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                     self.CastBar:Hide()
                     self.CastBar:Show()
                 end
-                self.portrait:PortraitUpdate()
+                if self.portrait then
+                    self.portrait:PortraitUpdate()
+                end
                 self:UpdateUnitLevel()
                 self:UpdateUnitFaction()
                 srslylawlUI.HandleAuras(self.unit, unit)
@@ -1470,6 +1519,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         end
     elseif event == "PLAYER_SPECIALIZATION_CHANGED" and unit == "player" then
         srslylawlUI.PowerBar.Set(self, unit)
+    elseif event == "PLAYER_DEAD" or event == "PLAYER_UNGHOST" then
+        UpdatePowerBar(unit, nil)
     elseif event == "PARTY_LEADER_CHANGED" then
         self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
     elseif event == "READY_CHECK" then
