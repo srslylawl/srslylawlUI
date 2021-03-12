@@ -107,6 +107,7 @@ local debugString = ""
 
 
 --[[ TODO:
+anchor for target level icon
 player buff scaledsize and tooltip
 hide powerbar when inactive setting
 non destro shards show timer sometimes
@@ -122,7 +123,6 @@ more sort methods?
 vehiclestuff
 faux frames absorb auras
 revisit some of the sorting/resize logic, probably firing more often than necessary
-enable/disable features such as sorting/resizing
 ]]
 
 --Utils
@@ -880,7 +880,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                     if expirationTime == nil then return end
                     if timer >= updateInterval then
                         if duration == 0 then
-                            self:SetValue(1)
+                            self.statusBar:SetValue(1)
                             self.timer:SetText("")
                         else
                             remaining = expirationTime-GetTime()

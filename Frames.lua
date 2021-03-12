@@ -306,9 +306,9 @@ function srslylawlUI.FrameSetup()
                 srslylawlUI.Utils_SetSizePixelPerfect(self.icon, w, w)
             end
         end
-
         function CCDurationBar:UpdateVisible()
             local timer = self.timer:GetText()
+            if not timer then return end
             local n = tonumber(string.match(timer, "%d"))
             if self.disabled or type(n) ~= "number" or n < 0 then
                 self:Hide()

@@ -97,6 +97,9 @@ srslylawlUI.defaultSettings = {
                 enabled = true,
                 position = "RIGHT",
                 anchor = "Frame"
+            },
+            unitLevel = {
+                position = { "CENTER", "Frame", "BOTTOMRIGHT", 0, 0}
             }
         },
         targettargetFrame = {
@@ -121,5 +124,6 @@ srslylawlUI.defaultSettings = {
         buffBaseColor = {0.960, 0.952, 0.760},
         buffIsStealableColor = {0.760, 1, 0.984},
         buffIsEnemyColor = {0.603, 0.137, 0.1521}
-    }
+    },
+    announcements = true
 }
