@@ -41,7 +41,7 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = { "TOPRIGHT", "Screen", "CENTER", -200, -100},
             hp = {
-                width = 300, height = 70, fontSize = 12
+                width = 300, height = 70, fontSize = 6
             },
             buffs = { anchor = "TOPRIGHT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 30, maxBuffs = 25,
                 showCastByPlayer = true, maxDuration = 60, showDefensives = true, showInfiniteDuration = true, showDefault = true, showLongDuration = true
@@ -53,7 +53,7 @@ srslylawlUI.defaultSettings = {
                 width = 20
             },
             power = {
-                fontSize = 10,
+                fontSize = 6,
                 overrides = {
                 }
             },
@@ -68,7 +68,7 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = { "TOPLEFT", "Screen", "CENTER", 200, -100},
             hp = {
-                width = 300, height = 70, fontSize = 12
+                width = 300, height = 70, fontSize = 6
             },
             buffs = {
                 anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 30, maxBuffs = 25,

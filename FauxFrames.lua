@@ -210,8 +210,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     fontSizeChanged = self.fontSize ~= srslylawlUI.GetSetting("party.hp.fontSize")
                     if fontSizeChanged and unit ~= "player" then
                         self.fontSize = srslylawlUI.GetSetting("party.hp.fontSize")
-                        self.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(self.fontSize))
-                        self.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(self.fontSize))
+                        self.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", self.fontSize)
+                        self.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", self.fontSize)
                         srslylawlUI.Utils_SetLimitedText(self.unit.healthBar.leftText, self.unit.healthBar:GetWidth()*0.5, unit, true)
                         srslylawlUI.Utils_SetLimitedText(self.unit.healthBar.rightText, self.unit.healthBar:GetWidth()*0.5, hp, true)
                     end

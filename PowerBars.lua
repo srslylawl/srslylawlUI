@@ -167,7 +167,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         pointFrame:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
         pointFrame:SetMinMaxValues(0, 1)
         pointFrame:SetValue(1)
-        pointFrame.text = pointFrame:CreateFontString("$parent_point"..i, "ARTWORK", "GameTooltipTextSmall")
+        pointFrame.text = srslylawlUI.CreateCustomFontString(pointFrame, "$parent_point"..i, 6, "GameTooltipTextSmall")
         pointFrame.text:SetPoint("CENTER", pointFrame, "CENTER", 0, 0)
         return pointFrame
     end
@@ -215,12 +215,6 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         -- print("frame", middleFrame, "size adjusted by ", diff)
         local pixelPerfectCompensation
         local fontSize = srslylawlUI.GetSetting("player.playerFrame.power.fontSize")
-        if height > 0 then
-            local factor = height < barSize and height or barSize
-            local fontSizeScale = factor/fontSize
-            fontSize = srslylawlUI.Utils_ScuffedRound(fontSize*fontSizeScale)
-            fontSize = fontSize > 25 and 25 or fontSize
-        end
         for i=1, #self.pointFrames do
             local current = self.pointFrames[i]
             if i > self.desiredButtonCount then
@@ -236,7 +230,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             pixelPerfectCompensation = i == middleFrame and diff or 0
             srslylawlUI.Utils_SetSizePixelPerfect(current, barSize+pixelPerfectCompensation, height)
 
-            current.text:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
+            current.text:ScaleToFit(barSize, height, 20)
         end
         srslylawlUI.Utils_SetSizePixelPerfect(self, totalSize+diff, height)
 
@@ -533,15 +527,8 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
         self:Update()
     end
     function frame:SetPoints()
-        local h = srslylawlUI.Utils_PixelFromScreenToCode(self:GetHeight())
-        local fSize = srslylawlUI.GetSetting("player.playerFrame.power.fontSize")
-
-        if h > 0 then
-            local fontSizeScale = h/fSize
-            local newSize = srslylawlUI.Utils_ScuffedRound(fSize*fontSizeScale)
-            newSize = newSize > 25 and 25 or newSize
-            self.statusBar.rightText:ChangeFontSize(newSize)
-        end
+        local w, h = srslylawlUI.Utils_PixelFromScreenToCode(self:GetWidth(), self:GetHeight())
+        self.statusBar.rightText:ScaleToFit(w, h, 20)
     end
     if frame.powerToken then
         frame:UpdateMax()

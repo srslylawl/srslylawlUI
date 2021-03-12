@@ -243,9 +243,6 @@ function srslylawlUI.Utils_GetPixelScale()
         local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
         srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
     end
-    if srslylawlUI.pixelScaleX ~= 0.533203125 then
-    print(srslylawlUI.pixelScaleX)
-    end
     return srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY
 end
 function srslylawlUI.Utils_SetWidthPixelPerfect(frame, width)
@@ -1729,20 +1726,24 @@ function srslylawlUI.GetSetting(path, canBeNil)
     local pathTable = SplitStringAtChar(path, ".")
     local variable = FindInTable(srslylawlUI.loadedSettings, {unpack(pathTable)})
     if variable == nil then
+        --not in loaded settings
         variable = FindInTable(srslylawlUI_Saved.settings, {unpack(pathTable)})
         if variable == nil then
+            --not in saved settings
             variable = FindInTable(srslylawlUI.defaultSettings, {unpack(pathTable)})
-        end
-        if variable == nil then
-            if canBeNil then
-                return nil
+            if variable == nil then
+                --not in default settings either, doesnt exist
+                if canBeNil then
+                    return nil
+                else
+                    error("setting "..path.." does not exist")
+                end
             else
-                error("setting "..path.." does not exist")
+                --found in default settings, just wasnt loaded
+                local printVar = type(variable) ~= "table" and ": "..tostring(variable).." " or " "
+                srslylawlUI.Log("Variable not found in saved settings: '" .. path .. "'. Default value"..printVar.."used instead. Seeing this message after updating this addon should be fine.")
+                CreateValueAtPath(variable, pathTable, srslylawlUI_Saved.settings)
             end
-        else
-            local printVar = type(variable) ~= "table" and ": "..tostring(variable).." " or " "
-            srslylawlUI.Log("Variable not found in saved settings: '" .. path .. "'. Default value"..printVar.."used instead. Seeing this message after updating this addon should be fine.")
-            CreateValueAtPath(variable, pathTable, srslylawlUI_Saved.settings)
         end
     end
 

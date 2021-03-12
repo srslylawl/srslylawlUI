@@ -43,7 +43,7 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "TOPLEFT", f, "TOPLEFT", -1, 1)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.cooldown:SetSwipeTexture(swipeTexture)
-            f.count:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(size/2), "OUTLINE")
+            f.count:SetFont("Fonts\\FRIZQT__.TTF", size/2, "OUTLINE")
             f.count:SetPoint("BOTTOMRIGHT")
             srslylawlUI[unitsType][unit].buffFrames[i] = f
             f:Hide()
@@ -226,13 +226,18 @@ local function CreateCustomFrames(buttonFrame, unit)
     --effective health frame (sums up active defensive spells)
     CreateEffectiveHealthFrame(buttonFrame, unit, 1)
 end
-function srslylawlUI.CreateCustomFontString(frame, name, fontSize)
-    local fString = frame:CreateFontString("$parent"..name, "ARTWORK", "GameFontHighlight")
+function srslylawlUI.CreateCustomFontString(frame, name, fontSize, template, mod)
+    local fString = frame:CreateFontString(frame:GetName()..name, "ARTWORK", template or "GameFontHighlight")
 
     function fString:ChangeFontSize(size)
         if self.fontSize == size then return end
-        self:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(size))
+        self:SetFont("Fonts\\FRIZQT__.TTF", size, mod or nil)
         self.fontSize = size
+    end
+
+    function fString:ScaleToFit(w, h, baseSize)
+        local factor = math.min(w, h) / baseSize
+        self:SetFont("Fonts\\FRIZQT__.TTF", (math.max(srslylawlUI.Utils_ScuffedRound(self.fontSize*factor), 1)))
     end
 
     fString:ChangeFontSize(fontSize)
@@ -322,11 +327,11 @@ function srslylawlUI.FrameSetup()
         local fontSize = (party or faux) and srslylawlUI.GetSetting("party.hp.fontSize") or srslylawlUI.GetSetting("player."..unit.."Frame.hp.fontSize")
         unitFrame.unit.healthBar.leftTextFrame = CreateFrame("Frame", "$parent_leftTextFrame", unitFrame.unit.healthBar)
         unitFrame.unit.healthBar.leftText = unitFrame.unit.healthBar.leftTextFrame:CreateFontString("$parent_leftText", "OVERLAY", "GameFontHIGHLIGHT")
-        unitFrame.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
+        unitFrame.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", fontSize)
 
         unitFrame.unit.healthBar.rightTextFrame = CreateFrame("Frame", "$parent_rightTextFrame", unitFrame.unit.healthBar)
         unitFrame.unit.healthBar.rightText = unitFrame.unit.healthBar.rightTextFrame:CreateFontString("$parent_rightText", "OVERLAY", "GameFontHIGHLIGHT")
-        unitFrame.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
+        unitFrame.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", fontSize)
 
         unitFrame.unit.healthBar.leftTextFrame:SetFrameLevel(9)
         unitFrame.unit.healthBar.rightTextFrame:SetFrameLevel(9)
@@ -585,8 +590,7 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
     portrait:SetAlpha(1)
     portrait:SetUnit("target")
     portrait:SetPortraitZoom(1)
-    frame.unitLevel = srslylawlUI.CreateCustomFontString(portrait, "Level", 12)
-    frame.unitLevel:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(12), "OUTLINE")
+    frame.unitLevel = srslylawlUI.CreateCustomFontString(portrait, "Level", 6, nil, "OUTLINE")
     srslylawlUI.Utils_SetPointPixelPerfect(frame.unitLevel, "CENTER", portrait, "BOTTOMRIGHT", 2, 5)
     frame.unitLevel:SetText("??")
 
@@ -897,19 +901,11 @@ function srslylawlUI.CreateCastBar(parent, unit)
     end
 
     function cBar:SetPoints(h)
-        if h then
-            h = math.max(1, h)
-            srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, h, h)
-            local fSize = srslylawlUI.GetSettingByUnit("cast.fontSize", unitsType, unit)
-
-            if h > 0 then
-                local fontSizeScale = h/fSize
-                local newSize = srslylawlUI.Utils_ScuffedRound(fSize*fontSizeScale)
-                newSize = newSize > 25 and 25 or newSize
-                self.StatusBar.Timer:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(newSize))
-                self.StatusBar.SpellName:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(newSize))
-            end
-        end
+        h = h or srslylawlUI.Utils_PixelFromScreenToCode(self:GetHeight())
+        h = math.max(1, h)
+        srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, h, h)
+        self.StatusBar.Timer:ScaleToFit(h, h, 40)
+        self.StatusBar.SpellName:ScaleToFit(h, h, 40)
     end
 
     cBar.unit = unit
@@ -931,12 +927,10 @@ function srslylawlUI.CreateCastBar(parent, unit)
     cBar.StatusBar:Hide()
     cBar.Icon = cBar:CreateTexture("$parent_icon", "OVERLAY")
     cBar.Icon:SetTexCoord(.08, .92, .08, .92)
-    cBar.StatusBar.Timer = cBar.StatusBar:CreateFontString("$parent_Timer", "OVERLAY", "GameFontHIGHLIGHT")
     local fontSize = srslylawlUI.GetSettingByUnit("cast.fontSize", unitsType, unit)
     local height = srslylawlUI.GetSettingByUnit("cast.height", unitsType, unit)
-    cBar.StatusBar.Timer:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
-    cBar.StatusBar.SpellName = cBar.StatusBar:CreateFontString("$parent_SpellName", "OVERLAY", "GameFontHIGHLIGHT")
-    cBar.StatusBar.SpellName:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
+    cBar.StatusBar.Timer = srslylawlUI.CreateCustomFontString(cBar.StatusBar, "Timer", fontSize)
+    cBar.StatusBar.SpellName = srslylawlUI.CreateCustomFontString(cBar.StatusBar, "SpellName", fontSize)
     srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, height, height)
     cBar.Icon:SetPoint("TOPLEFT", cBar, "TOPLEFT", 0, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar, "TOPLEFT", cBar.Icon, "TOPRIGHT", 1, 0)
@@ -1671,8 +1665,8 @@ function srslylawlUI.Frame_ResetDimensions(button)
         end
     end
 
-    button.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
-    button.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(fontSize))
+    button.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", fontSize)
+    button.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", fontSize)
 
     srslylawlUI.Frame_ResetUnitButton(button.unit, button:GetAttribute("unit"))
 end
