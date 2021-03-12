@@ -575,13 +575,13 @@ function srslylawlUI.PowerBar.Set(parent, unit)
         local powerToken = srslylawlUI.PowerBar.GetPowerToken()
         local bar = srslylawlUI.PowerBar.GetBar(parent, "point", powerToken)
         parent:RegisterBar(bar, 5, floor(height2))
-        if specID >= 250 and specID <= 252 and not bar.isRegistered then --dk spec, use rune update
+        if parent.specID >= 250 and parent.specID <= 252 and not bar.isRegistered then --dk spec, use rune update
             bar:RegisterEvent("RUNE_POWER_UPDATE")
             bar:SetScript("OnEvent", function(self, event, ...)
                 self:RuneUpdate()
             end)
             bar.isRegistered = true
-        elseif specID >= 259 and specID <= 261 and not bar.isRegistered then --is rogue, check for kyrian ability cp chargedPointsTable
+        elseif parent.specID >= 259 and parent.specID <= 261 and not bar.isRegistered then --is rogue, check for kyrian ability cp chargedPointsTable
             bar:RegisterEvent("UNIT_POWER_POINT_CHARGE")
             bar:SetScript("OnEvent", function(self, event, ...)
                 self:OnComboPointCharged()
