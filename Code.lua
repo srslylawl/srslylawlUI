@@ -107,8 +107,7 @@ local debugString = ""
 
 
 --[[ TODO:
-target powerbar anchor/size
-aurapanel editbox size
+hide powerbar when inactive setting
 non destro shards show timer sometimes
 alt powerbar
 fauxparty not showing on solo
@@ -915,12 +914,22 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     srslylawlUI.HandleEffectiveHealth(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
     srslylawlUI.HandleAbsorbFrames(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
 end
+function srslylawlUI.Main_HandleAuras_ALL()
+    for _, unit in pairs(srslylawlUI.mainUnitsTable) do
+        if unit ~= "targettarget" then
+            local f = srslylawlUI.Frame_GetFrameByUnit(unit, "mainUnits")
+            if f.unit then
+                srslylawlUI.HandleAuras(f.unit, unit)
+            end
+        end
+    end
+end
 function srslylawlUI.Party_HandleAuras_ALL()
-    for k, v in pairs(srslylawlUI.partyUnitsTable) do
-        local f = srslylawlUI.Frame_GetFrameByUnit(v, "partyUnits")
+    for _k, unit in pairs(srslylawlUI.partyUnitsTable) do
+        local f = srslylawlUI.Frame_GetFrameByUnit(unit, "partyUnits")
 
         if f.unit then
-            srslylawlUI.HandleAuras(f.unit, v)
+            srslylawlUI.HandleAuras(f.unit, unit)
         end
     end
 end

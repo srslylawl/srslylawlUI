@@ -1699,6 +1699,7 @@ function srslylawlUI.Frame_ResetDimensions_Pet(button)
 end
 function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
     local unitsType = button:GetAttribute("unitsType")
+    button.unit.powerBar:ClearAllPoints()
     if unitsType ~= "mainUnits" then
         srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.GetSetting("party.power.width")), 0)
@@ -1707,6 +1708,16 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
         if unit == "targettarget" then
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1, 0)
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", 2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width"), 0)
+        elseif unit == "target" then
+            local pos = srslylawlUI.GetSetting("player.targetFrame.power.position")
+
+            if pos == "LEFT" then
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width")), 0)
+            else
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", (2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width")), 0)
+            end
         else
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width")), 0)

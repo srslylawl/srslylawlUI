@@ -13,8 +13,7 @@ function srslylawlUI.CreateConfigWindow()
         if srslylawlUI_ConfigFrame.fakeFramesToggled == bool then
             return
         end
-        srslylawlUI_ConfigFrame.lockFramesButton1:SetChecked(bool)
-        srslylawlUI_ConfigFrame.lockFramesButton2:SetChecked(bool)
+        srslylawlUI_ConfigFrame.lockFramesButton:SetChecked(bool)
 
         srslylawlUI_ConfigFrame.fakeFramesToggled = bool
         srslylawlUI_PartyHeader:SetMovable(bool)
@@ -471,7 +470,7 @@ function srslylawlUI.CreateConfigWindow()
                 end
                 totalWidth = currentWidth > totalWidth and currentWidth or totalWidth
             end
-
+            
             for i=1, rowIndex do
                 totalheight = totalheight + self.rowBounds[i].height
             end
@@ -479,6 +478,7 @@ function srslylawlUI.CreateConfigWindow()
             local w = self.useFullWidth and availableWidth or totalWidth + offset + inset*2
             self.bounds:SetSize(w, height)
             self.totalHeight = height
+            self:AddHeightToParent()
         end
 
         function frame:Add(...)
@@ -501,6 +501,7 @@ function srslylawlUI.CreateConfigWindow()
             if not anchor or anchor == "BOTTOM" then
                 self:SetPoint("TOPLEFT", control.bounds, "BOTTOMLEFT", 0, -10)
                 self.totalHeight = self:GetHeight()+10
+                self:AddHeightToParent()
             elseif anchor == "RIGHT" then
                 self:SetPoint("TOPLEFT", control.bounds, "TOPRIGHT", -10, 0)
                 self.totalHeight = self:GetHeight()
@@ -515,6 +516,11 @@ function srslylawlUI.CreateConfigWindow()
             end
 
             self.totalHeight = self:GetHeight()
+        end
+
+        function frame:AddHeightToParent()
+            if not parent.controls then parent.controls = {} end
+            parent.controls[self:GetName()] = self.totalHeight
         end
 
         frame:SetScript("OnHide", function(self)
@@ -762,45 +768,58 @@ function srslylawlUI.CreateConfigWindow()
         partySorting:Add(sortInfoBox, sortingEnabled)
         partySorting:ChainToControl(partyVisibility)
 
-        local buffVisibility = CreateConfigControl(tab, "Party Buffs Visibility")
-        buffVisibility:ChainToControl(partySorting)
+        local anchor = partySorting
 
-        local buffsDefault = CreateSettingsCheckButton("Default", tab, "party.buffs.showDefault", function() srslylawlUI.Party_HandleAuras_ALL() end)
-        AddTooltip(buffsDefault, "Show/hide all buffs per default, except if they are in/excluded by another setting.\n\nRecommended: Hiding all per default, while showing defensives and whitelisted auras.")
+        for _, unit in pairs({"Party", "Player", "Target"}) do
+            local cap = unit
+            unit = string.lower(unit)
+            local path = unit == "party" and "party." or "player."..unit.."Frame."
 
-        local buffsDefensive = CreateSettingsCheckButton("Defensives", tab, "party.buffs.showDefensives", function() srslylawlUI.Party_HandleAuras_ALL() end)
-        AddTooltip(buffsDefensive, "Show/hide buffs categorized as Defensives")
+            local buffVisibility = CreateConfigControl(tab, cap.." Buff Visibility")
+            buffVisibility:AppendToControl(anchor)
 
-        local buffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, "party.buffs.showCastByPlayer", function() srslylawlUI.Party_HandleAuras_ALL() end)
-        AddTooltip(buffsPlayer, "Show/hide buffs that have been applied by the Player")
+            local buffsDefault = CreateSettingsCheckButton("Default", tab, path.."buffs.showDefault", function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+            if unit == "party" then
+                    AddTooltip(buffsDefault, "Show/hide all buffs per default, except if they are in/excluded by another setting.\n\nRecommended: Hiding all per default, while showing defensives and whitelisted auras.")
+                else
+                    AddTooltip(buffsDefault, "Show/hide all buffs per default, except if they are in/excluded by another setting.")
+                end
+            local buffsDefensive = CreateSettingsCheckButton("Defensives", tab, path.."buffs.showDefensives", function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL()end)
+            AddTooltip(buffsDefensive, "Show/hide buffs categorized as Defensives")
 
-        local buffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab, "party.buffs.showInfiniteDuration", function() srslylawlUI.Party_HandleAuras_ALL() end)
-        AddTooltip(buffsInfinite, "Show/hide buffs with no expiration time")
+            local buffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, path.."buffs.showCastByPlayer", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
+            AddTooltip(buffsPlayer, "Show/hide buffs that have been applied by the Player")
 
-        local buffsLong = CreateSettingsCheckButton("Long Duration", tab, "party.buffs.showLongDuration", function() srslylawlUI.Party_HandleAuras_ALL() end)
-        AddTooltip(buffsLong, "Show/hide buffs with a base duration longer than 60 seconds")
+            local buffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab, path.."buffs.showInfiniteDuration", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
+            AddTooltip(buffsInfinite, "Show/hide buffs with no expiration time")
 
-        buffVisibility:Add(buffsDefault, buffsDefensive, buffsPlayer, buffsInfinite, buffsLong)
+            local buffsLong = CreateSettingsCheckButton("Long Duration", tab, path.."buffs.showLongDuration", function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL()end)
+            AddTooltip(buffsLong, "Show/hide buffs with a base duration longer than 60 seconds")
 
-        local debuffVisibility = CreateConfigControl(tab, "Party Debuff Visibility")
-        debuffVisibility:ChainToControl(buffVisibility)
+            buffVisibility:Add(buffsDefault, buffsDefensive, buffsPlayer, buffsInfinite, buffsLong)
 
-        local debuffsDefault = CreateSettingsCheckButton("Default", tab, "party.debuffs.showDefault", function() srslylawlUI.Party_HandleAuras_ALL() end)
-        AddTooltip(debuffsDefault, "Show/hide all debuffs per default, except if they are in/excluded by another setting.\n\nRecommended: Showing all per default, while hiding infinite duration auras")
+            local debuffVisibility = CreateConfigControl(tab, cap.." Debuff Visibility")
+            debuffVisibility:ChainToControl(buffVisibility)
 
-        local debuffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, "party.debuffs.showCastByPlayer", function() srslylawlUI.Party_HandleAuras_ALL() end)
-        AddTooltip(debuffsPlayer, "Show/hide debuffs that have been applied by the Player")
+            local debuffsDefault = CreateSettingsCheckButton("Default", tab, path.."debuffs.showDefault", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
+            AddTooltip(debuffsDefault, "Show/hide all debuffs per default, except if they are in/excluded by another setting.\n\nRecommended: Showing all per default, while hiding infinite duration auras")
 
-        local debuffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab, "party.debuffs.showInfiniteDuration", function() srslylawlUI.Party_HandleAuras_ALL() end)
-        AddTooltip(debuffsInfinite, "Show/hide debuffs with no expiration time")
+            local debuffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, path.."debuffs.showCastByPlayer", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
+            AddTooltip(debuffsPlayer, "Show/hide debuffs that have been applied by the Player")
 
-        local debuffsLong = CreateSettingsCheckButton("Long Duration", tab, "party.debuffs.showLongDuration", function() srslylawlUI.Party_HandleAuras_ALL() end)
-        AddTooltip(debuffsLong, "Show/hide buffs with a base duration longer than 180 seconds")
+            local debuffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab, path.."debuffs.showInfiniteDuration", function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL()end)
+            AddTooltip(debuffsInfinite, "Show/hide debuffs with no expiration time")
 
-        debuffVisibility:Add(debuffsDefault, debuffsPlayer, debuffsInfinite, debuffsLong)
+            local debuffsLong = CreateSettingsCheckButton("Long Duration", tab, path.."debuffs.showLongDuration", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
+            AddTooltip(debuffsLong, "Show/hide buffs with a base duration longer than 180 seconds")
+
+            debuffVisibility:Add(debuffsDefault, debuffsPlayer, debuffsInfinite, debuffsLong)
+
+            anchor = debuffVisibility
+        end
 
         local showBlizzardFrames = CreateConfigControl(tab, "Show Blizzard Frames (requires UI reload)")
-        showBlizzardFrames:AppendToControl(debuffVisibility)
+        showBlizzardFrames:AppendToControl(anchor)
 
         local player = CreateSettingsCheckButton("Player Frame", tab, "blizzard.player.enabled", nil)
 
@@ -813,25 +832,18 @@ function srslylawlUI.CreateConfigWindow()
         local castbar = CreateSettingsCheckButton("Castbar", tab, "blizzard.castbar.enabled", nil)
         showBlizzardFrames:Add(player, target, party, auras, castbar)
 
+        local h = 0
+        for _, v in pairs(tab.controls) do
+            h = h + v
+        end
+
+        tab:SetHeight(h)
     end
     local function FillPartyFramesTab(tab)
-        -- HP Bar Sliders
-        local cFrame = srslylawlUI_ConfigFrame
-        cFrame.fakeFramesToggled = false
-
-        local lockFrames = CreateCheckButton("Preview settings and make frames moveable", tab)
-        cFrame.lockFramesButton1 = lockFrames
-        lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
-        lockFrames:SetScript("OnClick", function(self)
-            ToggleFakeFrames(self:GetChecked())
-            cFrame.fakeFramesToggled = self:GetChecked()
-        end)
-
         local path = "party."
-
         --party health bars
         local healthControl = CreateConfigControl(tab, "Party Health")
-        healthControl:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, -50)
+        healthControl:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, -15)
 
         local hpWidth = CreateCustomSlider("Maximum Width", tab, 1, 3000, path.."hp.width", 1, 0, srslylawlUI.UpdateEverything)
         local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path.."hp.height", 1, 0, srslylawlUI.UpdateEverything)
@@ -905,18 +917,16 @@ function srslylawlUI.CreateConfigWindow()
             auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, maxAuras)
             anchor = auraControl
         end
+
+        local h = 0
+        for _, v in pairs(tab.controls) do
+            h = h + v
+        end
+
+        tab:SetHeight(h)
     end
     local function FillPlayerFramesTab(tab)
         local cFrame = srslylawlUI_ConfigFrame
-        cFrame.fakeFramesToggled = false
-
-        local lockFrames = CreateCheckButton("Preview settings and make frames moveable", tab)
-        cFrame.lockFramesButton2 = lockFrames
-        lockFrames:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
-        lockFrames:SetScript("OnClick", function(self)
-            ToggleFakeFrames(self:GetChecked())
-            cFrame.fakeFramesToggled = self:GetChecked()
-        end)
 
         local anchor = tab
         for _, unit in pairs(srslylawlUI.mainUnitsTable) do
@@ -926,7 +936,7 @@ function srslylawlUI.CreateConfigWindow()
             local path = "player."..unit.."Frame."
             local unitFrame = srslylawlUI.mainUnits[unit].unitFrame
             if unit == "player" then
-                playerFrameControl:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -50)
+                playerFrameControl:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -15)
             else
                 playerFrameControl:AppendToControl(anchor)
                 if unit == "target" then
@@ -1137,6 +1147,16 @@ function srslylawlUI.CreateConfigWindow()
                 end
 
                 if unit == "target" then
+                    local powerBarControl = CreateConfigControl(tab, "Target Powerbar")
+                    local powerBarWidth = CreateCustomSlider("Width", tab, 0, 100, "player.targetFrame.power.width", 1, 0, function()
+                        srslylawlUI.Frame_ResetDimensions_PowerBar(srslylawlUI.mainUnits.target.unitFrame)
+                    end)
+                    local position = CreateCustomDropDown("Position", 200, tab, "player.targetFrame.power.position", {"LEFT", "RIGHT"}, function()
+                        srslylawlUI.Frame_ResetDimensions_PowerBar(srslylawlUI.mainUnits.target.unitFrame)
+                    end)
+                    powerBarControl:Add(powerBarWidth, position)
+                    
+                    powerBarControl:ChainToControl(anchor)
                     local castBarControl = CreateConfigControl(tab, "Target CastBar")
                     local castBarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.cast.disabled", function()
                         unitFrame:ReRegisterAll()
@@ -1148,7 +1168,7 @@ function srslylawlUI.CreateConfigWindow()
                         unitFrame:ReRegisterAll()
                     end)
                     castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority)
-                    castBarControl:ChainToControl(anchor)
+                    castBarControl:ChainToControl(powerBarControl)
 
                     local ccbarControl = CreateConfigControl(tab, "Target CrowdControl")
                     local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.ccbar.disabled", function()
@@ -1169,6 +1189,13 @@ function srslylawlUI.CreateConfigWindow()
                 anchor = playerPosControl
             end
         end
+
+        local h = 0
+        for _, v in pairs(tab.controls) do
+            h = h + v
+        end
+
+        tab:SetHeight(h)
     end
     local function Tab_OnClick(self)
         local parent = self:GetParent()
@@ -1632,8 +1659,6 @@ function srslylawlUI.CreateConfigWindow()
             parent:GetParent():GetParent():Show()
         end)
 
-
-
         return parent.ScrollFrame, parent.ScrollFrame.child
     end
     local function CreateBuffTabs(knownSpells, absorbSpells, defensives, whiteList, blackList)
@@ -1669,6 +1694,7 @@ function srslylawlUI.CreateConfigWindow()
             tab:SetAttribute("spellList", key)
             tab:SetAttribute("auraType", "debuffs")
             CreateScrollFrameWithBGAndChild(tab)
+            tab.borderFrame:SetBackdropColor(1, .5, .5, .4)
         end
         CreateFrames(knownDebuffs, "known")
         CreateFrames(whiteList, "whiteList")
@@ -1679,11 +1705,52 @@ function srslylawlUI.CreateConfigWindow()
         CreateFrames(silences, "silences")
         CreateFrames(roots, "roots")
     end
+    local function SetupScrollingTabContent(tab)
+        Mixin(tab, BackdropTemplateMixin)
+        tab:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 10,
+        insets = {left = 4, right = 4, top = 4, bottom = 4}
+        })
+        tab:SetBackdropColor(0, 0, 0, .4)
+        local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", tab, "UIPanelScrollFrameTemplate")
+        ScrollFrame:SetClipsChildren(true)
+        ScrollFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
+        ScrollFrame:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -5, 5)
+        ScrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local newValue = self:GetVerticalScroll() - (delta * 20)
+        if newValue < 0 then
+            newValue = 0
+        elseif newValue > self:GetVerticalScrollRange() then
+            newValue = self:GetVerticalScrollRange()
+        end
+        self:SetVerticalScroll(newValue)
+        end)
+        ScrollFrame.ScrollBar:ClearAllPoints()
+        ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -22, -20)
+        ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 20)
+        ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", ScrollFrame)
+        ScrollFrame.child:SetSize(tab:GetWidth()-30, 1600)
+        ScrollFrame:SetScrollChild(ScrollFrame.child)
+
+        return ScrollFrame.child
+    end
 
     srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "UIPanelDialogTemplate")
     local cFrame = srslylawlUI_ConfigFrame
     local cFrameSizeX = 750
     local cFrameSizeY = 500
+
+    cFrame.fakeFramesToggled = false
+
+    local lockFrames = CreateCheckButton("Preview settings and make frames moveable", cFrame)
+    cFrame.lockFramesButton = lockFrames
+    lockFrames:SetPoint("TOPLEFT", cFrame, "TOPLEFT", 10, -25)
+    lockFrames:SetScript("OnClick", function(self)
+        ToggleFakeFrames(self:GetChecked())
+        cFrame.fakeFramesToggled = self:GetChecked()
+    end)
 
     -- Main Config Frame
     cFrame.name = "srslylawlUI"
@@ -1709,67 +1776,16 @@ function srslylawlUI.CreateConfigWindow()
         insets = {left = 4, right = 4, top = 4, bottom = 4}
     })
     generalTab:SetBackdropColor(0, 0, 0, .4)
-    FillGeneralTab(generalTab)
+    local general = SetupScrollingTabContent(generalTab)
+    FillGeneralTab(general)
 
     -- Create Player Frames Tab
-    Mixin(playerFrames, BackdropTemplateMixin)
-    playerFrames:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 10,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
-    })
-    playerFrames:SetBackdropColor(0, 0, 0, .4)
-    local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", playerFrames, "UIPanelScrollFrameTemplate")
-    ScrollFrame:SetClipsChildren(true)
-    ScrollFrame:SetPoint("TOPLEFT", playerFrames, "TOPLEFT", 5, -5)
-    ScrollFrame:SetPoint("BOTTOMRIGHT", playerFrames, "BOTTOMRIGHT", -5, 5)
-    ScrollFrame:SetScript("OnMouseWheel", function(self, delta)
-        local newValue = self:GetVerticalScroll() - (delta * 20)
-        if newValue < 0 then
-            newValue = 0
-        elseif newValue > self:GetVerticalScrollRange() then
-            newValue = self:GetVerticalScrollRange()
-        end
-        self:SetVerticalScroll(newValue)
-    end)
-    ScrollFrame.ScrollBar:ClearAllPoints()
-    ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -22, -20)
-    ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 20)
-    ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", ScrollFrame)
-    ScrollFrame.child:SetSize(playerFrames:GetWidth()-30, 1600)
-    ScrollFrame:SetScrollChild(ScrollFrame.child)
-    FillPlayerFramesTab(ScrollFrame.child)
+    local player = SetupScrollingTabContent(playerFrames)
+    FillPlayerFramesTab(player)
 
     -- Create Party Frames Tab
-    Mixin(partyFramesTab, BackdropTemplateMixin)
-    partyFramesTab:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 10,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}})
-    partyFramesTab:SetBackdropColor(0, 0, 0, .4)
-    local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", partyFramesTab, "UIPanelScrollFrameTemplate")
-    ScrollFrame:SetClipsChildren(true)
-    ScrollFrame:SetPoint("TOPLEFT", playerFrames, "TOPLEFT", 5, -5)
-    ScrollFrame:SetPoint("BOTTOMRIGHT", playerFrames, "BOTTOMRIGHT", -5, 5)
-    ScrollFrame:SetScript("OnMouseWheel", function(self, delta)
-        local newValue = self:GetVerticalScroll() - (delta * 20)
-        if newValue < 0 then
-            newValue = 0
-        elseif newValue > self:GetVerticalScrollRange() then
-            newValue = self:GetVerticalScrollRange()
-        end
-        self:SetVerticalScroll(newValue)
-    end)
-    ScrollFrame.ScrollBar:ClearAllPoints()
-    ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -22, -20)
-    ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 20)
-    ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", ScrollFrame)
-    ScrollFrame.child:SetAllPoints(true)
-    ScrollFrame.child:SetSize(partyFramesTab:GetWidth()-30, 700)
-    ScrollFrame:SetScrollChild(ScrollFrame.child)
-    FillPartyFramesTab(ScrollFrame.child)
+    local party = SetupScrollingTabContent(partyFramesTab)
+    FillPartyFramesTab(party)
 
     -- Create Buffs Tab
     buffsTab:ClearAllPoints()
@@ -1793,7 +1809,6 @@ function srslylawlUI.CreateConfigWindow()
     AddTooltip(whiteList.tabButton, "Whitelisted buffs will always appear as buff frames")
     AddTooltip(blackList.tabButton, "Buffs that will not be displayed on the interface")
 
-    Mixin(knownBuffs, BackdropTemplateMixin)
     CreateBuffTabs(knownBuffs, absorbs, defensives, whiteList, blackList)
 
     -- Create Debuffs Tab
@@ -1809,8 +1824,7 @@ function srslylawlUI.CreateConfigWindow()
         insets = {left = 4, right = 4, top = 4, bottom = 4}})
     debuffsTab:SetBackdropColor(0, 0, 0, .4)
     
-    local knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots = 
-        SetTabs(debuffsTab, "Encountered", "Whitelist", "Blacklist", "Stuns", "Incapacitates", "Disorients", "Silences", "Roots")
+    local knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots = SetTabs(debuffsTab, "Encountered", "Whitelist", "Blacklist", "Stuns", "Incapacitates", "Disorients", "Silences", "Roots")
     CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots)
     AddTooltip(knownDebuffs.tabButton, "List of all encountered debuffs")
     AddTooltip(whiteList.tabButton, "Whitelisted debuffs will always be displayed")
