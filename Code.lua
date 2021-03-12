@@ -535,7 +535,8 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         if srslylawlUI_Saved.buffs.absorbs[spellId] ~= nil then
             auraType = "absorb"
         elseif srslylawlUI_Saved.buffs.defensives[spellId] ~= nil then
-            auraType = "defensive"
+            --make sure that this instance actually is a defensive spell. for example, rogues feint will be updated dynamically and only be flagged as defensive when its actually talented
+            auraType = srslylawlUI_Saved.buffs.known[spellId].isDefensive and "defensive" or nil
         end
 
         return auraType
@@ -1122,8 +1123,6 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             local amount = GetPercentValue(buffLower)
             local log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "%!"
 
-
-
             if stacks ~= 0 then
                 amount = amount / stacks
                 log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "% per stack!"
@@ -1152,6 +1151,7 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             -- Add spell to known spell list
             srslylawlUI_Saved.buffs.known[spellId] = spell
         end
+
     end
 
     ProcessID(buffIndex, unit)
