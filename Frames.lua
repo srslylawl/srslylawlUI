@@ -1575,7 +1575,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             if unit == "player" and unitsType == "mainUnits" then
                 srslylawlUI.PowerBar.UpdateMax(self, arg2)
             else
-               srslylawlUI.SetPowerBarValues(button, unit)
+               srslylawlUI.SetPowerBarValues(self.unit, unit)
             end
         elseif event == "UNIT_NAME_UPDATE" then
             if unit == "target" then
