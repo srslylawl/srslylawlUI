@@ -107,8 +107,6 @@ local debugString = ""
 
 
 --[[ TODO:
-grp visible when entering maw and solo deactivated
-powerbar % indicator
 hide powerbar when inactive setting
 non destro shards show timer sometimes
 alt powerbar

@@ -1,11 +1,9 @@
 function srslylawlUI.ToggleFauxFrames(visible)
     srslylawlUI_FAUX_PartyHeader:SetShown(visible)
-    if srslylawlUI_PartyHeader.fauxState == nil then
-        srslylawlUI_PartyHeader.fauxState = srslylawlUI_PartyHeader:IsShown()
-    end
-    srslylawlUI_PartyHeader:SetShown(visible and srslylawlUI_PartyHeader.fauxState or not visible)
     if not visible then
         srslylawlUI.Frame_UpdateVisibility()
+    else
+        srslylawlUI_PartyHeader:Show()
     end
 
     if not srslylawlUI_FAUX_PartyHeader.initiated then
@@ -117,6 +115,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame.unit.powerBar:SetStatusBarColor(powerColor.r, powerColor.g, powerColor.b)
             frame.unit.powerBar:SetMinMaxValues(0, 1)
             frame.unit.powerBar:SetValue(fauxUnit.mana)
+            frame.unit.powerBar.text:SetText(ceil(fauxUnit.mana/1*100))
 
             frame.pet.healthBar:SetMinMaxValues(0, 1)
             frame.pet.healthBar:SetValue(fauxUnit.pethp)
@@ -239,6 +238,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     srslylawlUI.Frame_ResetDimensions_PowerBar(self)
 
                     self.unit.CCDurBar:SetShown(srslylawlUI.GetSetting("party.ccbar.enabled"))
+                    self.unit.powerBar.text:SetShown(srslylawlUI.GetSetting("party.power.text"))
 
                     timerFrame = 0
                 end

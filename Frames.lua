@@ -976,8 +976,9 @@ function srslylawlUI.CreateCastBar(parent, unit)
         h = h or srslylawlUI.Utils_PixelFromScreenToCode(self:GetHeight())
         h = math.max(1, h)
         srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, h, h)
-        self.StatusBar.Timer:ScaleToFit(h, h, 40)
-        self.StatusBar.SpellName:ScaleToFit(h, h, 40)
+        local default = srslylawlUI.GetDefaultByUnit("cast.height", unitsType, unit)
+        self.StatusBar.Timer:ScaleToFit(h, h, default)
+        self.StatusBar.SpellName:ScaleToFit(h, h, default)
     end
 
     cBar.unit = unit
@@ -1246,7 +1247,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                     end
 
                     currentDemoBar.text:SetText(currentBar.bar.name)
-                    currentDemoBar.text:ScaleToFit(srslylawlUI.Utils_PixelFromScreenToCode(currentDemoBar:GetWidth()), height, srslylawlUI.GetSetting("player.playerFrame.power.fontSize"))
+                    currentDemoBar.text:ScaleToFit(height, height, 20)
 
                     currentDemoBar:SetShown(not currentBar.bar.disabled)
                     lastBar = currentDemoBar
@@ -1818,11 +1819,8 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
         local unit = button:GetAttribute("unit")
         baseWidth = srslylawlUI.GetDefaultByUnit("power.width", unitsType, unit)
         width = srslylawlUI.GetSettingByUnit("power.width", unitsType, unit)
-        if unit == "targettarget" then
-            srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1, 0)
-            srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", 2+width, 0)
-        elseif unit == "target" then
-            local pos = srslylawlUI.GetSetting("player.targetFrame.power.position")
+        if unit == "target" or unit == "targettarget" then
+            local pos = srslylawlUI.GetSettingByUnit("power.position", unitsType, unit)
             if pos == "LEFT" then
                 srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
                 srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
@@ -1830,9 +1828,9 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
                 srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1, 0)
                 srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", (2+width), 0)
             end
-        else
-            srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
-            srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
+        -- else
+        --     srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
+        --     srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
         end
     end
 

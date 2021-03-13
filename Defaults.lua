@@ -113,7 +113,8 @@ srslylawlUI.defaultSettings = {
             },
             power = {
                 width = 15,
-                text = true
+                text = true,
+                position = "RIGHT"
             },
         }
     },

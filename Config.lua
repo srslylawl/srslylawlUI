@@ -976,9 +976,9 @@ function srslylawlUI.CreateConfigWindow()
 
             local anchorElements = CreateAnchoringPanel(tab, path.."position", unitFrame.unit, aTable)
             playerPosControl:Add(unpack(anchorElements))
+            anchor = playerPosControl
 
             if unit ~= "targettarget" then
-                anchor = playerPosControl
                 for i=1, 2 do
                     local anchorTable = i == 1 and {"Frame", "Debuffs"} or {"Frame", "Buffs"}
                     local aType = i == 1 and "buff" or "debuff"
@@ -1035,139 +1035,126 @@ function srslylawlUI.CreateConfigWindow()
                     auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, scaledAuraSize, maxAuras)
                     anchor = auraControl
                 end
+            end
 
-                if unit == "player" then
-                    local petControl = CreateConfigControl(tab, unitName.." Pet Frame")
-                    local petWidth = CreateCustomSlider("Width", tab, 1, 200, path.."pet.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions_Pet(unitFrame) end)
-                    petControl:Add(petWidth)
-                    petControl:ChainToControl(anchor)
-                    anchor = petControl
-
-                    --powerbarsetup
-                    local function SetPlayerPowerBarOptions()
-                        local specIndex = GetSpecialization()
-                        local specID = GetSpecializationInfo(specIndex)
-                        local isDruid = specID >= 102 and specID <= 105
-                        local currentStance = isDruid and GetShapeshiftFormID() or 0
-                        currentStance = currentStance or 0
-
-
-
-                        local barTable = srslylawlUI.mainUnits.player.unitFrame.BarHandler.bars
-                        local newTable = {}
-                        for i=1, #barTable do
-                            table.insert(newTable, barTable[i])
-                        end
-
-                        cFrame.playerPowerBars = newTable
-                        if not cFrame.playerPowerBarControls then
-                            cFrame.playerPowerBarControls = {}
-                        end
-
-                        for i, frame in ipairs(cFrame.playerPowerBarControls) do
-                            frame.control:Hide()
-                        end
-
-                        local cAnchor = petControl
-
-                        local exists
-                        for i=1, #newTable do
-                            exists = false
-                            local name = newTable[i].bar.name
-                            for _, v in ipairs(cFrame.playerPowerBarControls) do
-                                if v.name == name and v.spec == specID and v.stance == currentStance then
-                                    exists = v
-                                    break
-                                end
-                            end
-                            local p = "player.playerFrame.power.overrides."..specID.."."..name
-                            if isDruid then
-                                local currentStance = GetShapeshiftFormID() or 0
-                                p = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..name
-                            end
-                            if name == "CastBar" then
-                                p = "player.playerFrame.cast"
-                            end
-
-                            if not exists then
-                                local barControl = CreateConfigControl(tab, "Player "..name)
-                                local barEnabled = CreateSettingsCheckButton("Disable", tab, p..".disabled", function()
-                                    unitFrame:ReRegisterAll()
-                                end, true)
-                                local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height", newTable[i].height, function()
-                                    unitFrame:ReRegisterAll()
-                                end)
-                                local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority", newTable[i].priority, function()
-                                    unitFrame:ReRegisterAll()
-                                end)
-                                barControl:Add(barEnabled, barHeight, barPriority)
-
-                                barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
-
-                                table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls+1, {name=newTable[i].bar.name, control=barControl, enabled=barEnabled, height=barHeight, prio=barPriority, spec = specID, stance = currentStance})
-
-                                cAnchor = barControl
-                                anchor = barControl
-                                cFrame.lastPlayerPowerBarAnchor = barControl
-                            else
-                                exists.control:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
-                                cAnchor = exists.control
-                                anchor = exists.control
-                                exists.control:Show()
-                                cFrame.lastPlayerPowerBarAnchor = exists.control
-
-                                exists.enabled:SetChecked(srslylawlUI.GetSetting(p..".disabled", true) or false)
-                                exists.height:SetValueClean(srslylawlUI.GetSetting(p..".height", true) or newTable[i].height)
-                                exists.prio:SetValueClean(srslylawlUI.GetSetting(p..".priority", true) or newTable[i].priority)
-                            end
-                            if i == 1 and not cFrame.infoBox then
-                                cFrame.infoBox = CreateInfoBox(tab, "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings.", 280)
-                                cFrame.infoBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 8)
-                            elseif i == 2 and isDruid then
-                                --[[
-                                    humanoid form - nil
-                                    Aquatic Form - 4
-                                    Bear Form - 5
-                                    Cat Form - 1
-                                    Flight Form - 29
-                                    Moonkin Form - 31
-                                    Swift Flight Form - 27
-                                    Travel Form - 3
-                                    Tree of Life - 2
-                                ]]
-                                local form = currentStance == 0 and "Humanoid" or currentStance == 1 and "Cat Form" or currentStance == 5 and "Bear Form" or currentStance == 31 and "Moonkin Form" or "Travel Form"
-                                if not cFrame.shapeShiftBox then
-                                    cFrame.shapeShiftBox = CreateInfoBox(tab, "Settings for current shapeshift form: "..form, 280)
-                                else
-                                    cFrame.shapeShiftBox:SetText("Settings for current shapeshift form: "..form)
-                                end
-                                cFrame.shapeShiftBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 0)
-                            end
-                        end
-                        if cFrame.nextControlAfterPlayerPower then
-                            cFrame.nextControlAfterPlayerPower:AppendToControl(cFrame.lastPlayerPowerBarAnchor)
+            if unit == "player" then
+                local petControl = CreateConfigControl(tab, unitName.." Pet Frame")
+                local petWidth = CreateCustomSlider("Width", tab, 1, 200, path.."pet.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions_Pet(unitFrame) end)
+                petControl:Add(petWidth)
+                petControl:ChainToControl(anchor)
+                anchor = petControl
+                --powerbarsetup
+                local function SetPlayerPowerBarOptions()
+                    local specIndex = GetSpecialization()
+                    local specID = GetSpecializationInfo(specIndex)
+                    local isDruid = specID >= 102 and specID <= 105
+                    local currentStance = isDruid and GetShapeshiftFormID() or 0
+                    currentStance = currentStance or 0
+                    local barTable = srslylawlUI.mainUnits.player.unitFrame.BarHandler.bars
+                    local newTable = {}
+                    for i=1, #barTable do
+                        table.insert(newTable, barTable[i])
+                    end
+                    cFrame.playerPowerBars = newTable
+                    if not cFrame.playerPowerBarControls then
+                        cFrame.playerPowerBarControls = {}
+                    end
+                    for i, frame in ipairs(cFrame.playerPowerBarControls) do
+                        frame.control:Hide()
+                    end
+                    local cAnchor = petControl
+                    local exists
+                    for i=1, #newTable do
+                    exists = false
+                    local name = newTable[i].bar.name
+                    for _, v in ipairs(cFrame.playerPowerBarControls) do
+                        if v.name == name and v.spec == specID and v.stance == currentStance then
+                            exists = v
+                            break
                         end
                     end
-                    tab:SetScript("OnShow", SetPlayerPowerBarOptions)
-                    tab:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-                    tab:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "player")
-                    tab:SetScript("OnEvent", SetPlayerPowerBarOptions)
-
-                    SetPlayerPowerBarOptions()
-                    --should place bars again once spec/druidform changes
+                    local p = "player.playerFrame.power.overrides."..specID.."."..name
+                    if isDruid then
+                        local currentStance = GetShapeshiftFormID() or 0
+                        p = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..name
+                    end
+                    if name == "CastBar" then
+                        p = "player.playerFrame.cast"
+                    end
+                    if not exists then
+                        local barControl = CreateConfigControl(tab, "Player "..name)
+                        local barEnabled = CreateSettingsCheckButton("Disable", tab, p..".disabled", function()
+                            unitFrame:ReRegisterAll()
+                        end, true)
+                        local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height", newTable[i].height, function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                        local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority", newTable[i].priority, function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                        barControl:Add(barEnabled, barHeight, barPriority)
+                        barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
+                        table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls+1, {name=newTable[i].bar.name, control=barControl, enabled=barEnabled, height=barHeight, prio=barPriority, spec = specID, stance = currentStance})
+                        cAnchor = barControl
+                        anchor = barControl
+                        cFrame.lastPlayerPowerBarAnchor = barControl
+                    else
+                        exists.control:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
+                        cAnchor = exists.control
+                        anchor = exists.control
+                        exists.control:Show()
+                        cFrame.lastPlayerPowerBarAnchor = exists.control
+                        exists.enabled:SetChecked(srslylawlUI.GetSetting(p..".disabled", true) or false)
+                        exists.height:SetValueClean(srslylawlUI.GetSetting(p..".height", true) or newTable[i].height)
+                        exists.prio:SetValueClean(srslylawlUI.GetSetting(p..".priority", true) or newTable[i].priority)
+                    end
+                    if i == 1 and not cFrame.infoBox then
+                        cFrame.infoBox = CreateInfoBox(tab, "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings.", 280)
+                        cFrame.infoBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 8)
+                    elseif i == 2 and isDruid then
+                        --[[
+                            humanoid form - nil
+                            Aquatic Form - 4
+                            Bear Form - 5
+                            Cat Form - 1
+                            Flight Form - 29
+                            Moonkin Form - 31
+                            Swift Flight Form - 27
+                            Travel Form - 3
+                            Tree of Life - 2
+                        ]]
+                        local form = currentStance == 0 and "Humanoid" or currentStance == 1 and "Cat Form" or currentStance == 5 and "Bear Form" or currentStance == 31 and "Moonkin Form" or "Travel Form"
+                        if not cFrame.shapeShiftBox then
+                            cFrame.shapeShiftBox = CreateInfoBox(tab, "Settings for current shapeshift form: "..form, 280)
+                        else
+                            cFrame.shapeShiftBox:SetText("Settings for current shapeshift form: "..form)
+                        end
+                        cFrame.shapeShiftBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 0)
+                    end
+                    end
+                    if cFrame.nextControlAfterPlayerPower then
+                        cFrame.nextControlAfterPlayerPower:AppendToControl(cFrame.lastPlayerPowerBarAnchor)
+                    end
                 end
-
-                if unit == "target" then
-                    local powerBarControl = CreateConfigControl(tab, "Target Powerbar")
-                    local powerBarWidth = CreateCustomSlider("Width", tab, 0, 100, "player.targetFrame.power.width", 1, 0, function()
-                        srslylawlUI.Frame_ResetDimensions_PowerBar(srslylawlUI.mainUnits.target.unitFrame)
-                    end)
-                    local position = CreateCustomDropDown("Position", 200, tab, "player.targetFrame.power.position", {"LEFT", "RIGHT"}, function()
-                        srslylawlUI.Frame_ResetDimensions_PowerBar(srslylawlUI.mainUnits.target.unitFrame)
-                    end)
-                    powerBarControl:Add(powerBarWidth, position)
-                    
-                    powerBarControl:ChainToControl(anchor)
+                tab:SetScript("OnShow", SetPlayerPowerBarOptions)
+                tab:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+                tab:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "player")
+                tab:SetScript("OnEvent", SetPlayerPowerBarOptions)
+                SetPlayerPowerBarOptions()
+                --should place bars again once spec/druidform changes
+            else
+                local powerBarControl = CreateConfigControl(tab, unitName.." Powerbar")
+                local powerBarWidth = CreateCustomSlider("Width", tab, 0, 100, path.."power.width", 1, 0, function()
+                    srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
+                end)
+                local powerBarText = CreateSettingsCheckButton("Show Text", tab, path.."power.text", function() srslylawlUI.Frame_ResetUnitButton(unitFrame.unit, unit) end)
+                local position = CreateCustomDropDown("Position", 200, tab, path.."power.position", {"LEFT", "RIGHT"}, function()
+                        srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame) end)
+                powerBarControl:Add(powerBarWidth, powerBarText, position)
+                powerBarControl:ChainToControl(anchor)
+                if unit == "targettarget" then
+                    anchor = powerBarControl
+                elseif unit == "target" then
                     local castBarControl = CreateConfigControl(tab, "Target CastBar")
                     local castBarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.cast.disabled", function()
                         unitFrame:ReRegisterAll()
@@ -1180,7 +1167,6 @@ function srslylawlUI.CreateConfigWindow()
                     end)
                     castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority)
                     castBarControl:ChainToControl(powerBarControl)
-
                     local ccbarControl = CreateConfigControl(tab, "Target CrowdControl")
                     local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.ccbar.disabled", function()
                         unitFrame:ReRegisterAll()
@@ -1193,22 +1179,18 @@ function srslylawlUI.CreateConfigWindow()
                     end)
                     ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority)
                     ccbarControl:ChainToControl(castBarControl)
-
                     local portraitControl = CreateConfigControl(tab, "Target Portrait")
                     local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, "player.targetFrame.portrait.enabled", function() unitFrame:TogglePortrait() end)
                     local portraitPosition = CreateCustomDropDown("Position", 250, tab, "player.targetFrame.portrait.position", {"LEFT", "RIGHT"}, function() unitFrame:TogglePortrait() end)
                     local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, "player.targetFrame.portrait.anchor", {"Frame", "Powerbar"}, function() unitFrame:TogglePortrait() end)
                     portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
                     portraitControl:ChainToControl(ccbarControl)
-
                     local unitLevelControl = CreateConfigControl(tab, "Target Level")
                     local elements = CreateAnchoringPanel(tab, "player.targetFrame.unitLevel.position", unitFrame.unitLevel, {"TargetFrame", "TargetFramePortrait"})
                     unitLevelControl:Add(unpack(elements))
                     unitLevelControl:ChainToControl(portraitControl)
                     anchor = unitLevelControl
                 end
-            else
-                anchor = playerPosControl
             end
         end
 

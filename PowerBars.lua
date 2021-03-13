@@ -214,7 +214,6 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         local middleFrame = ceil(self.desiredButtonCount/2)
         -- print("frame", middleFrame, "size adjusted by ", diff)
         local pixelPerfectCompensation
-        local fontSize = srslylawlUI.GetSetting("player.playerFrame.power.fontSize")
         for i=1, #self.pointFrames do
             local current = self.pointFrames[i]
             if i > self.desiredButtonCount then
