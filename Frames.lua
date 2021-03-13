@@ -1508,7 +1508,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
     -- Handle any events that don’t accept a unit argument
     if event == "PLAYER_ENTERING_WORLD" then
         srslylawlUI.HandleAuras(self.unit, unit)
-        UpdatePowerBar(unit, nil)
+        UpdatePowerBar(unit, unitsType, nil)
     elseif event == "GROUP_ROSTER_UPDATE" then
         self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
     elseif event == "PLAYER_TARGET_CHANGED" then
@@ -1530,7 +1530,6 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                 self:UpdateUnitLevel()
                 self:UpdateUnitFaction()
                 srslylawlUI.HandleAuras(self.unit, unit)
-                srslylawlUI.SetAuraPointsAll(unit, unitsType)
             end
             if unit ~= "targettarget" then
                 srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
@@ -1699,7 +1698,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     end
     local health = UnitHealth(unit)
     local healthMax = UnitHealthMax(unit)
-    local healthPercent = ceil(health / healthMax * 100)
+    local healthPercent = srslylawlUI.Utils_ScuffedRound(health / healthMax * 100)
     if unit == "target" then
         local name = UnitName(unit) or UNKNOWN
         button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.5, healthPercent .. "%".." ".. name, true)
@@ -1734,7 +1733,7 @@ function srslylawlUI.SetPowerBarValues(button, unit)
     button.powerBar:SetMinMaxValues(0, max)
     button.powerBar:SetValue(curr)
     if button.powerBar.text.enabled then
-        local percent = max > 0 and ceil(curr/max*100) or -1
+        local percent = max > 0 and srslylawlUI.Utils_ScuffedRound(curr/max*100) or -1
         button.powerBar.text:SetText(percent >= 0 and percent or "")
     else
         button.powerBar.text:SetText("")
@@ -1866,6 +1865,12 @@ function srslylawlUI.ToggleAllFrames(bool)
     end
 end
 
+function UnitDebug(unit, condition,  ...)
+    if unit == "target" and condition then
+        print(...)
+    end
+end
+
 function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
     local function ReversePos(str)
         if str == "TOP" then return "BOTTOM"
@@ -1982,14 +1987,14 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
         unitsTable[unit][auraType.."Anchor"]:SetScript("OnHide", nil)
     end
     local rowHasScaledFrame = false
-    local lastRowHasScaledFrame = rowAnchor.rowHasScaledFrame or false
-    local rowAnchorIsScaled = rowAnchor.isScaled or false
+    local lastRowHasScaledFrame = rowAnchor.rowHasScaledFrame or not rowAnchor == unitFrame.unit or false
+    local rowAnchorIsScaled = rowAnchor.isScaled or not rowAnchor == unitFrame.unit or false
     local lastAnchorWasOffset = false
     local anchorFrame
     for i=1, #frames do
         local frame = frames[i]
         local frameSize = frame.size or defaultSize
-        if frameSize > defaultSize then
+        if frame:IsShown() and frameSize > defaultSize then
             rowHasScaledFrame = true
         end
         frame:ClearAllPoints()
@@ -2006,7 +2011,6 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
                 unitsTable[unit][auraType.."Anchor"] = frame
                 anchorFrame = frame
                 anchorFrame.size = frameSize
-                rowHasScaledFrame = frameSize > defaultSize
                 rowAnchorIsScaled = rowHasScaledFrame
                 lastAnchorWasOffset = false
             else
@@ -2031,7 +2035,6 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
                     anchorFrame = frame
                     anchorFrame.size = frameSize
                     frame.rowHasScaledFrame = rowHasScaledFrame
-                    rowHasScaledFrame = frameSize > defaultSize
                     rowAnchorIsScaled = rowHasScaledFrame
                     lastAnchorWasOffset = false
                 end
@@ -2065,6 +2068,14 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
 end
 function srslylawlUI.SetAuraPointsAll(unit, unitsType)
     --order matters depending on what is anchored to what
+    if srslylawlUI[unitsType][unit].buffsAnchor then
+        srslylawlUI[unitsType][unit].buffsAnchor.rowHasScaledFrame = nil
+        srslylawlUI[unitsType][unit].buffsAnchor.isScaled = nil
+    end
+    if srslylawlUI[unitsType][unit].debuffsAnchor then
+        srslylawlUI[unitsType][unit].debuffsAnchor.rowHasScaledFrame = nil
+        srslylawlUI[unitsType][unit].debuffsAnchor.isScaled = nil
+    end
     if srslylawlUI.GetSettingByUnit("buffs.anchoredTo", unitsType, unit) == "Debuffs" then
         srslylawlUI.SetAuraPoints(unit, unitsType, "debuffs")
         srslylawlUI.SetAuraPoints(unit, unitsType, "buffs")
