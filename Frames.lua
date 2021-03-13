@@ -348,6 +348,10 @@ function srslylawlUI.FrameSetup()
         srslylawlUI.CreateBackground(unitFrame.unit.healthBar, 1, .8)
         srslylawlUI.CreateBackground(unitFrame.unit.powerBar, 1, .8)
 
+        unitFrame.unit.powerBar.text = srslylawlUI.CreateCustomFontString(unitFrame.unit.powerBar, "Text", 5)
+        unitFrame.unit.powerBar.text.enabled = srslylawlUI.GetSettingByUnit("power.text", unitsType, unit)
+        unitFrame.unit.powerBar.text:SetPoint("BOTTOM")
+
         local height, width = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit), srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
 
         srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit, width, height)
@@ -1374,6 +1378,8 @@ function srslylawlUI.Frame_UpdateVisibility()
             end
         end
     end
+
+    -- print(debugstack())
     
     --if true then return end
     
@@ -1384,6 +1390,7 @@ function srslylawlUI.Frame_UpdateVisibility()
     
     if isInGroup then
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showParty"))
+        -- print("is in grp")
     elseif isInRaid then
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showRaid"))
     elseif isInArena then
@@ -1466,6 +1473,9 @@ function srslylawlUI.RegisterEvents(buttonFrame)
     buttonFrame:RegisterUnitEvent("UNIT_NAME_UPDATE", unit)
     buttonFrame:RegisterUnitEvent("UNIT_ENTERED_VEHICLE", unit)
     buttonFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", unit)
+    buttonFrame:RegisterUnitEvent("UNIT_TARGET", unit)
+    buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+
 
     if unit ~= "targettarget" then
         buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
@@ -1479,7 +1489,6 @@ function srslylawlUI.RegisterEvents(buttonFrame)
         buttonFrame:RegisterEvent("READY_CHECK")
         buttonFrame:RegisterEvent("READY_CHECK_FINISHED")
         buttonFrame:RegisterEvent("PARTY_LEADER_CHANGED")
-        buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
         buttonFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     end
 end
@@ -1488,7 +1497,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         if unit == "player" and unitsType == "mainUnits" then
             srslylawlUI.PowerBar.Update(self, token)
         else
-            self.unit.powerBar:SetValue(UnitPower(unit))
+            srslylawlUI.SetPowerBarValues(self.unit, unit)
         end
     end
     local unit = self:GetAttribute("unit")
@@ -1522,7 +1531,9 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                 srslylawlUI.HandleAuras(self.unit, unit)
                 srslylawlUI.SetAuraPointsAll(unit, unitsType)
             end
-            srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
+            if unit ~= "targettarget" then
+                srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
+            end
             srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
         end
     elseif event == "PLAYER_SPECIALIZATION_CHANGED" and unit == "player" then
@@ -1563,7 +1574,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             if unit == "player" and unitsType == "mainUnits" then
                 srslylawlUI.PowerBar.UpdateMax(self, arg2)
             else
-                self.unit.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
+               srslylawlUI.SetPowerBarValues(button, unit)
             end
         elseif event == "UNIT_NAME_UPDATE" then
             if unit == "target" then
@@ -1601,6 +1612,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
         elseif event == "UNIT_EXITED_VEHICLE" then
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
+        elseif event == "UNIT_TARGET" then
+            srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
         end
     elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
         if event == "UNIT_MAXHEALTH" then
@@ -1701,6 +1714,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     end
 end
 function srslylawlUI.Frame_ResetPowerBar(button, unit)
+    local unitsType = button:GetAttribute("unitsType")
     local powerType, powerToken = UnitPowerType(unit)
     local powerColor = srslylawlUI.Frame_GetCustomPowerBarColor(powerToken)
     local alive = not UnitIsDeadOrGhost(unit)
@@ -1710,8 +1724,20 @@ function srslylawlUI.Frame_ResetPowerBar(button, unit)
     else
         button.powerBar:SetStatusBarColor(0.3, 0.3, 0.3)
     end
-    button.powerBar:SetMinMaxValues(0, UnitPowerMax(unit))
-    button.powerBar:SetValue(UnitPower(unit))
+    button.powerBar.text.enabled = srslylawlUI.GetSettingByUnit("power.text", unitsType, unit)
+    srslylawlUI.SetPowerBarValues(button, unit)
+end
+function srslylawlUI.SetPowerBarValues(button, unit)
+    local max = UnitPowerMax(unit)
+    local curr = UnitPower(unit)
+    button.powerBar:SetMinMaxValues(0, max)
+    button.powerBar:SetValue(curr)
+    if button.powerBar.text.enabled then
+        local percent = max > 0 and ceil(curr/max*100) or -1
+        button.powerBar.text:SetText(percent >= 0 and percent or "")
+    else
+        button.powerBar.text:SetText("")
+    end
 end
 function srslylawlUI.Frame_ResetDimensions(button)
     local unit = button:GetAttribute("unit")
@@ -1781,28 +1807,37 @@ end
 function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
     local unitsType = button:GetAttribute("unitsType")
     button.unit.powerBar:ClearAllPoints()
+    local width
+    local baseWidth
     if unitsType ~= "mainUnits" then
+        baseWidth = srslylawlUI.GetDefault("party.power.width")
+        width = srslylawlUI.GetSetting("party.power.width")
         srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
-        srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.GetSetting("party.power.width")), 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
     else
         local unit = button:GetAttribute("unit")
+        baseWidth = srslylawlUI.GetDefaultByUnit("power.width", unitsType, unit)
+        width = srslylawlUI.GetSettingByUnit("power.width", unitsType, unit)
         if unit == "targettarget" then
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1, 0)
-            srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", 2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width"), 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", 2+width, 0)
         elseif unit == "target" then
             local pos = srslylawlUI.GetSetting("player.targetFrame.power.position")
-
             if pos == "LEFT" then
                 srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
-                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width")), 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
             else
                 srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1, 0)
-                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", (2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width")), 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", (2+width), 0)
             end
         else
             srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
-            srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+srslylawlUI.GetSetting("player."..unit.."Frame.power.width")), 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
         end
+    end
+
+    if button.unit.powerBar.text.enabled then
+        button.unit.powerBar.text:ScaleToFit(width, width, baseWidth)
     end
 end
 
@@ -1818,14 +1853,19 @@ function srslylawlUI.ToggleAllFrames(bool)
             frame:SetShown(bool)
         end
     end
-local playerEnabled = srslylawlUI.GetSetting("player.playerFrame.enabled") and bool
-local targetEnabled = srslylawlUI.GetSetting("player.targetFrame.enabled") and bool
-local ttargetEnabled = srslylawlUI.GetSetting("player.targettargetFrame.enabled") and bool
+    local playerEnabled = srslylawlUI.GetSetting("player.playerFrame.enabled") and bool
+    local targetEnabled = srslylawlUI.GetSetting("player.targetFrame.enabled") and bool
+    local ttargetEnabled = srslylawlUI.GetSetting("player.targettargetFrame.enabled") and bool
 
-ActivateFrame(srslylawlUI_Main_player, playerEnabled)
-ActivateFrame(srslylawlUI_Main_target, targetEnabled)
-ActivateFrame(srslylawlUI_Main_targettarget, ttargetEnabled)
-srslylawlUI_PartyHeader:SetShown(bool)
+    ActivateFrame(srslylawlUI_Main_player, playerEnabled)
+    ActivateFrame(srslylawlUI_Main_target, targetEnabled)
+    ActivateFrame(srslylawlUI_Main_targettarget, ttargetEnabled)
+
+    if bool then
+        srslylawlUI.Frame_UpdateVisibility()
+    else
+        srslylawlUI_PartyHeader:SetShown(bool)
+    end
 end
 
 function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)

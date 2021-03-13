@@ -107,10 +107,12 @@ local debugString = ""
 
 
 --[[ TODO:
+grp visible when entering maw and solo deactivated
 powerbar % indicator
 hide powerbar when inactive setting
 non destro shards show timer sometimes
 alt powerbar
+seperate autodetect for auratype and defense values
 fauxparty not showing on solo
 totem bar GetTotemInfo(1)
 focus frame
@@ -1110,11 +1112,11 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
 
             srslylawlUI_Saved.buffs.absorbs[spellId] = spell
         elseif keyWordImmunity then
-            local log = "new defensive spell " .. link .. " encountered as immunity!"
-
+            
             spell.reductionAmount = 100
-
+            
             if (srslylawlUI_Saved.buffs.defensives[spellId] == nil) then
+                local log = "new defensive spell " .. link .. " encountered as immunity!"
                 -- first time entry
                 srslylawlUI.Log(log)
             end
@@ -1128,7 +1130,8 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
                 log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "% per stack!"
             end
 
-            if abs(amount) ~= 0 then spell.reductionAmount = amount
+            if abs(amount) ~= 0 then
+                spell.reductionAmount = amount
             else
                 error("reduction amount is 0 " .. spellName .. " " .. buffText)
             end
@@ -1748,6 +1751,29 @@ function srslylawlUI.GetSettingByUnit(path, unitsType, unit, canBeNil)
     end
 
     return srslylawlUI.GetSetting(s, canBeNil)
+end
+function srslylawlUI.GetDefault(path)
+    local pathTable = SplitStringAtChar(path, ".")
+    local variable = FindInTable(srslylawlUI.defaultSettings, {unpack(pathTable)})
+    if variable == nil then
+        error("setting "..path.." does not exist")
+    end
+
+    if type(variable) == "table" then
+        variable = srslylawlUI.Utils_TableDeepCopy(variable)
+    end
+    return variable
+end
+function srslylawlUI.GetDefaultByUnit(path, unitsType, unit)
+    local s
+    if unitsType == "partyUnits" or unitsType == "fauxUnits" then
+        s = "party."..path
+    elseif unit and unitsType == "mainUnits" or unitsType == "mainFauxUnits" then
+        s = "player."..unit.."Frame."..path
+    else
+        error("couldn't get setting by unit")
+    end
+    return srslylawlUI.GetDefault(s)
 end
 function srslylawlUI.ChangeSetting(path, variable)
     local pathTable = SplitStringAtChar(path, ".")

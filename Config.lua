@@ -858,7 +858,8 @@ function srslylawlUI.CreateConfigWindow()
         local powerBars = CreateConfigControl(tab, "Party Power")
         powerBars:ChainToControl(healthControl)
         local powerBarWidth = CreateCustomSlider("Width", tab, 1, 100, path.."power.width", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        powerBars:Add(powerBarWidth)
+        local showText = CreateSettingsCheckButton("Show Text", tab, "party.power.text", function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.Frame_ResetUnitButton(srslylawlUI.partyUnits[unit].unitFrame.unit, unit) end end)
+        powerBars:Add(powerBarWidth, showText)
 
         --party petbars
         local petBars = CreateConfigControl(tab, "Party Pet")

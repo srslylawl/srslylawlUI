@@ -4,6 +4,9 @@ function srslylawlUI.ToggleFauxFrames(visible)
         srslylawlUI_PartyHeader.fauxState = srslylawlUI_PartyHeader:IsShown()
     end
     srslylawlUI_PartyHeader:SetShown(visible and srslylawlUI_PartyHeader.fauxState or not visible)
+    if not visible then
+        srslylawlUI.Frame_UpdateVisibility()
+    end
 
     if not srslylawlUI_FAUX_PartyHeader.initiated then
         local lastFrame

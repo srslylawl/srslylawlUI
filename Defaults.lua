@@ -10,7 +10,8 @@ srslylawlUI.defaultSettings = {
             width = 300, height = 60, minWidthPercent = 0.55, fontSize = 12
         },
         power = {
-            width = 15
+            width = 15,
+            text = true
         },
         pet = {
             width = 15
@@ -53,6 +54,7 @@ srslylawlUI.defaultSettings = {
                 width = 20
             },
             power = {
+                text = false,
                 fontSize = 6,
                 overrides = {
                 }
@@ -80,7 +82,8 @@ srslylawlUI.defaultSettings = {
             },
             power = {
                 width = 15,
-                position = "LEFT"
+                position = "LEFT",
+                text = true
             },
             cast = {
                 disabled = false,
@@ -109,7 +112,8 @@ srslylawlUI.defaultSettings = {
                 width = 150, height = 70, fontSize = 12
             },
             power = {
-                width = 15
+                width = 15,
+                text = true
             },
         }
     },
