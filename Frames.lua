@@ -719,7 +719,7 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
         local ffa = UnitIsPVPFreeForAll("target")
 
         if ffa then
-            if self.faction ~= faction then
+            if self.faction ~= "FFA" then
                     self.factionIcon.icon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-FFA")
                     self.factionIcon.icon:Show()
                 self.faction = "FFA"

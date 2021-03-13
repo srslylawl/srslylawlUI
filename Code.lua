@@ -107,6 +107,7 @@ local debugString = ""
 
 
 --[[ TODO:
+announcement checkbutton
 hide powerbar when inactive setting
 non destro shards show timer sometimes
 hide non player powerbar when inactive/max is 0
@@ -131,7 +132,9 @@ function srslylawlUI.Log(text, ...)
     for i = 1, select('#', ...) do
         str = str .. (select(i, ...) .. " ")
     end
-    print("|cff4D00FFsrslylawlUI:|r " .. text, str)
+    if srslylawlUI.GetSetting("announcements") then
+        print("|cff4D00FFsrslylawlUI:|r " .. text, str)
+    end
 end
 function srslylawlUI.Utils_ShortenString(str, start, numChars)
     -- This function can return a substring of a UTF-8 string, properly handling UTF-8 codepoints. Rather than taking a start index and optionally an end index, it takes the string, the start index, and
@@ -1728,8 +1731,8 @@ function srslylawlUI.GetSetting(path, canBeNil)
             else
                 --found in default settings, just wasnt loaded
                 local printVar = type(variable) ~= "table" and ": "..tostring(variable).." " or " "
-                srslylawlUI.Log("Variable not found in saved settings: '" .. path .. "'. Default value"..printVar.."used instead. Seeing this message after updating this addon should be fine.")
                 CreateValueAtPath(variable, pathTable, srslylawlUI_Saved.settings)
+                srslylawlUI.Log("Variable not found in saved settings: '" .. path .. "'. Default value"..printVar.."used instead. Seeing this message after updating this addon should be fine.")
             end
         end
     end
