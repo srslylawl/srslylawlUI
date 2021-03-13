@@ -414,7 +414,7 @@ function srslylawlUI.CreateConfigWindow()
 
         function frame:ResizeElements()
             local offset = 3
-            local availableWidth = parent:GetWidth() - inset*2
+            local availableWidth = ceil(parent:GetWidth() - inset*2)
             local totalWidth = 0
             local totalheight = 0
 
@@ -764,7 +764,7 @@ function srslylawlUI.CreateConfigWindow()
 
         local partySorting = CreateConfigControl(tab, "Party Frames Sorting")
         local sortingEnabled = CreateSettingsCheckButton("Enabled", tab, "party.sorting.enabled", function() srslylawlUI.SortPartyFrames() end)
-        local sortInfoBox = CreateInfoBox(partySorting, "If enabled, party members will be sorted by their maximum hp, descending. This means that the highest hp party member will always be the first frame.", 650)
+        local sortInfoBox = CreateInfoBox(partySorting, "If enabled, party members will be sorted by their maximum hp, descending. This means that the highest hp party member will always be the first frame.", 600)
         partySorting:Add(sortInfoBox, sortingEnabled)
         partySorting:ChainToControl(partyVisibility)
 

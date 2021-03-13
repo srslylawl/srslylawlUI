@@ -109,6 +109,7 @@ local debugString = ""
 --[[ TODO:
 hide powerbar when inactive setting
 non destro shards show timer sometimes
+hide non player powerbar when inactive/max is 0
 alt powerbar
 seperate autodetect for auratype and defense values
 fauxparty not showing on solo
