@@ -1306,7 +1306,7 @@ function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
     srslylawlUI.Log(str .. " blacklisted, will no longer be shown.")
 end
 function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
-    local height, width
+    local height, width, currentBarLength
     local _, highestMaxHP
     if unitsType == "partyUnits" then
         height = srslylawlUI.GetSetting("party.hp.height")*0.7
@@ -1319,7 +1319,10 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     end
     local pixelPerHp = width / highestMaxHP
     local playerCurrentHP = UnitHealth(unit)
-    local currentBarLength = playerCurrentHP * pixelPerHp
+    currentBarLength = playerCurrentHP * pixelPerHp
+    if unitsType == "partyUnits" then
+        currentBarLength = math.max(currentBarLength, width*srslylawlUI.GetSetting("party.hp.minWidthPercent"))
+    end
     local totalAbsorbBarLength = 0
     local overlapBarIndex, curBarIndex, curBarOverlapIndex = 1, 1, 1 --overlapBarIndex 1 means we havent filled the bar up with absorbs, 2 means we are now overlaying absorbs over the healthbar
     local variousAbsorbAmount = 0  -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
