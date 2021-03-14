@@ -29,7 +29,7 @@ srslylawlUI.defaultSettings = {
         visibility = {
             showArena = true,
             showParty = true,
-            showSolo = true,
+            showSolo = false,
             showRaid = false,
             showPlayer = true,
         },

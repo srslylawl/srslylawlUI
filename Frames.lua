@@ -480,11 +480,9 @@ function srslylawlUI.SetupUnitFrame(buttonFrame, unit)
     buttonFrame.unit:SetAttribute("unit", buttonFrame:GetAttribute("unit"))
     buttonFrame.pet:SetFrameRef("unit", buttonFrame.unit)
     buttonFrame.unit.powerBar:ClearAllPoints()
-    -- if unit == "target" then
-    --     srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit.healthBar, "BOTTOMLEFT", 12, 2)
-    -- else
-        srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit.healthBar, "BOTTOMLEFT", 12, 2)
-    -- end
+    local leftXoffset = unit == "targettarget" and 2 or 12
+
+    srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit.healthBar, "BOTTOMLEFT", leftXoffset, 2)
     srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.rightText, "BOTTOMRIGHT", buttonFrame.unit.healthBar, "BOTTOMRIGHT", -2, 2)
 end
 function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
@@ -1649,7 +1647,7 @@ function srslylawlUI.Frame_ResetUnitButton(button, unit)
     end
 end
 function srslylawlUI.Frame_ResetName(button, unit)
-    if unit == "target" then
+    if unit == "target" or unit == "targettarget" then
         srslylawlUI.Frame_ResetHealthBar(button, unit)
         return
     end
@@ -1716,6 +1714,9 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
         local name = UnitName(unit) or UNKNOWN
         button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.5, healthPercent .. "%".." ".. name, true)
         button.healthBar.rightText:SetText(srslylawlUI.ShortenNumber(health).."/"..srslylawlUI.ShortenNumber(healthMax))
+    elseif unit == "targettarget" then
+        local name = UnitName(unit) or UNKNOWN
+        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth(), healthPercent .. "%".." ".. name, true)
     else
         button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.5, srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%")
     end
@@ -1750,6 +1751,9 @@ function srslylawlUI.SetPowerBarValues(button, unit)
         button.powerBar.text:SetText(percent >= 0 and percent or "")
     else
         button.powerBar.text:SetText("")
+    end
+    if button.powerBar:IsShown() ~= (max > 0) then
+        button.powerBar:SetShown(max > 0)
     end
 end
 function srslylawlUI.Frame_ResetDimensions(button)

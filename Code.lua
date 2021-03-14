@@ -107,19 +107,18 @@ local debugString = ""
 
 
 --[[ TODO:
-hide non player powerbar when inactive/max is 0
-alt powerbar
 seperate autodetect for auratype and defense values
 totem bar GetTotemInfo(1)
 focus frame
-faux frames for player pet
-powerbar fadeout
+powerbar fadeout instead of hide
 incoming ressurection
 incoming summon
+faux frames for player pet
 more sort methods?
-vehiclestuff
 faux frames absorb auras
-revisit some of the sorting/resize logic, probably firing more often than necessary
+vehiclestuff
+alt powerbar
+refactoring, performance optimization
 ]]
 
 --Utils
