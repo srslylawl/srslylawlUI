@@ -993,7 +993,8 @@ function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
 
     if srslylawlUI_Saved.buffs.absorbs[spellId] then
         --dont show absorb spells unless whitelisted
-        return false
+        
+        return isStealable and unit == "target"
     end
 
     if srslylawlUI_Saved.buffs.defensives[spellId] then
