@@ -107,12 +107,9 @@ local debugString = ""
 
 
 --[[ TODO:
-announcement checkbutton
-non destro shards show timer sometimes
 hide non player powerbar when inactive/max is 0
 alt powerbar
 seperate autodetect for auratype and defense values
-fauxparty not showing on solo
 totem bar GetTotemInfo(1)
 focus frame
 faux frames for player pet

@@ -841,6 +841,13 @@ function srslylawlUI.CreateConfigWindow()
         local castbar = CreateSettingsCheckButton("Castbar", tab, "blizzard.castbar.enabled", nil)
         showBlizzardFrames:Add(player, target, party, auras, castbar)
 
+        local other = CreateConfigControl(tab, "Other")
+        other:AppendToControl(showBlizzardFrames)
+
+        local enableAnnouncements = CreateSettingsCheckButton("Addon Announcements", tab, "announcements", nil)
+        AddTooltip(enableAnnouncements, "Enable/Disable the addon printing anything to the chat.\nExamples include: Successful save/load, learning a new defensive/absorb spell, errors, etc.")
+        other:Add(enableAnnouncements)
+
         local h = 0
         for _, v in pairs(tab.controls) do
             h = h + v
