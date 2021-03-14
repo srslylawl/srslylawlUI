@@ -392,8 +392,9 @@ function srslylawlUI.FrameSetup()
     srslylawlUI.Frame_AnchorFromSettings(header, "party.header.position")
     header:Show()
     --Create Unit Frames
-    local fauxHeader = CreateFrame("Frame", "srslylawlUI_FAUX_PartyHeader", header)
-    fauxHeader:SetAllPoints(true)
+    local fauxHeader = CreateFrame("Frame", "srslylawlUI_FAUX_PartyHeader", nil)
+    fauxHeader:SetPoint("TOPLEFT", header, "TOPLEFT", 0, 0)
+    fauxHeader:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 0)
     fauxHeader:Hide()
     local parent = header
     --Initiate party frames
@@ -1380,10 +1381,8 @@ function srslylawlUI.Frame_UpdateVisibility()
         end
     end
 
-    -- print(debugstack())
-    
-    --if true then return end
-    
+    if srslylawlUI_FAUX_PartyHeader:IsShown() then return end
+
     local isInArena = C_PvP.IsArena()
     local isInBG = C_PvP.IsBattleground()
     local isInGroup = IsInGroup() and not IsInRaid()

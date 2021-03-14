@@ -3,7 +3,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
     if not visible then
         srslylawlUI.Frame_UpdateVisibility()
     else
-        srslylawlUI_PartyHeader:Show()
+        srslylawlUI_PartyHeader:Hide()
     end
 
     if not srslylawlUI_FAUX_PartyHeader.initiated then
@@ -121,12 +121,9 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame.pet.healthBar:SetValue(fauxUnit.pethp)
 
             if unit == "player" then
-                frame.unit:SetPoint("TOPLEFT", srslylawlUI_FAUX_PartyHeader, "TOPLEFT")
-                frame.unit.healthBar.leftText:SetText("")
-                frame.unit.healthBar.rightText:SetText("")
+                frame.unit.healthBar.leftText:SetText(unit)
+                frame.unit.healthBar.rightText:SetText(hp)
             else
-                srslylawlUI.Utils_SetPointPixelPerfect(frame.unit, "TOPLEFT", lastFrame.unit, "BOTTOMLEFT", 0, -1)
-                -- frame.unit:SetPoint("TOPLEFT", lastFrame.unit, "BOTTOMLEFT")
                 frame.unit.healthBar.leftText:SetText(unit)
                 frame.unit.healthBar.rightText:SetText(hp)
                 frame.unit.healthBar:SetMinMaxValues(0, fauxUnit.hpmax)
@@ -240,6 +237,10 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     self.unit.CCDurBar:SetShown(srslylawlUI.GetSetting("party.ccbar.enabled"))
                     self.unit.powerBar.text:SetShown(srslylawlUI.GetSetting("party.power.text"))
 
+                    if srslylawlUI_FAUX_PartyHeader.showPlayer ~= srslylawlUI.GetSetting("party.visibility.showPlayer") then
+                        srslylawlUI.SortFauxFrames()
+                    end
+
                     timerFrame = 0
                 end
             end)
@@ -253,10 +254,10 @@ function srslylawlUI.ToggleFauxFrames(visible)
         for _, unit in pairs({"player", "target"}) do
             local fauxFrame = CreateFrame("Frame", "srslylawlUI_FAUX_"..unit, nil)
             fauxFrame:SetPoint("TOPLEFT", srslylawlUI.mainUnits[unit].unitFrame.unit, "TOPLEFT", 0, 0)
+            fauxFrame:SetPoint("BOTTOMRIGHT", srslylawlUI.mainUnits[unit].unitFrame.unit, "BOTTOMRIGHT", 0, 0 )
             fauxFrame.unit = fauxFrame
             fauxFrame:SetAttribute("unit", unit)
             fauxFrame:SetAttribute("unitsType", "mainFauxUnits")
-            
             srslylawlUI.mainFauxUnits[unit] = {
                 absorbAuras = {},
                 absorbFrames = {},
@@ -269,6 +270,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 trackedAurasByIndex = {},
                 unitFrame = fauxFrame
             }
+            
             srslylawlUI.CreateBuffFrames(fauxFrame, unit)
             srslylawlUI.CreateDebuffFrames(fauxFrame, unit)
 
@@ -277,10 +279,6 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 timer = timer + elapsed
                 if timer < .1 then return end
                 timer = 0
-
-            
-                local a = srslylawlUI.GetSetting("player."..unit.."Frame.position")
-                srslylawlUI.Utils_SetSizePixelPerfect(fauxFrame, srslylawlUI.GetSetting("player."..unit.."Frame.hp.width"), srslylawlUI.GetSetting("player."..unit.."Frame.hp.height"))
 
                 local buffFrames = srslylawlUI.mainFauxUnits[unit].buffFrames
                 local maxBuffs = srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
@@ -319,5 +317,27 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
     srslylawlUI_FAUX_player:SetShown(visible)
     srslylawlUI_FAUX_target:SetShown(visible)
+end
 
+function srslylawlUI.SortFauxFrames()
+    local lastFrame = srslylawlUI_FAUX_PartyHeader
+    local showPlayer = srslylawlUI.GetSetting("party.visibility.showPlayer")
+
+    for _, unit in pairs(srslylawlUI.partyUnitsTable) do
+        local frame = _G["srslylawlUI_FAUX_PartyHeader_"..unit]
+        if not frame then return end
+        if unit ~= "player" or unit == "player" and showPlayer then
+            if lastFrame == srslylawlUI_FAUX_PartyHeader then
+                frame.unit:SetPoint("TOPLEFT", lastFrame, "TOPLEFT")
+            else
+                srslylawlUI.Utils_SetPointPixelPerfect(frame.unit, "TOPLEFT", lastFrame, "BOTTOMLEFT", 0, -1)
+            end
+            lastFrame = frame.unit
+            frame:Show()
+        else
+            frame:Hide()
+        end
+    end
+
+    srslylawlUI_FAUX_PartyHeader.showPlayer = showPlayer
 end

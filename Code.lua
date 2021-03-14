@@ -107,7 +107,6 @@ local debugString = ""
 
 
 --[[ TODO:
-auraanchors sometimes too offset on target
 announcement checkbutton
 hide powerbar when inactive setting
 non destro shards show timer sometimes

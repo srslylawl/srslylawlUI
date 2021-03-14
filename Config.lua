@@ -22,9 +22,9 @@ function srslylawlUI.CreateConfigWindow()
         srslylawlUI.mainUnits.targettarget.unitFrame:SetMovable(bool)
         srslylawlUI.mainUnits.player.unitFrame:SetDemoMode(bool)
         srslylawlUI.mainUnits.target.unitFrame:SetDemoMode(bool)
-        srslylawlUI.Log((bool and "Frames now moveable!" or "Frames can no longer be moved."))
 
         srslylawlUI.ToggleFauxFrames(bool)
+        srslylawlUI.Log((bool and "Frames now moveable!" or "Frames can no longer be moved."))
     end
     local function CreateInfoBox(parent, content, width)
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
