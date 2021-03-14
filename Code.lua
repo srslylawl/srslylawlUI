@@ -108,7 +108,6 @@ local debugString = ""
 
 --[[ TODO:
 announcement checkbutton
-hide powerbar when inactive setting
 non destro shards show timer sometimes
 hide non player powerbar when inactive/max is 0
 alt powerbar

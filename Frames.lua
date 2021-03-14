@@ -574,6 +574,7 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
         end)
         buttonFrame:RegisterEvent("PLAYER_DEAD")
         buttonFrame:RegisterEvent("PLAYER_UNGHOST")
+        buttonFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
         srslylawlUI.Frame_ResetDimensions_Pet(buttonFrame)
         buttonFrame.unit.powerBar:Hide()
         srslylawlUI.BarHandler_Create(buttonFrame, buttonFrame.unit)
@@ -1074,6 +1075,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
 
     function frame:RegisterBar(bar, priority, height)
         local disabled = false
+        local showWhenInactive
         if bar.name == "CastBar" then
             priority = srslylawlUI.GetSettingByUnit("cast.priority", unitsType, unit)
             height = srslylawlUI.GetSettingByUnit("cast.height", unitsType, unit)
@@ -1091,6 +1093,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 priority = srslylawlUI.GetSetting(path.."priority", true) or priority
                 height = srslylawlUI.GetSetting(path.."height", true) or height
                 disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
+                showWhenInactive = srslylawlUI.GetSetting(path.."showWhenInactive", true) or false
             else
                 local currentStance = GetShapeshiftFormID()
                 --[[
@@ -1109,11 +1112,12 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 priority = srslylawlUI.GetSetting(path.."priority", true) or priority
                 height = srslylawlUI.GetSetting(path.."height", true) or height
                 disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
+                showWhenInactive = srslylawlUI.GetSetting(path.."showWhenInactive", true) or false
             end
         end
         bar.disabled = disabled
         bar.isUnparented = false
-
+        bar.hideWhenInactive = not showWhenInactive
 
         for _, v in pairs(bh.bars) do
             if v.bar == bar then
@@ -1216,15 +1220,22 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         if not bh.demoBars then
             bh.demoBars = {}
         end
+        local scriptHolder = bh
+        local parent = bh.barParent
+
+        if bh.barParent:GetAttribute("unit") == "target" then
+            scriptHolder = srslylawlUI.mainFauxUnits.target.unitFrame.barHandlerScriptHolder
+            parent = srslylawlUI.mainFauxUnits.target.unitFrame
+        end
         if active then
             local timer = 0
-            bh:SetScript("OnUpdate", function(self, elapsed)
+            scriptHolder:SetScript("OnUpdate", function(self, elapsed)
                 timer = timer + elapsed
                 if timer <= .1 then return end
                 local currentBar, currentDemoBar, lastBar, height, token, resourceName
                 for i=1, #bh.bars do
                     if not bh.demoBars[i] then
-                        bh.demoBars[i] = CreateFrame("StatusBar", "$parent_DemoBar"..i, bh.barParent)
+                        bh.demoBars[i] = CreateFrame("StatusBar", "$parent_DemoBar"..i, parent)
                         bh.demoBars[i]:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
                         bh.demoBars[i].text = srslylawlUI.CreateCustomFontString(bh.demoBars[i], "Text", srslylawlUI.GetSetting("player.playerFrame.power.fontSize"))
                         bh.demoBars[i].text:SetPoint("CENTER")
@@ -1233,25 +1244,28 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                     currentBar = bh.bars[i]
                     height = currentBar.height or 40
 
-                    if currentBar.bar.color then
-                        currentDemoBar:SetStatusBarColor(currentBar.bar.color.r, currentBar.bar.color.g, currentBar.bar.color.b)
-                    else
-                        currentDemoBar:SetStatusBarColor(1, 1, 1)
-                    end
-
-                    if not lastBar then
-                        srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", bh.barParent, "BOTTOMLEFT", 0, -1)
-                        srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", bh.barParent, "BOTTOMRIGHT", 0, -1-height)
-                    else
-                        srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", lastBar, "BOTTOMLEFT", 0, -1)
-                        srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", lastBar, "BOTTOMRIGHT", 0, -1-height)
-                    end
-
-                    currentDemoBar.text:SetText(currentBar.bar.name)
-                    currentDemoBar.text:ScaleToFit(height, height, 20)
-
                     currentDemoBar:SetShown(not currentBar.bar.disabled)
-                    lastBar = currentDemoBar
+
+                    if not currentBar.bar.disabled then
+                        if currentBar.bar.color then
+                            currentDemoBar:SetStatusBarColor(currentBar.bar.color.r, currentBar.bar.color.g, currentBar.bar.color.b)
+                        else
+                            currentDemoBar:SetStatusBarColor(1, 1, 1)
+                        end
+
+                        if not lastBar then
+                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
+                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, -1-height)
+                        else
+                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", lastBar, "BOTTOMLEFT", 0, -1)
+                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", lastBar, "BOTTOMRIGHT", 0, -1-height)
+                        end
+
+                        currentDemoBar.text:SetText(currentBar.bar.name)
+                        currentDemoBar.text:ScaleToFit(height, height, 20)
+
+                        lastBar = currentDemoBar
+                    end
                 end
                 for i=#bh.bars+1, #bh.demoBars do
                     bh.demoBars[i]:Hide()
@@ -1262,7 +1276,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             for i=1, #bh.demoBars do
                 bh.demoBars[i]:Hide()
             end
-            bh:SetScript("OnUpdate", nil)
+            scriptHolder:SetScript("OnUpdate", nil)
         end
     end
     function frame:ReRegisterAll()

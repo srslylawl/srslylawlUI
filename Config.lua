@@ -8,6 +8,13 @@ srslylawlUI.ConfigElements = {
     CheckButtons = {}
 }
 
+srslylawlUI.UnitToColor = {
+    ["party"] = {0.019, 0.407, 1, .4},
+    ["player"] = {0.109, 0.807, 0.301, .4},
+    ["target"] = {0.937, 0.121, 0.101, .4},
+    ["targettarget"] = {0.901, 0.156, 0.490, .4}
+}
+
 function srslylawlUI.CreateConfigWindow()
     local function ToggleFakeFrames(bool)
         if srslylawlUI_ConfigFrame.fakeFramesToggled == bool then
@@ -16,6 +23,8 @@ function srslylawlUI.CreateConfigWindow()
         srslylawlUI_ConfigFrame.lockFramesButton:SetChecked(bool)
 
         srslylawlUI_ConfigFrame.fakeFramesToggled = bool
+        srslylawlUI.ToggleFauxFrames(bool)
+
         srslylawlUI_PartyHeader:SetMovable(bool)
         srslylawlUI.mainUnits.player.unitFrame.unit:SetMovable(bool)
         srslylawlUI.mainUnits.target.unitFrame.unit:SetMovable(bool)
@@ -23,7 +32,6 @@ function srslylawlUI.CreateConfigWindow()
         srslylawlUI.mainUnits.player.unitFrame:SetDemoMode(bool)
         srslylawlUI.mainUnits.target.unitFrame:SetDemoMode(bool)
 
-        srslylawlUI.ToggleFauxFrames(bool)
         srslylawlUI.Log((bool and "Frames now moveable!" or "Frames can no longer be moved."))
     end
     local function CreateInfoBox(parent, content, width)
@@ -389,7 +397,7 @@ function srslylawlUI.CreateConfigWindow()
 
         return dropDown
     end
-    local function CreateConfigControl(parent, title, useFullWidth)
+    local function CreateConfigControl(parent, title, useFullWidth, unitToken)
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
         local frame = CreateFrame("Frame", "$parent_"..title, bounds, "BackdropTemplate")
         frame.bounds = bounds
@@ -404,7 +412,8 @@ function srslylawlUI.CreateConfigWindow()
             edgeSize = 12,
             insets = {left = 4, right = 4, top = 4, bottom = 4}
         })
-        frame:SetBackdropColor(0.592, 0, 0.678, .4)
+        local color = unitToken and srslylawlUI.UnitToColor[unitToken] or {0.796, 0.788, 0.564, .4}
+        frame:SetBackdropColor(unpack(color))
         frame.title = frame:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
         frame.title:SetText(title)
         frame.title:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", 20, 0)
@@ -742,7 +751,7 @@ function srslylawlUI.CreateConfigWindow()
         return elements
     end
     local function FillGeneralTab(tab)
-        local partyVisibility = CreateConfigControl(tab, "Party Frames Visibility")
+        local partyVisibility = CreateConfigControl(tab, "Party Frames Visibility", nil, "party")
         partyVisibility:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, -15)
 
         local showParty = CreateSettingsCheckButton("Party", tab, "party.visibility.showParty", function() srslylawlUI.Frame_UpdateVisibility() end)
@@ -762,7 +771,7 @@ function srslylawlUI.CreateConfigWindow()
 
         partyVisibility:Add(showParty, showPlayer, showSolo, showArena, showRaid)
 
-        local partySorting = CreateConfigControl(tab, "Party Frames Sorting")
+        local partySorting = CreateConfigControl(tab, "Party Frames Sorting", nil, "party")
         local sortingEnabled = CreateSettingsCheckButton("Enabled", tab, "party.sorting.enabled", function() srslylawlUI.SortPartyFrames() end)
         local sortInfoBox = CreateInfoBox(partySorting, "If enabled, party members will be sorted by their maximum hp, descending. This means that the highest hp party member will always be the first frame.", 600)
         partySorting:Add(sortInfoBox, sortingEnabled)
@@ -775,7 +784,7 @@ function srslylawlUI.CreateConfigWindow()
             unit = string.lower(unit)
             local path = unit == "party" and "party." or "player."..unit.."Frame."
 
-            local buffVisibility = CreateConfigControl(tab, cap.." Buff Visibility")
+            local buffVisibility = CreateConfigControl(tab, cap.." Buff Visibility", nil, unit)
             buffVisibility:AppendToControl(anchor)
 
             local buffsDefault = CreateSettingsCheckButton("Default", tab, path.."buffs.showDefault", function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
@@ -798,7 +807,7 @@ function srslylawlUI.CreateConfigWindow()
 
             buffVisibility:Add(buffsDefault, buffsDefensive, buffsPlayer, buffsInfinite, buffsLong)
 
-            local debuffVisibility = CreateConfigControl(tab, cap.." Debuff Visibility")
+            local debuffVisibility = CreateConfigControl(tab, cap.." Debuff Visibility", nil, unit)
             debuffVisibility:ChainToControl(buffVisibility)
 
             local debuffsDefault = CreateSettingsCheckButton("Default", tab, path.."debuffs.showDefault", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
@@ -842,7 +851,7 @@ function srslylawlUI.CreateConfigWindow()
     local function FillPartyFramesTab(tab)
         local path = "party."
         --party health bars
-        local healthControl = CreateConfigControl(tab, "Party Health")
+        local healthControl = CreateConfigControl(tab, "Party Health", nil, "party")
         healthControl:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, -15)
 
         local hpWidth = CreateCustomSlider("Maximum Width", tab, 1, 3000, path.."hp.width", 1, 0, srslylawlUI.UpdateEverything)
@@ -855,20 +864,20 @@ function srslylawlUI.CreateConfigWindow()
         healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize, unpack(partyAnchors))
 
         --party powerbars
-        local powerBars = CreateConfigControl(tab, "Party Power")
+        local powerBars = CreateConfigControl(tab, "Party Power", nil, "party")
         powerBars:ChainToControl(healthControl)
         local powerBarWidth = CreateCustomSlider("Width", tab, 1, 100, path.."power.width", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
         local showText = CreateSettingsCheckButton("Show Text", tab, "party.power.text", function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.Frame_ResetUnitButton(srslylawlUI.partyUnits[unit].unitFrame.unit, unit) end end)
         powerBars:Add(powerBarWidth, showText)
 
         --party petbars
-        local petBars = CreateConfigControl(tab, "Party Pet")
+        local petBars = CreateConfigControl(tab, "Party Pet", nil, "party")
         petBars:ChainToControl(powerBars, "RIGHT")
         local petBarWidth = CreateCustomSlider("Width", tab, 1, 100, path.."pet.width", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
         petBars:Add(petBarWidth)
 
         --cc bar
-        local ccBars = CreateConfigControl(tab, "Party Crowd Control")
+        local ccBars = CreateConfigControl(tab, "Party Crowd Control", nil, "party")
         ccBars:ChainToControl(powerBars)
         local ccBarEnabled = CreateSettingsCheckButton("Enabled", tab, path.."ccbar.enabled", srslylawlUI.Frame_Party_ResetDimensions_ALL)
         local ccBarWidth = CreateCustomSlider("Width", tab, 1, 1000, path.."ccbar.width", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
@@ -887,7 +896,7 @@ function srslylawlUI.CreateConfigWindow()
             local anchorTable = i == 1 and {"Frame", "Debuffs"} or {"Frame", "Buffs"}
             local aType = i == 1 and "buff" or "debuff"
             local typeCap = i == 1 and "Buff" or "Debuff"
-            local auraControl = CreateConfigControl(tab, "Party "..typeCap.." Frames")
+            local auraControl = CreateConfigControl(tab, "Party "..typeCap.." Frames", nil, "party")
             auraControl:SetPoint("TOPLEFT", anchor.bounds, "BOTTOMLEFT", 0, 0)
             local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path..aType.."s.anchoredTo", anchorTable)
             local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path..aType.."s.anchor", srslylawlUI.auraSortMethodTable, function() ResetAuraAll() end)
@@ -934,7 +943,7 @@ function srslylawlUI.CreateConfigWindow()
         local anchor = tab
         for _, unit in pairs(srslylawlUI.mainUnitsTable) do
             local unitName = unit:sub(1,1):upper()..unit:sub(2)
-            local playerFrameControl = CreateConfigControl(tab, unitName.." Frame")
+            local playerFrameControl = CreateConfigControl(tab, unitName.." Frame", nil, unit)
             playerFrameControl.title:SetFont("Fonts\\FRIZQT__.TTF", 25)
             local path = "player."..unit.."Frame."
             local unitFrame = srslylawlUI.mainUnits[unit].unitFrame
@@ -965,7 +974,7 @@ function srslylawlUI.CreateConfigWindow()
             local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
             playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize)
 
-            local playerPosControl = CreateConfigControl(tab, unitName.." Frame Position")
+            local playerPosControl = CreateConfigControl(tab, unitName.." Frame Position", nil, unit)
             playerPosControl:ChainToControl(playerFrameControl)
             local aTable
             if unit == "player" then
@@ -983,7 +992,7 @@ function srslylawlUI.CreateConfigWindow()
                     local anchorTable = i == 1 and {"Frame", "Debuffs"} or {"Frame", "Buffs"}
                     local aType = i == 1 and "buff" or "debuff"
                     local typeCap = i == 1 and "Buff" or "Debuff"
-                    local auraControl = CreateConfigControl(tab, unitName.." "..typeCap.." Frames")
+                    local auraControl = CreateConfigControl(tab, unitName.." "..typeCap.." Frames", nil, unit)
                     auraControl:ChainToControl(anchor)
                     local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path..aType.."s.anchoredTo", anchorTable)
                     local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path..aType.."s.anchor", srslylawlUI.auraSortMethodTable, function() srslylawlUI.SetAuraPointsAll(unit, "mainUnits") end)
@@ -1038,7 +1047,7 @@ function srslylawlUI.CreateConfigWindow()
             end
 
             if unit == "player" then
-                local petControl = CreateConfigControl(tab, unitName.." Pet Frame")
+                local petControl = CreateConfigControl(tab, unitName.." Pet Frame", nil, unit)
                 local petWidth = CreateCustomSlider("Width", tab, 1, 200, path.."pet.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions_Pet(unitFrame) end)
                 petControl:Add(petWidth)
                 petControl:ChainToControl(anchor)
@@ -1082,7 +1091,7 @@ function srslylawlUI.CreateConfigWindow()
                         p = "player.playerFrame.cast"
                     end
                     if not exists then
-                        local barControl = CreateConfigControl(tab, "Player "..name)
+                        local barControl = CreateConfigControl(tab, "Player "..name, nil, unit)
                         local barEnabled = CreateSettingsCheckButton("Disable", tab, p..".disabled", function()
                             unitFrame:ReRegisterAll()
                         end, true)
@@ -1092,7 +1101,13 @@ function srslylawlUI.CreateConfigWindow()
                         local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority", newTable[i].priority, function()
                             unitFrame:ReRegisterAll()
                         end)
-                        barControl:Add(barEnabled, barHeight, barPriority)
+                        if name ~= "CastBar" then
+                            local barHide = CreateSettingsCheckButton("Show when inactive", tab, p..".showWhenInactive", function() unitFrame:ReRegisterAll() end, true)
+                            barControl:Add(barEnabled, barHeight, barPriority, barHide)
+                            AddTooltip(barHide, "Display bar even when its idle, such as having full mana/energy, or combopoints/rage being empty")
+                        else
+                            barControl:Add(barEnabled, barHeight, barPriority)
+                        end
                         barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
                         table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls+1, {name=newTable[i].bar.name, control=barControl, enabled=barEnabled, height=barHeight, prio=barPriority, spec = specID, stance = currentStance})
                         cAnchor = barControl
@@ -1143,7 +1158,7 @@ function srslylawlUI.CreateConfigWindow()
                 SetPlayerPowerBarOptions()
                 --should place bars again once spec/druidform changes
             else
-                local powerBarControl = CreateConfigControl(tab, unitName.." Powerbar")
+                local powerBarControl = CreateConfigControl(tab, unitName.." Powerbar", nil, unit)
                 local powerBarWidth = CreateCustomSlider("Width", tab, 0, 100, path.."power.width", 1, 0, function()
                     srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
                 end)
@@ -1155,7 +1170,7 @@ function srslylawlUI.CreateConfigWindow()
                 if unit == "targettarget" then
                     anchor = powerBarControl
                 elseif unit == "target" then
-                    local castBarControl = CreateConfigControl(tab, "Target CastBar")
+                    local castBarControl = CreateConfigControl(tab, "Target CastBar", nil, unit)
                     local castBarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.cast.disabled", function()
                         unitFrame:ReRegisterAll()
                     end, true)
@@ -1167,7 +1182,7 @@ function srslylawlUI.CreateConfigWindow()
                     end)
                     castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority)
                     castBarControl:ChainToControl(powerBarControl)
-                    local ccbarControl = CreateConfigControl(tab, "Target CrowdControl")
+                    local ccbarControl = CreateConfigControl(tab, "Target CrowdControl", nil, unit)
                     local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.ccbar.disabled", function()
                         unitFrame:ReRegisterAll()
                     end, true)
@@ -1179,13 +1194,13 @@ function srslylawlUI.CreateConfigWindow()
                     end)
                     ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority)
                     ccbarControl:ChainToControl(castBarControl)
-                    local portraitControl = CreateConfigControl(tab, "Target Portrait")
+                    local portraitControl = CreateConfigControl(tab, "Target Portrait", nil, unit)
                     local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, "player.targetFrame.portrait.enabled", function() unitFrame:TogglePortrait() end)
                     local portraitPosition = CreateCustomDropDown("Position", 250, tab, "player.targetFrame.portrait.position", {"LEFT", "RIGHT"}, function() unitFrame:TogglePortrait() end)
                     local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, "player.targetFrame.portrait.anchor", {"Frame", "Powerbar"}, function() unitFrame:TogglePortrait() end)
                     portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
                     portraitControl:ChainToControl(ccbarControl)
-                    local unitLevelControl = CreateConfigControl(tab, "Target Level")
+                    local unitLevelControl = CreateConfigControl(tab, "Target Level", nil, unit)
                     local elements = CreateAnchoringPanel(tab, "player.targetFrame.unitLevel.position", unitFrame.unitLevel, {"TargetFrame", "TargetFramePortrait"})
                     unitLevelControl:Add(unpack(elements))
                     unitLevelControl:ChainToControl(portraitControl)

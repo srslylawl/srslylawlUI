@@ -258,6 +258,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
             fauxFrame.unit = fauxFrame
             fauxFrame:SetAttribute("unit", unit)
             fauxFrame:SetAttribute("unitsType", "mainFauxUnits")
+            fauxFrame.barHandlerScriptHolder = CreateFrame("Frame", "$parent_ScriptHolder", fauxFrame)
             srslylawlUI.mainFauxUnits[unit] = {
                 absorbAuras = {},
                 absorbFrames = {},
@@ -270,7 +271,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 trackedAurasByIndex = {},
                 unitFrame = fauxFrame
             }
-            
+
             srslylawlUI.CreateBuffFrames(fauxFrame, unit)
             srslylawlUI.CreateDebuffFrames(fauxFrame, unit)
 
@@ -315,8 +316,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
         srslylawlUI_FAUX_PartyHeader.initiated = true
     end
 
-    srslylawlUI_FAUX_player:SetShown(visible)
-    srslylawlUI_FAUX_target:SetShown(visible)
+    srslylawlUI.mainFauxUnits.player.unitFrame:SetShown(visible)
+    srslylawlUI.mainFauxUnits.target.unitFrame:SetShown(visible)
 end
 
 function srslylawlUI.SortFauxFrames()
