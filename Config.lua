@@ -867,10 +867,9 @@ function srslylawlUI.CreateConfigWindow()
         AddTooltip(minWidthPercent, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
         local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, srslylawlUI.UpdateEverything)
         local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "party.hp.reverse", srslylawlUI.Frame_UpdatePartyHealthBarAlignment)
-        local alignment = CreateCustomDropDown("Alignment", 200, tab, "party.hp.alignment", {"TOPLEFT", "TOPRIGHT"}, srslylawlUI.Frame_UpdatePartyHealthBarAlignment)
         local partyAnchors = CreateAnchoringPanel(tab, "party.header.position", srslylawlUI_PartyHeader)
         healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize, unpack(partyAnchors))
-        healthControl:Add(reverseFill, alignment)
+        healthControl:Add(reverseFill)
 
         --party powerbars
         local powerBars = CreateConfigControl(tab, "Party Power", nil, "party")

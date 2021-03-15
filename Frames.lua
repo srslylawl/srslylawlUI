@@ -364,9 +364,8 @@ function srslylawlUI.FrameSetup()
 
         local alignment = "TOPLEFT"
         if unitsType == "partyUnits" then
-            alignment = srslylawlUI.GetSetting("party.hp.alignment")
+            alignment = srslylawlUI.GetSetting("party.hp.reverse") and "TOPRIGHT" or alignment
         end
-        unitFrame.unit.healthBar.alignment = alignment
         unitFrame.unit.healthBar:SetPoint(alignment, unitFrame.unit, alignment, 0, 0)
 
         local fontSize = (party or faux) and srslylawlUI.GetSetting("party.hp.fontSize") or srslylawlUI.GetSetting("player."..unit.."Frame.hp.fontSize")
@@ -1434,8 +1433,8 @@ function srslylawlUI.Frame_UpdateVisibility()
     end
 end
 function srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
-    local alignment = srslylawlUI.GetSetting("party.hp.alignment")
     local reversed = srslylawlUI.GetSetting("party.hp.reverse")
+    local alignment = reversed and "TOPRIGHT" or "TOPLEFT"
     local oAnchor1, oAnchor2 = "TOPRIGHT", "TOPLEFT"
     local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
     local oXOffset, xOffset = -1, 1

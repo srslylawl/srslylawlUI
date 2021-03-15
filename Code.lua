@@ -109,8 +109,9 @@ local debugString = ""
 --[[ TODO:
 party sorting reverse with hp bar fill
 seperate autodetect for auratype and defense values
-totem bar GetTotemInfo(1)
 focus frame
+totem bar GetTotemInfo(1)
+ehealth only updates after second time defensive is applied?
 powerbar fadeout instead of hide
 incoming ressurection
 incoming summon
@@ -1315,17 +1316,17 @@ function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
 end
 function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     local height, width, currentBarLength
-    local _, highestMaxHP
+    local barWidth
     if unitsType == "partyUnits" then
         height = srslylawlUI.GetSetting("party.hp.height")*0.7
-        width = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar:GetWidth())
-        _, highestMaxHP = srslylawlUI.GetPartyHealth()
+        width = srslylawlUI.GetSetting("party.hp.width")
+        barWidth = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar:GetWidth())
     elseif unitsType == "mainUnits" then
         height = srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")*0.7
         width = srslylawlUI.GetSetting("player."..unit.."Frame.hp.width")
-        highestMaxHP = UnitHealthMax(unit)
+        barWidth = width
     end
-    local pixelPerHp = width / highestMaxHP
+    local pixelPerHp = barWidth / UnitHealthMax(unit)
     local playerCurrentHP = UnitHealth(unit)
     currentBarLength = playerCurrentHP * pixelPerHp
     local totalAbsorbBarLength = 0
