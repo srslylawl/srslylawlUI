@@ -376,6 +376,11 @@ function srslylawlUI.FrameSetup()
         unitFrame.unit.powerBar.text.enabled = srslylawlUI.GetSettingByUnit("power.text", unitsType, unit)
         unitFrame.unit.powerBar.text:SetPoint("BOTTOM")
 
+        unitFrame.unitID = unit
+        -- if unitsType == "party" and unit == "player" then
+        --     unitFrame.unitID = "party5"
+        -- end
+
         local height, width = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit), srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
 
         srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit, width, height)
