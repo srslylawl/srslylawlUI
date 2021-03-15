@@ -976,7 +976,6 @@ function srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
         anchor1, anchor2 = "TOPRIGHT", "TOPLEFT"
         direction = -1
     end
-    print(unit, unitsType, buttonFrame.unit.healthBar.reversed,  (baseAnchorOffset+pixelOffset)*direction, (baseAnchorOffset+mergeOffset)*direction)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFrames"][1], anchor1, buttonFrame.unit.healthBar,anchor1, offset*direction, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], anchor2, buttonFrame.unit.healthBar, anchor1, (baseAnchorOffset+mergeOffset)*direction,0)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], anchor1, buttonFrame.unit.healthBar,anchor1, (offset-srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset)*direction, 0)

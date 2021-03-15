@@ -1468,6 +1468,8 @@ function srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
             srslylawlUI.Utils_SetPointPixelPerfect(f, anchor1, parent, anchor2, xOffset, 0)
             parent = f
         end
+        srslylawlUI.partyUnits[unit]["effectiveHealthFrames"][1]:ClearAllPoints()
+        srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI.partyUnits[unit]["effectiveHealthFrames"][1], anchor1, frame.unit.healthBar, anchor2, xOffset, 0)
     end
     srslylawlUI.Party_HandleAuras_ALL()
 end
@@ -1502,6 +1504,8 @@ function srslylawlUI.Frame_UpdateMainHealthBarAlignment()
             srslylawlUI.Utils_SetPointPixelPerfect(f, anchor1, parent, anchor2, xOffset, 0)
             parent = f
         end
+        srslylawlUI.mainUnits[unit]["effectiveHealthFrames"][1]:ClearAllPoints()
+        srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI.mainUnits[unit]["effectiveHealthFrames"][1], anchor1, frame.unit.healthBar, anchor2, xOffset, 0)
     end
     srslylawlUI.Main_HandleAuras_ALL()
 end
