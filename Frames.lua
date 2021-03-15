@@ -304,8 +304,10 @@ function srslylawlUI.FrameSetup()
                 srslylawlUI.Utils_SetSizePixelPerfect(self, w, h)
                 h = math.min(w/2, h)
                 srslylawlUI.Utils_SetSizePixelPerfect(self.icon, h, h)
+                self.timer:ScaleToFit(w, h, 40)
             else
                 srslylawlUI.Utils_SetSizePixelPerfect(self.icon, w, w)
+                self.timer:ScaleToFit(w, w, 40)
             end
         end
         function CCDurationBar:UpdateVisible()
@@ -475,6 +477,8 @@ function srslylawlUI.FrameSetup()
         srslylawlUI.Frame_AnchorFromSettings(frame.unit, "player."..unit.."Frame.position")
         srslylawlUI.Frame_InitialMainUnitConfig(frame)
     end
+    srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
+    srslylawlUI.Frame_UpdateMainHealthBarAlignment()
     srslylawlUI.Frame_UpdateVisibility()
 end
 

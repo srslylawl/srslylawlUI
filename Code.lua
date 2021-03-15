@@ -1319,7 +1319,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     local _, highestMaxHP
     if unitsType == "partyUnits" then
         height = srslylawlUI.GetSetting("party.hp.height")*0.7
-        width = srslylawlUI.GetSetting("party.hp.width")
+        width = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar:GetWidth())
         _, highestMaxHP = srslylawlUI.GetPartyHealth()
     elseif unitsType == "mainUnits" then
         height = srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")*0.7
@@ -1329,9 +1329,6 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     local pixelPerHp = width / highestMaxHP
     local playerCurrentHP = UnitHealth(unit)
     currentBarLength = playerCurrentHP * pixelPerHp
-    if unitsType == "partyUnits" then
-        currentBarLength = math.max(currentBarLength, width*srslylawlUI.GetSetting("party.hp.minWidthPercent"))
-    end
     local totalAbsorbBarLength = 0
     local overlapBarIndex, curBarIndex, curBarOverlapIndex = 1, 1, 1 --overlapBarIndex 1 means we havent filled the bar up with absorbs, 2 means we are now overlaying absorbs over the healthbar
     local variousAbsorbAmount = 0  -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
