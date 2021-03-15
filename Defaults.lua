@@ -7,7 +7,7 @@ srslylawlUI.defaultSettings = {
             position = { "LEFT", "Screen", "LEFT", 100, 100},
         },
         hp = {
-            width = 300, height = 60, minWidthPercent = 0.55, fontSize = 12
+            width = 300, height = 60, minWidthPercent = 0.55, fontSize = 12, reverse = false
         },
         power = {
             width = 15,

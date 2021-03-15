@@ -147,7 +147,9 @@ srslylawlUI.PowerBar.BarDefaults = {
 }
 
 local function PowerBarSetVisible(self, visible)
-    visible = self.disabled or self.isUnparented or visible
+    if self.disabled or self.isUnparented then
+        visible = false
+    end
     if self:IsShown() ~= visible then
         self:SetShown(visible)
     end
@@ -337,12 +339,13 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             UpdateRuneTimer(rune, unpack(runeTable[i]))
         end
 
+        local visible = true
         self.runesFull = runesReady == #runeTable
         if self.hideWhenInactive then
-                if self.runesFull then
-                    visible = false
-                end
+            if self.runesFull then
+                visible = false
             end
+        end
         PowerBarSetVisible(self, visible)
     end
     function frame:SoulshardUpdate()

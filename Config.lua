@@ -1111,7 +1111,7 @@ function srslylawlUI.CreateConfigWindow()
                         if name ~= "CastBar" then
                             local barHide = CreateSettingsCheckButton("Show when inactive", tab, p..".showWhenInactive", function() unitFrame:ReRegisterAll() end, true)
                             barControl:Add(barEnabled, barHeight, barPriority, barHide)
-                            AddTooltip(barHide, "Display bar even when its idle, such as having full mana/energy, or combopoints/rage being empty")
+                            AddTooltip(barHide, "Display bar even when it's idle, such as having full mana/energy, or combopoints/rage being empty")
                         else
                             barControl:Add(barEnabled, barHeight, barPriority)
                         end
