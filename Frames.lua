@@ -28,8 +28,6 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
                 GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
                 local spellID = select(10, UnitAura(unit, id, "HELPFUL"))
                 srslylawlUI.Auras_BlacklistSpell(spellID, "buffs")
-                srslylawlUI.Party_HandleAuras_ALL()
-                srslylawlUI.Main_HandleAuras_ALL()
             elseif button == "RightButton" and unit == "player" and not InCombatLockdown() then
                 CancelUnitBuff(unit, id, "HELPFUL")
             end
@@ -79,8 +77,6 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
                 local id = self:GetID()
                 local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HARMFUL"))
                 srslylawlUI.Auras_BlacklistSpell(spellID, "debuffs")
-                srslylawlUI.Party_HandleAuras_ALL()
-                srslylawlUI.Main_HandleAuras_ALL()
             end
             end)
             f:SetScript("OnUpdate", function(self)

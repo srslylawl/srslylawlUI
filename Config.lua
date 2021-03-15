@@ -1371,6 +1371,8 @@ function srslylawlUI.CreateConfigWindow()
                     --refresh buttons to reflect new list
                     parentTab:GetParent():Hide()
                     parentTab:GetParent():Show()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
                 end
             end
 
@@ -1463,6 +1465,8 @@ function srslylawlUI.CreateConfigWindow()
 
                 parentTab:GetParent():Hide()
                 parentTab:GetParent():Show()
+                srslylawlUI.Party_HandleAuras_ALL()
+                srslylawlUI.Main_HandleAuras_ALL()
                 attributePanel:Hide()
             end)
         end

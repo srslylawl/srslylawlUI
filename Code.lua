@@ -1311,6 +1311,8 @@ function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
         str = str .. " removed from whitelist and "
     end
     
+    srslylawlUI.Party_HandleAuras_ALL()
+    srslylawlUI.Main_HandleAuras_ALL()
     srslylawlUI.Log(str .. " blacklisted, will no longer be shown.")
 end
 function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
