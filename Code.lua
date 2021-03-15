@@ -107,6 +107,8 @@ local debugString = ""
 
 
 --[[ TODO:
+reverse hp bars
+party sorting reverse with hp bar fill
 seperate autodetect for auratype and defense values
 totem bar GetTotemInfo(1)
 focus frame

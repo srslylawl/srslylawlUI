@@ -371,7 +371,8 @@ function srslylawlUI.FrameSetup()
 
         unitFrame.unit.healthBar.leftTextFrame:SetFrameLevel(9)
         unitFrame.unit.healthBar.rightTextFrame:SetFrameLevel(9)
-        
+
+        unitFrame.unit.healthBar:SetReverseFill(srslylawlUI.GetSettingByUnit("hp.reverse", unitsType, unit))
         unitFrame.PartyLeader = CreateFrame("Frame", "$parent_PartyLeader", unitFrame)
         unitFrame.PartyLeader:SetPoint("TOPLEFT", unitFrame.unit, "TOPLEFT")
         unitFrame.PartyLeader:SetFrameLevel(5)
@@ -1828,11 +1829,13 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
     button.unit.powerBar:ClearAllPoints()
     local width
     local baseWidth
-    if unitsType ~= "mainUnits" then
+    print(unitsType, button:GetAttribute("unit"))
+    if unitsType == "partyUnits" or unitsType == "fauxUnits" then
         baseWidth = srslylawlUI.GetDefault("party.power.width")
         width = srslylawlUI.GetSetting("party.power.width")
         srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
+        print(button.unit.powerBar:IsVisible(), button.unit.powerBar:GetPoint())
     else
         local unit = button:GetAttribute("unit")
         baseWidth = srslylawlUI.GetDefaultByUnit("power.width", unitsType, unit)
