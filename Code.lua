@@ -107,7 +107,9 @@ local debugString = ""
 
 
 --[[ TODO:
-seperate autodetect for auratype and defense values
+separate autodetect for auratype and defense values
+scaling auras partyframes
+aurasorting fauxframes
 focus frame
 totem bar GetTotemInfo(1)
 ehealth only updates after second time defensive is applied?
