@@ -232,6 +232,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     local h2 = h*srslylawlUI.GetSetting("party.ccbar.heightPercent")
                     local w = srslylawlUI.GetSetting("party.ccbar.width")
                     self.unit.CCDurBar:SetPoints(w, h2)
+                    self.unit.CCDurBar:SetReverseFill(srslylawlUI.GetSetting("party.ccbar.reversed"))
                     srslylawlUI.Frame_ResetDimensions_Pet(self)
                     srslylawlUI.Frame_ResetDimensions_PowerBar(self)
                     self.unit.healthBar:SetReverseFill(srslylawlUI.GetSetting("party.hp.reverse"))
@@ -240,7 +241,6 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     self.unit.powerBar.text:SetShown(srslylawlUI.GetSetting("party.power.text"))
 
                     if srslylawlUI_FAUX_PartyHeader.showPlayer ~= srslylawlUI.GetSetting("party.visibility.showPlayer")
-                    or srslylawlUI_FAUX_PartyHeader.alignment ~= srslylawlUI.GetSetting("party.hp.alignment")
                     or srslylawlUI_FAUX_PartyHeader.reversed ~= srslylawlUI.GetSetting("party.hp.reverse") then
                         srslylawlUI.SortFauxFrames()
                     end
@@ -348,8 +348,8 @@ function srslylawlUI.SortFauxFrames()
         end
     end
 
-    local alignment = srslylawlUI.GetSetting("party.hp.alignment")
     local reversed = srslylawlUI.GetSetting("party.hp.reverse")
+    local alignment = reversed and "TOPRIGHT" or "TOPLEFT"
 
     for _, unit in pairs(srslylawlUI.partyUnitsTable) do
         local frame = _G["srslylawlUI_FAUX_PartyHeader_"..unit]

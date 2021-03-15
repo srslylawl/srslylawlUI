@@ -7,7 +7,7 @@ srslylawlUI.defaultSettings = {
             position = { "LEFT", "Screen", "LEFT", 100, 100},
         },
         hp = {
-            width = 300, height = 60, minWidthPercent = 0.55, fontSize = 12, reverse = false
+            width = 300, height = 60, minWidthPercent = 0.55, fontSize = 12, reversed = false
         },
         power = {
             width = 15,
@@ -24,7 +24,8 @@ srslylawlUI.defaultSettings = {
         ccbar = {
             enabled = true,
             width = 100,
-            heightPercent = 0.5
+            heightPercent = 0.5,
+            reversed = false
         },
         visibility = {
             showArena = true,
@@ -42,7 +43,7 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = { "TOPRIGHT", "Screen", "CENTER", -200, -100},
             hp = {
-                width = 300, height = 70, fontSize = 6, reverse = false
+                width = 300, height = 70, fontSize = 6, reversed = false
             },
             buffs = { anchor = "TOPRIGHT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10, maxBuffs = 25,
                 showCastByPlayer = true, maxDuration = 60, showDefensives = true, showInfiniteDuration = true, showDefault = true, showLongDuration = true
@@ -63,14 +64,15 @@ srslylawlUI.defaultSettings = {
                 disabled = false,
                 fontSize = 10,
                 height = 40,
-                priority = 0
+                priority = 0,
+                reversed = false
             },
         },
         targetFrame = {
             enabled = true,
             position = { "TOPLEFT", "Screen", "CENTER", 200, -100},
             hp = {
-                width = 300, height = 70, fontSize = 6, reverse = false
+                width = 300, height = 70, fontSize = 6, reversed = false
             },
             buffs = {
                 anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10, maxBuffs = 25,
@@ -89,12 +91,14 @@ srslylawlUI.defaultSettings = {
                 disabled = false,
                 fontSize = 10,
                 height = 40,
-                priority = 0
+                priority = 0,
+                reversed = false
             },
             ccbar = {
                 disabled = false,
                 height = 20,
                 priority = 1,
+                reversed = false,
             },
             portrait = {
                 enabled = true,
@@ -109,7 +113,7 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = {"TOPLEFT", "TargetFramePortrait", "TOPRIGHT", 0, 0},
             hp = {
-                width = 150, height = 70, fontSize = 12, reverse = false
+                width = 150, height = 70, fontSize = 12, reversed = false
             },
             power = {
                 width = 15,

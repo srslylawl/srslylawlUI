@@ -101,7 +101,6 @@ function srslylawlUI.CreateConfigWindow()
         local slider = CreateFrame("Slider", name, bounds, "OptionsSliderTemplate")
         slider.bounds = bounds
 
-
         slider:SetPoint("LEFT", bounds, "LEFT", 5, 0)
         name = slider:GetName()
         slider.Low:SetText(min)
@@ -113,7 +112,7 @@ function srslylawlUI.CreateConfigWindow()
 
         slider:SetMinMaxValues(min, max)
         local var = srslylawlUI.GetSetting(valuePath, canBeNil)
-        var = var or 0
+        var = srslylawlUI.Utils_DecimalRound(var, decimals) or 0
         slider:SetValue(var)
         slider:SetValueStep(valueStep)
         slider:SetObeyStepOnDrag(true)
@@ -183,7 +182,7 @@ function srslylawlUI.CreateConfigWindow()
 
         function slider:Reset()
             local setting = srslylawlUI.GetSetting(valuePath, canBeNil)
-            setting = setting or 0
+            setting = srslylawlUI.Utils_DecimalRound(setting, decimals) or 0
             self:SetValue(setting)
             self.editbox:SetText(setting)
         end
@@ -866,7 +865,7 @@ function srslylawlUI.CreateConfigWindow()
         local minWidthPercent = CreateCustomSlider("Minimum Width %", tab, .01, 1, path.."hp.minWidthPercent", .01, 2, srslylawlUI.UpdateEverything)
         AddTooltip(minWidthPercent, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
         local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, srslylawlUI.UpdateEverything)
-        local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "party.hp.reverse", srslylawlUI.Frame_UpdatePartyHealthBarAlignment)
+        local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "party.hp.reversed", srslylawlUI.Frame_UpdatePartyHealthBarAlignment)
         local partyAnchors = CreateAnchoringPanel(tab, "party.header.position", srslylawlUI_PartyHeader)
         healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize, unpack(partyAnchors))
         healthControl:Add(reverseFill)
@@ -890,8 +889,10 @@ function srslylawlUI.CreateConfigWindow()
         local ccBarEnabled = CreateSettingsCheckButton("Enabled", tab, path.."ccbar.enabled", srslylawlUI.Frame_Party_ResetDimensions_ALL)
         local ccBarWidth = CreateCustomSlider("Width", tab, 1, 1000, path.."ccbar.width", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
         local ccBarHeight = CreateCustomSlider("Height %", tab, .01, 1, path.."ccbar.heightPercent", .01, 2, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."ccbar.reversed", srslylawlUI.Frame_Party_ResetDimensions_ALL)
+
         AddTooltip(ccBarHeight, "Percentage of HP Bar height")
-        ccBars:Add(ccBarEnabled, ccBarWidth, ccBarHeight)
+        ccBars:Add(ccBarEnabled, ccBarWidth, ccBarHeight, ccBarReverseFill)
 
         local anchor = ccBars
         local function ResetAuraAll()
@@ -980,7 +981,7 @@ function srslylawlUI.CreateConfigWindow()
             local hpWidth = CreateCustomSlider("Width", tab, 1, 3000, path.."hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
             local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path.."hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
             local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
-            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."hp.reverse", srslylawlUI.Frame_UpdateMainHealthBarAlignment)
+            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."hp.reversed", srslylawlUI.Frame_UpdateMainHealthBarAlignment)
             playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill)
 
             local playerPosControl = CreateConfigControl(tab, unitName.." Frame Position", nil, unit)
@@ -1083,59 +1084,60 @@ function srslylawlUI.CreateConfigWindow()
                     local cAnchor = petControl
                     local exists
                     for i=1, #newTable do
-                    exists = false
-                    local name = newTable[i].bar.name
-                    for _, v in ipairs(cFrame.playerPowerBarControls) do
-                        if v.name == name and v.spec == specID and v.stance == currentStance then
-                            exists = v
-                            break
+                        exists = false
+                        local name = newTable[i].bar.name
+                        for _, v in ipairs(cFrame.playerPowerBarControls) do
+                            if v.name == name and v.spec == specID and v.stance == currentStance then
+                                exists = v
+                                break
+                            end
                         end
-                    end
-                    local p = "player.playerFrame.power.overrides."..specID.."."..name
-                    if isDruid then
-                        local currentStance = GetShapeshiftFormID() or 0
-                        p = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..name
-                    end
-                    if name == "CastBar" then
-                        p = "player.playerFrame.cast"
-                    end
-                    if not exists then
-                        local barControl = CreateConfigControl(tab, "Player "..name, nil, unit)
-                        local barEnabled = CreateSettingsCheckButton("Disable", tab, p..".disabled", function()
+                        local p = "player.playerFrame.power.overrides."..specID.."."..name
+                        if isDruid then
+                            local currentStance = GetShapeshiftFormID() or 0
+                            p = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..name
+                        end
+                        if name == "CastBar" then
+                            p = "player.playerFrame.cast"
+                        end
+                        if not exists then
+                            local barControl = CreateConfigControl(tab, "Player "..name, nil, unit)
+                            local barEnabled = CreateSettingsCheckButton("Disable", tab, p..".disabled", function()
                             unitFrame:ReRegisterAll()
-                        end, true)
-                        local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height", newTable[i].height, function()
+                            end, true)
+                            local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height", newTable[i].height, function()
                             unitFrame:ReRegisterAll()
-                        end)
-                        local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority", newTable[i].priority, function()
+                            end)
+                            local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority", newTable[i].priority, function()
                             unitFrame:ReRegisterAll()
-                        end)
-                        if name ~= "CastBar" then
-                            local barHide = CreateSettingsCheckButton("Show when inactive", tab, p..".showWhenInactive", function() unitFrame:ReRegisterAll() end, true)
-                            barControl:Add(barEnabled, barHeight, barPriority, barHide)
-                            AddTooltip(barHide, "Display bar even when it's idle, such as having full mana/energy, or combopoints/rage being empty")
+                            end)
+                            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, p..".reversed", function() unitFrame:ReRegisterAll() end, true)
+                            if name ~= "CastBar" then
+                                local barHide = CreateSettingsCheckButton("Show when inactive", tab, p..".showWhenInactive", function() unitFrame:ReRegisterAll() end, true)
+                                barControl:Add(barEnabled, barHeight, barPriority, reverseFill, barHide)
+                                AddTooltip(barHide, "Display bar even when it's idle, such as having full mana/energy, or combopoints/rage being empty")
+                            else
+                                barControl:Add(barEnabled, barHeight, barPriority, reverseFill)
+                            end
+                            barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
+                            table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls+1, {name=newTable[i].bar.name, control=barControl, enabled=barEnabled, height=barHeight, prio=barPriority, spec = specID, stance = currentStance})
+                            cAnchor = barControl
+                            anchor = barControl
+                            cFrame.lastPlayerPowerBarAnchor = barControl
                         else
-                            barControl:Add(barEnabled, barHeight, barPriority)
+                            exists.control:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
+                            cAnchor = exists.control
+                            anchor = exists.control
+                            exists.control:Show()
+                            cFrame.lastPlayerPowerBarAnchor = exists.control
+                            exists.enabled:SetChecked(srslylawlUI.GetSetting(p..".disabled", true) or false)
+                            exists.height:SetValueClean(srslylawlUI.GetSetting(p..".height", true) or newTable[i].height)
+                            exists.prio:SetValueClean(srslylawlUI.GetSetting(p..".priority", true) or newTable[i].priority)
                         end
-                        barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
-                        table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls+1, {name=newTable[i].bar.name, control=barControl, enabled=barEnabled, height=barHeight, prio=barPriority, spec = specID, stance = currentStance})
-                        cAnchor = barControl
-                        anchor = barControl
-                        cFrame.lastPlayerPowerBarAnchor = barControl
-                    else
-                        exists.control:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
-                        cAnchor = exists.control
-                        anchor = exists.control
-                        exists.control:Show()
-                        cFrame.lastPlayerPowerBarAnchor = exists.control
-                        exists.enabled:SetChecked(srslylawlUI.GetSetting(p..".disabled", true) or false)
-                        exists.height:SetValueClean(srslylawlUI.GetSetting(p..".height", true) or newTable[i].height)
-                        exists.prio:SetValueClean(srslylawlUI.GetSetting(p..".priority", true) or newTable[i].priority)
-                    end
-                    if i == 1 and not cFrame.infoBox then
-                        cFrame.infoBox = CreateInfoBox(tab, "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings.", 280)
-                        cFrame.infoBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 8)
-                    elseif i == 2 and isDruid then
+                        if i == 1 and not cFrame.infoBox then
+                            cFrame.infoBox = CreateInfoBox(tab, "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings.", 280)
+                            cFrame.infoBox.bounds:SetPoint("TOPLEFT", petControl, "TOPRIGHT", 0, 8)
+                        elseif i == 2 and isDruid then
                         --[[
                             humanoid form - nil
                             Aquatic Form - 4
@@ -1149,12 +1151,12 @@ function srslylawlUI.CreateConfigWindow()
                         ]]
                         local form = currentStance == 0 and "Humanoid" or currentStance == 1 and "Cat Form" or currentStance == 5 and "Bear Form" or currentStance == 31 and "Moonkin Form" or "Travel Form"
                         if not cFrame.shapeShiftBox then
-                            cFrame.shapeShiftBox = CreateInfoBox(tab, "Settings for current shapeshift form: "..form, 280)
+                            cFrame.shapeShiftBox = CreateInfoBox(tab, "Settings for current shapeshift form: "..form, 150)
                         else
                             cFrame.shapeShiftBox:SetText("Settings for current shapeshift form: "..form)
                         end
-                        cFrame.shapeShiftBox.bounds:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 0, 0)
-                    end
+                        cFrame.shapeShiftBox.bounds:SetPoint("TOPLEFT", cFrame.infoBox.bounds, "TOPRIGHT", 0, 0)
+                        end
                     end
                     if cFrame.nextControlAfterPlayerPower then
                         cFrame.nextControlAfterPlayerPower:AppendToControl(cFrame.lastPlayerPowerBarAnchor)
@@ -1189,7 +1191,8 @@ function srslylawlUI.CreateConfigWindow()
                     local castBarPriority = CreateCustomSlider("Order", tab, 0, 10, "player.targetFrame.cast.priority", 1, 0, function()
                         unitFrame:ReRegisterAll()
                     end)
-                    castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority)
+                    local castReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "player.targetFrame.cast.reversed", function() unitFrame:ReRegisterAll() end, true)
+                    castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority, castReverseFill)
                     castBarControl:ChainToControl(powerBarControl)
                     local ccbarControl = CreateConfigControl(tab, "Target CrowdControl", nil, unit)
                     local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.ccbar.disabled", function()
@@ -1201,7 +1204,8 @@ function srslylawlUI.CreateConfigWindow()
                     local ccbarPriority = CreateCustomSlider("Order", tab, 0, 10, "player.targetFrame.ccbar.priority", 1, 0, function()
                         unitFrame:ReRegisterAll()
                     end)
-                    ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority)
+                    local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "player.targetFrame.ccbar.reversed", function() unitFrame:ReRegisterAll() end, true)
+                    ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority, ccBarReverseFill)
                     ccbarControl:ChainToControl(castBarControl)
                     local portraitControl = CreateConfigControl(tab, "Target Portrait", nil, unit)
                     local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, "player.targetFrame.portrait.enabled", function() unitFrame:TogglePortrait() end)

@@ -169,6 +169,8 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
     frame.inactiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inactiveState
     frame.specID = specID
+    frame.reversed = false
+
 
     local function CreatePointFrame(parent, i)
         local pointFrame = CreateFrame("StatusBar", "$parent_PointBar"..i, parent)
@@ -263,8 +265,16 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             return
         end
         local displayCount = UnitPower(self.unit, self.powerToken)
-        for i=1, self.desiredButtonCount do
-            self.pointFrames[i]:SetShown(i <= displayCount)
+        if self.reversed then
+            local reverseIndex = self.desiredButtonCount
+            for i=1, self.desiredButtonCount do
+                self.pointFrames[reverseIndex]:SetShown(i <= displayCount)
+                reverseIndex = reverseIndex-1
+            end
+        else
+            for i=1, self.desiredButtonCount do
+                self.pointFrames[i]:SetShown(i <= displayCount)
+            end
         end
 
         self:UpdateVisible()
@@ -325,13 +335,23 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             start, duration, runeReady = GetRuneCooldown(index)
         end
 
-        table.sort(runeTable, function(a, b)
-            if a[1] < b[1] then
-                return true
-            else
-                return false
-            end
-        end)
+        if self.reversed then
+            table.sort(runeTable, function(a, b)
+                if a[1] > b[1] then
+                    return true
+                else
+                    return false
+                end
+            end)
+        else
+            table.sort(runeTable, function(a, b)
+                if a[1] < b[1] then
+                    return true
+                else
+                    return false
+                end
+            end)
+        end
 
         local rune
         for i = 1, #runeTable do
@@ -354,26 +374,55 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             local displayCount = UnitPower(self.unit, self.powerToken, true)
             pointsToDisplay = ceil(displayCount/10)
             local progressLast = math.fmod(displayCount, 10)
-            for i=1, self.desiredButtonCount do
-                if i < pointsToDisplay then
-                self.pointFrames[i]:Show()
-                self.pointFrames[i]:SetAlpha(1)
-                self.pointFrames[i].text:SetText("")
-                self.pointFrames[i]:SetValue(1)
-                elseif i == pointsToDisplay then
-                    if progressLast > 0 then
-                    self.pointFrames[i]:Show()
-                    self.pointFrames[i]:SetAlpha(.5)
-                    self.pointFrames[i].text:SetText(progressLast)
-                    self.pointFrames[i]:SetValue(progressLast/10)
+            if self.reversed then
+                local reverseIndex = #self.desiredButtonCount
+                for i=1, self.desiredButtonCount do
+                    local pFrame = self.pointFrames[reverseIndex]
+                    if i < pointsToDisplay then
+                        pFrame:Show()
+                        pFrame:SetAlpha(1)
+                        pFrame.text:SetText("")
+                        pFrame:SetValue(1)
+                    elseif i == pointsToDisplay then
+                        if progressLast > 0 then
+                            pFrame:Show()
+                            pFrame:SetAlpha(.5)
+                            pFrame.text:SetText(progressLast)
+                            pFrame:SetValue(progressLast/10)
+                        else
+                            pFrame:Show()
+                            pFrame:SetAlpha(1)
+                            pFrame.text:SetText("")
+                            pFrame:SetValue(1)
+                        end
                     else
-                        self.pointFrames[i]:Show()
-                        self.pointFrames[i]:SetAlpha(1)
-                        self.pointFrames[i].text:SetText("")
-                        self.pointFrames[i]:SetValue(1)
+                        pFrame:Hide()
                     end
-                else
-                    self.pointFrames[i]:Hide()
+                    reverseIndex = reverseIndex - 1
+                end
+            else
+                for i=1, self.desiredButtonCount do
+                    local pFrame = self.pointFrames[i]
+                    if i < pointsToDisplay then
+                        pFrame:Show()
+                        pFrame:SetAlpha(1)
+                        pFrame.text:SetText("")
+                        pFrame:SetValue(1)
+                    elseif i == pointsToDisplay then
+                        if progressLast > 0 then
+                            pFrame:Show()
+                            pFrame:SetAlpha(.5)
+                            pFrame.text:SetText(progressLast)
+                            pFrame:SetValue(progressLast/10)
+                        else
+                            pFrame:Show()
+                            pFrame:SetAlpha(1)
+                            pFrame.text:SetText("")
+                            pFrame:SetValue(1)
+                        end
+                    else
+                        pFrame:Hide()
+                    end
                 end
             end
         else
@@ -395,18 +444,21 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     function frame:RogueUpdate()
         local displayCount = UnitPower(self.unit, self.powerToken)
         for i=1, self.desiredButtonCount do
-            if not self.pointFrames[i].isCharged then
-                self.pointFrames[i]:SetShown(i <= displayCount)
+            local reverseIndex = #self.pointFrames
+            local pFrame = self.reversed and self.pointFrames[reverseIndex] or self.pointFrames[i]
+            if not pFrame.isCharged then
+                pFrame:SetShown(i <= displayCount)
             else
                 local show = i <= displayCount
                 if show then
-                    self.pointFrames[i]:Show()
-                    self.pointFrames[i]:SetAlpha(1)
+                    pFrame:Show()
+                    pFrame:SetAlpha(1)
                 else
-                    self.pointFrames[i]:Show()
-                    self.pointFrames[i]:SetAlpha(.4)
+                    pFrame:Show()
+                    pFrame:SetAlpha(.4)
                 end
             end
+            reverseIndex = reverseIndex - 1
         end
 
         local visible = true
@@ -471,6 +523,17 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         end
         PowerBarSetVisible(self, visible)
     end
+    function frame:SetReverseFill(bool)
+        if self.reversed ~= bool then
+            self.reversed = bool
+            if self.specID >= 250 and self.specID <= 252 then
+                self:RuneUpdate()
+            else
+                self:Update()
+            end
+        end
+    end
+
 
     frame:SetPoints()
 
@@ -495,6 +558,8 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
     frame.statusBar.rightText = srslylawlUI.CreateCustomFontString(frame.statusBar, "leftText", srslylawlUI.GetSetting("player.playerFrame.power.fontSize"))
     frame.statusBar.rightText:SetPoint("CENTER", frame.statusBar, "CENTER", 0, 0)
     frame.specID = specID
+
+    frame.reversed = false
 
     frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
     frame.inactiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inactiveState
@@ -528,6 +593,12 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
         self.max = UnitPowerMax(self.unit, self.powerToken)
         self.statusBar:SetMinMaxValues(0, frame.max)
         self:Update()
+    end
+    function frame:SetReverseFill(bool)
+        if self.reversed ~= bool then
+            self.reversed = bool
+            self.statusBar:SetReverseFill(bool)
+        end
     end
     function frame:SetPoints()
         local w, h = srslylawlUI.Utils_PixelFromScreenToCode(self:GetWidth(), self:GetHeight())

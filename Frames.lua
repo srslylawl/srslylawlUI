@@ -285,18 +285,19 @@ function srslylawlUI.FrameSetup()
         CCDurationBar.name = "CCDurationBar"
         unitFrame.unit.CCDurBar = CCDurationBar
         CCDurationBar.statusBar = CreateFrame("StatusBar", "$parent_StatusBar", CCDurationBar)
+        CCDurationBar.timer = srslylawlUI.CreateCustomFontString(CCDurationBar.statusBar, "Timer", 15)
         CCDurationBar.statusBar:SetStatusBarTexture(srslylawlUI.textures.HealthBar)
         CCDurationBar.statusBar:SetMinMaxValues(0, 1)
         CCDurationBar.icon = CCDurationBar:CreateTexture("icon", "OVERLAY", nil, 2)
+        CCDurationBar.icon:SetTexCoord(.08, .92, .08, .92)
+        CCDurationBar.icon:SetTexture(408)
+        CCDurationBar.timer:SetText("0")
         srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.icon, "BOTTOMLEFT", CCDurationBar, "BOTTOMLEFT", 0, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.statusBar, "BOTTOMLEFT", CCDurationBar.icon, "BOTTOMRIGHT", 1, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.statusBar, "TOPRIGHT", CCDurationBar, "TOPRIGHT", 0, 0)
-        CCDurationBar.icon:SetTexCoord(.08, .92, .08, .92)
-        CCDurationBar.icon:SetTexture(408)
-        CCDurationBar.timer = srslylawlUI.CreateCustomFontString(CCDurationBar.statusBar, "Timer", 15)
-        CCDurationBar.timer:SetText("0")
         srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.timer, "LEFT", CCDurationBar.statusBar, "LEFT", 1, 0)
         srslylawlUI.CreateBackground(CCDurationBar, 0)
+
         CCDurationBar:Hide()
 
         function CCDurationBar:SetPoints(w, h)
@@ -318,6 +319,29 @@ function srslylawlUI.FrameSetup()
                 self:Hide()
             end
         end
+
+        function CCDurationBar:SetReverseFill(bool)
+            if self.reversed ~= bool then
+                self.reversed = bool
+                self.icon:ClearAllPoints()
+                self.statusBar:ClearAllPoints()
+                self.timer:ClearAllPoints()
+                if bool then
+                    srslylawlUI.Utils_SetPointPixelPerfect(self.icon, "BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(self.statusBar, "BOTTOMRIGHT", self.icon, "BOTTOMLEFT", 1, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(self.statusBar, "TOPLEFT", self, "TOPLEFT", 0, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(self.timer, "RIGHT", self.statusBar, "RIGHT", 1, 0)
+                else
+                    srslylawlUI.Utils_SetPointPixelPerfect(self.icon, "BOTTOMLEFT", self, "BOTTOMLEFT", 0, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(self.statusBar, "BOTTOMLEFT", self.icon, "BOTTOMRIGHT", 1, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(self.statusBar, "TOPRIGHT", self, "TOPRIGHT", 0, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(self.timer, "LEFT", self.statusBar, "LEFT", 1, 0)
+                end
+                self.statusBar:SetReverseFill(bool)
+            end
+        end
+
+        return CCDurationBar
     end
     local function CreateUnitFrame(header, unit, faux, party)
         local name = party and "$parent_"..unit or "srslylawlUI_Main_"..unit
@@ -364,7 +388,7 @@ function srslylawlUI.FrameSetup()
 
         local alignment = "TOPLEFT"
         if unitsType == "partyUnits" then
-            alignment = srslylawlUI.GetSetting("party.hp.reverse") and "TOPRIGHT" or alignment
+            alignment = srslylawlUI.GetSetting("party.hp.reversed") and "TOPRIGHT" or alignment
         end
         unitFrame.unit.healthBar:SetPoint(alignment, unitFrame.unit, alignment, 0, 0)
 
@@ -378,7 +402,7 @@ function srslylawlUI.FrameSetup()
         unitFrame.unit.healthBar.leftTextFrame:SetFrameLevel(9)
         unitFrame.unit.healthBar.rightTextFrame:SetFrameLevel(9)
 
-        unitFrame.unit.healthBar:SetReverseFill(srslylawlUI.GetSettingByUnit("hp.reverse", unitsType, unit))
+        unitFrame.unit.healthBar:SetReverseFill(srslylawlUI.GetSettingByUnit("hp.reversed", unitsType, unit))
 
         unitFrame.PartyLeader = CreateFrame("Frame", "$parent_PartyLeader", unitFrame)
         unitFrame.PartyLeader:SetPoint("TOPLEFT", unitFrame.unit, "TOPLEFT")
@@ -392,7 +416,8 @@ function srslylawlUI.FrameSetup()
             header[unit] = unitFrame
         end
         if unitsType ~= "mainUnits" or unit == "target" then
-            CreateCCBar(unitFrame)
+            local ccBar = CreateCCBar(unitFrame)
+            ccBar:SetReverseFill(srslylawlUI.GetSettingByUnit("ccbar.reversed", unitsType, unit))
         end
         
         return unitFrame
@@ -550,6 +575,7 @@ function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
     srslylawlUI.Frame_ResetDimensions_Pet(buttonFrame)
     srslylawlUI.Frame_ResetDimensions_PowerBar(buttonFrame)
     srslylawlUI.Frame_ResetDimensions(buttonFrame)
+    srslylawlUI.Frame_ResetCCDurBar(buttonFrame)
 end
 function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     local unit = buttonFrame:GetAttribute("unit")
@@ -984,6 +1010,31 @@ function srslylawlUI.CreateCastBar(parent, unit)
         --         self:Show()
     end
 
+    function cBar:SetReverseFill(reverse)
+        if self.reversed ~= reverse then
+            self.reversed = reverse
+
+            self.StatusBar:ClearAllPoints()
+            self.StatusBar.SpellName:ClearAllPoints()
+            self.StatusBar.Timer:ClearAllPoints()
+            self.Icon:ClearAllPoints()
+            if reverse then
+                self.Icon:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(self.StatusBar, "TOPRIGHT", self.Icon, "TOPLEFT", 1, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(self.StatusBar, "BOTTOMLEFT", self, "BOTTOMLEFT", 0, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(self.StatusBar.SpellName, "RIGHT", self.StatusBar, "RIGHT", 1, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(self.StatusBar.Timer, "LEFT", self.StatusBar, "LEFT", -1, 0)
+            else
+                self.Icon:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(self.StatusBar, "TOPLEFT", self.Icon, "TOPRIGHT", 1, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(self.StatusBar, "BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(self.StatusBar.SpellName, "LEFT", self.StatusBar, "LEFT", 1, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(self.StatusBar.Timer, "RIGHT", self.StatusBar, "RIGHT", -1, 0)
+            end
+            self.StatusBar:SetReverseFill(reverse)
+        end
+    end
+
     function cBar:SetPoints(h)
         h = h or srslylawlUI.Utils_PixelFromScreenToCode(self:GetHeight())
         h = math.max(1, h)
@@ -1086,24 +1137,24 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
     function frame:RegisterBar(bar, priority, height)
         local disabled = false
         local showWhenInactive
+        local reversed
         if bar.name == "CastBar" then
             priority = srslylawlUI.GetSettingByUnit("cast.priority", unitsType, unit)
             height = srslylawlUI.GetSettingByUnit("cast.height", unitsType, unit)
             disabled = srslylawlUI.GetSettingByUnit("cast.disabled", unitsType, unit)
+            reversed = srslylawlUI.GetSettingByUnit("cast.reversed", unitsType, unit)
         elseif bar.name == "CCDurationBar" then
             priority = srslylawlUI.GetSettingByUnit("ccbar.priority", unitsType, unit)
             height = srslylawlUI.GetSettingByUnit("ccbar.height", unitsType, unit)
             disabled = srslylawlUI.GetSettingByUnit("ccbar.disabled", unitsType, unit)
+            reversed = srslylawlUI.GetSettingByUnit("ccbar.reversed", unitsType, unit)
         elseif unit == "player" then
             local specIndex = GetSpecialization()
             local specID = GetSpecializationInfo(specIndex)
 
+            local path
             if specID < 102 or specID > 105 then -- not druid
-                local path = "player.playerFrame.power.overrides."..specID.."."..bar.name.."."
-                priority = srslylawlUI.GetSetting(path.."priority", true) or priority
-                height = srslylawlUI.GetSetting(path.."height", true) or height
-                disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
-                showWhenInactive = srslylawlUI.GetSetting(path.."showWhenInactive", true) or false
+                path = "player.playerFrame.power.overrides."..specID.."."..bar.name.."."
             else
                 local currentStance = GetShapeshiftFormID()
                 --[[
@@ -1118,16 +1169,18 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                     Tree of Life - 2
                 ]]
                 if currentStance == nil then currentStance = 0 end
-                local path = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..bar.name.."."
-                priority = srslylawlUI.GetSetting(path.."priority", true) or priority
-                height = srslylawlUI.GetSetting(path.."height", true) or height
-                disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
-                showWhenInactive = srslylawlUI.GetSetting(path.."showWhenInactive", true) or false
+                path = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..bar.name.."."
             end
+            priority = srslylawlUI.GetSetting(path.."priority", true) or priority
+            height = srslylawlUI.GetSetting(path.."height", true) or height
+            disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
+            showWhenInactive = srslylawlUI.GetSetting(path.."showWhenInactive", true) or false
+            reversed = srslylawlUI.GetSetting(path.."reversed", true) or false
         end
         bar.disabled = disabled
         bar.isUnparented = false
         bar.hideWhenInactive = not showWhenInactive
+        bar:SetReverseFill(reversed)
 
         for _, v in pairs(bh.bars) do
             if v.bar == bar then
@@ -1433,7 +1486,7 @@ function srslylawlUI.Frame_UpdateVisibility()
     end
 end
 function srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
-    local reversed = srslylawlUI.GetSetting("party.hp.reverse")
+    local reversed = srslylawlUI.GetSetting("party.hp.reversed")
     local alignment = reversed and "TOPRIGHT" or "TOPLEFT"
     local oAnchor1, oAnchor2 = "TOPRIGHT", "TOPLEFT"
     local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
@@ -1474,7 +1527,7 @@ function srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
 end
 function srslylawlUI.Frame_UpdateMainHealthBarAlignment()
     for _, unit in pairs({"player", "target"}) do
-        local reversed = srslylawlUI.GetSettingByUnit("hp.reverse", "mainUnits", unit)
+        local reversed = srslylawlUI.GetSettingByUnit("hp.reversed", "mainUnits", unit)
         local oAnchor1, oAnchor2 = "TOPRIGHT", "TOPLEFT"
         local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
         local oXOffset, xOffset = -1, 1
@@ -1537,10 +1590,8 @@ function srslylawlUI.Frame_ResetCCDurBar(button)
     local h = srslylawlUI.GetSetting("party.hp.height")
     local h2 = h*srslylawlUI.GetSetting("party.ccbar.heightPercent")
     local w = srslylawlUI.GetSetting("party.ccbar.width")
-    -- local iconSize = (w > h2 and h2) or w
     button.unit.CCDurBar:SetPoints(w, h2)
-    -- srslylawlUI.Utils_SetSizePixelPerfect(button.unit.CCDurBar, w, h2)
-    -- srslylawlUI.Utils_SetSizePixelPerfect(button.unit.CCDurBar.icon, iconSize, iconSize)
+    button.unit.CCDurBar:SetReverseFill(srslylawlUI.GetSetting("party.ccbar.reversed"))
 end
 function srslylawlUI.PlayerFrame_OnDragStart(self)
     if self:IsMovable() then
