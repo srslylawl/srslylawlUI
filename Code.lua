@@ -107,7 +107,6 @@ local debugString = ""
 
 
 --[[ TODO:
-reverse hp bars
 party sorting reverse with hp bar fill
 seperate autodetect for auratype and defense values
 totem bar GetTotemInfo(1)
@@ -970,9 +969,17 @@ function srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
         --offset by mergeamount
         mergeOffset = srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].mergeAmount + pixelOffset
     end
-    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFrames"][1], "TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset, 0)
-    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], "TOPRIGHT", buttonFrame.unit.healthBar, "TOPLEFT", baseAnchorOffset+mergeOffset,0)
-    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], "TOPLEFT", buttonFrame.unit.healthBar,"TOPLEFT", baseAnchorOffset+pixelOffset-srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset, 0)
+    local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
+    local direction = 1
+    local offset = (baseAnchorOffset+pixelOffset)
+    if buttonFrame.unit.healthBar.reversed then
+        anchor1, anchor2 = "TOPRIGHT", "TOPLEFT"
+        direction = -1
+    end
+    print(unit, unitsType, buttonFrame.unit.healthBar.reversed,  (baseAnchorOffset+pixelOffset)*direction, (baseAnchorOffset+mergeOffset)*direction)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFrames"][1], anchor1, buttonFrame.unit.healthBar,anchor1, offset*direction, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], anchor2, buttonFrame.unit.healthBar, anchor1, (baseAnchorOffset+mergeOffset)*direction,0)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], anchor1, buttonFrame.unit.healthBar,anchor1, (offset-srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset)*direction, 0)
 end
 function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
     local name, icon, count, debuffType, duration, expirationTime, source,

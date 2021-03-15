@@ -866,11 +866,11 @@ function srslylawlUI.CreateConfigWindow()
         local minWidthPercent = CreateCustomSlider("Minimum Width %", tab, .01, 1, path.."hp.minWidthPercent", .01, 2, srslylawlUI.UpdateEverything)
         AddTooltip(minWidthPercent, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
         local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, srslylawlUI.UpdateEverything)
-        local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "party.hp.reverse", function(self) for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.partyUnits[unit].unitFrame.unit.healthBar:SetReverseFill(self:GetChecked()) end end)
-
+        local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "party.hp.reverse", srslylawlUI.Frame_UpdatePartyHealthBarAlignment)
+        local alignment = CreateCustomDropDown("Alignment", 200, tab, "party.hp.alignment", {"TOPLEFT", "TOPRIGHT"}, srslylawlUI.Frame_UpdatePartyHealthBarAlignment)
         local partyAnchors = CreateAnchoringPanel(tab, "party.header.position", srslylawlUI_PartyHeader)
         healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize, unpack(partyAnchors))
-        healthControl:Add(reverseFill)
+        healthControl:Add(reverseFill, alignment)
 
         --party powerbars
         local powerBars = CreateConfigControl(tab, "Party Power", nil, "party")
@@ -981,7 +981,7 @@ function srslylawlUI.CreateConfigWindow()
             local hpWidth = CreateCustomSlider("Width", tab, 1, 3000, path.."hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
             local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path.."hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
             local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
-            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."hp.reverse", function(self) unitFrame.unit.healthBar:SetReverseFill(self:GetChecked()) end)
+            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."hp.reverse", srslylawlUI.Frame_UpdateMainHealthBarAlignment)
             playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill)
 
             local playerPosControl = CreateConfigControl(tab, unitName.." Frame Position", nil, unit)

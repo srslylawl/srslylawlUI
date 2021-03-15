@@ -239,7 +239,9 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     self.unit.CCDurBar:SetShown(srslylawlUI.GetSetting("party.ccbar.enabled"))
                     self.unit.powerBar.text:SetShown(srslylawlUI.GetSetting("party.power.text"))
 
-                    if srslylawlUI_FAUX_PartyHeader.showPlayer ~= srslylawlUI.GetSetting("party.visibility.showPlayer") then
+                    if srslylawlUI_FAUX_PartyHeader.showPlayer ~= srslylawlUI.GetSetting("party.visibility.showPlayer")
+                    or srslylawlUI_FAUX_PartyHeader.alignment ~= srslylawlUI.GetSetting("party.hp.alignment")
+                    or srslylawlUI_FAUX_PartyHeader.reversed ~= srslylawlUI.GetSetting("party.hp.reverse") then
                         srslylawlUI.SortFauxFrames()
                     end
 
@@ -285,7 +287,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
                 local buffFrames = srslylawlUI.mainFauxUnits[unit].buffFrames
                 local maxBuffs = srslylawlUI.GetSetting("player."..unit.."Frame.buffs.maxBuffs")
-                local defaultSize, scaledSize = srslylawlUI.GetSetting("player."..unit.."Frame.buffs.size"), srslylawlUI.GetSetting("player."..unit.."Frame.buffs.scaledSize")
+                defaultSize = srslylawlUI.GetSetting("player."..unit.."Frame.buffs.size")
+                scaledSize = defaultSize + srslylawlUI.GetSetting("player."..unit.."Frame.buffs.scaledSize")
                 for i=1, maxBuffs do
                     local f = buffFrames[i]
                     f.icon:SetTexture(135932)
@@ -299,7 +302,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
                 local debuffFrames = srslylawlUI.mainFauxUnits[unit].debuffFrames
                 local maxDebuffs = srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.maxDebuffs")
-                local defaultSize, scaledSize = srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.size"), srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.scaledSize")
+                defaultSize = srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.size")
+                scaledSize = defaultSize + srslylawlUI.GetSetting("player."..unit.."Frame.debuffs.scaledSize")
                 for i=1, maxDebuffs do
                     local f = debuffFrames[i]
                     f.icon:SetTexture(136207)
@@ -325,15 +329,17 @@ end
 function srslylawlUI.SortFauxFrames()
     local lastFrame = srslylawlUI_FAUX_PartyHeader
     local showPlayer = srslylawlUI.GetSetting("party.visibility.showPlayer")
+    local anchor1, anchor2 = "TOPLEFT", "BOTTOMLEFT"
 
     for _, unit in pairs(srslylawlUI.partyUnitsTable) do
         local frame = _G["srslylawlUI_FAUX_PartyHeader_"..unit]
         if not frame then return end
         if unit ~= "player" or unit == "player" and showPlayer then
+            frame.unit:ClearAllPoints()
             if lastFrame == srslylawlUI_FAUX_PartyHeader then
-                frame.unit:SetPoint("TOPLEFT", lastFrame, "TOPLEFT")
+                frame.unit:SetPoint(anchor1, lastFrame, anchor1)
             else
-                srslylawlUI.Utils_SetPointPixelPerfect(frame.unit, "TOPLEFT", lastFrame, "BOTTOMLEFT", 0, -1)
+                srslylawlUI.Utils_SetPointPixelPerfect(frame.unit, anchor1, lastFrame, anchor2, 0, -1)
             end
             lastFrame = frame.unit
             frame:Show()
@@ -342,5 +348,19 @@ function srslylawlUI.SortFauxFrames()
         end
     end
 
+    local alignment = srslylawlUI.GetSetting("party.hp.alignment")
+    local reversed = srslylawlUI.GetSetting("party.hp.reverse")
+
+    for _, unit in pairs(srslylawlUI.partyUnitsTable) do
+        local frame = _G["srslylawlUI_FAUX_PartyHeader_"..unit]
+        frame.unit.healthBar:ClearAllPoints()
+        frame.unit.healthBar:SetPoint(alignment, frame.unit, alignment, 0, 0)
+        frame.unit.healthBar.alignment = alignment
+        frame.unit.healthBar:SetReverseFill(reversed)
+        frame.unit.healthBar.reversed = reversed
+    end
+
     srslylawlUI_FAUX_PartyHeader.showPlayer = showPlayer
+    srslylawlUI_FAUX_PartyHeader.reversed = reversed
+    srslylawlUI_FAUX_PartyHeader.alignment = alignment
 end

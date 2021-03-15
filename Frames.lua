@@ -360,7 +360,12 @@ function srslylawlUI.FrameSetup()
         srslylawlUI.Utils_SetPointPixelPerfect(unitFrame, "TOPLEFT", unitFrame.unit, "TOPLEFT", -1, 1)
         srslylawlUI.Utils_SetPointPixelPerfect(unitFrame, "BOTTOMRIGHT", unitFrame.unit, "BOTTOMRIGHT", 1, -1)
 
-        unitFrame.unit.healthBar:SetPoint("TOPLEFT", unitFrame.unit, "TOPLEFT", 0, 0)
+        local alignment = "TOPLEFT"
+        if unitsType == "partyUnits" then
+            alignment = srslylawlUI.GetSetting("party.hp.alignment")
+        end
+        unitFrame.unit.healthBar.alignment = alignment
+        unitFrame.unit.healthBar:SetPoint(alignment, unitFrame.unit, alignment, 0, 0)
 
         local fontSize = (party or faux) and srslylawlUI.GetSetting("party.hp.fontSize") or srslylawlUI.GetSetting("player."..unit.."Frame.hp.fontSize")
         unitFrame.unit.healthBar.leftTextFrame = CreateFrame("Frame", "$parent_leftTextFrame", unitFrame.unit.healthBar)
@@ -373,6 +378,7 @@ function srslylawlUI.FrameSetup()
         unitFrame.unit.healthBar.rightTextFrame:SetFrameLevel(9)
 
         unitFrame.unit.healthBar:SetReverseFill(srslylawlUI.GetSettingByUnit("hp.reverse", unitsType, unit))
+
         unitFrame.PartyLeader = CreateFrame("Frame", "$parent_PartyLeader", unitFrame)
         unitFrame.PartyLeader:SetPoint("TOPLEFT", unitFrame.unit, "TOPLEFT")
         unitFrame.PartyLeader:SetFrameLevel(5)
@@ -1405,7 +1411,6 @@ function srslylawlUI.Frame_UpdateVisibility()
     
     if isInGroup then
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showParty"))
-        -- print("is in grp")
     elseif isInRaid then
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showRaid"))
     elseif isInArena then
@@ -1423,6 +1428,78 @@ function srslylawlUI.Frame_UpdateVisibility()
         end
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showSolo"))
     end
+end
+function srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
+    local alignment = srslylawlUI.GetSetting("party.hp.alignment")
+    local reversed = srslylawlUI.GetSetting("party.hp.reverse")
+    local oAnchor1, oAnchor2 = "TOPRIGHT", "TOPLEFT"
+    local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
+    local oXOffset, xOffset = -1, 1
+
+    for _, unit in pairs(srslylawlUI.partyUnitsTable) do
+        local frame = srslylawlUI.partyUnits[unit].unitFrame
+        frame.unit.healthBar:ClearAllPoints()
+        frame.unit.healthBar:SetPoint(alignment, frame.unit, alignment, 0, 0)
+        frame.unit.healthBar.alignment = alignment
+        frame.unit.healthBar:SetReverseFill(reversed)
+        frame.unit.healthBar.reversed = reversed
+
+        if reversed then
+            anchor1, anchor2 = "TOPRIGHT", "TOPLEFT"
+            oAnchor1, oAnchor2 = "TOPLEFT", "TOPRIGHT"
+            oXOffset, xOffset = 1, -1
+        end
+
+        local parent = frame.unit.healthBar
+        for i=1, #srslylawlUI.partyUnits[unit].absorbFramesOverlap do
+            local f = srslylawlUI.partyUnits[unit].absorbFramesOverlap[i]
+            f:ClearAllPoints()
+            srslylawlUI.Utils_SetPointPixelPerfect(f, oAnchor1, parent, oAnchor2, oXOffset, 0)
+            parent = f
+        end
+        parent = frame.unit.healthBar
+        for i=1, #srslylawlUI.partyUnits[unit].absorbFrames do
+            local f = srslylawlUI.partyUnits[unit].absorbFrames[i]
+            f:ClearAllPoints()
+            srslylawlUI.Utils_SetPointPixelPerfect(f, anchor1, parent, anchor2, xOffset, 0)
+            parent = f
+        end
+    end
+    srslylawlUI.Party_HandleAuras_ALL()
+end
+function srslylawlUI.Frame_UpdateMainHealthBarAlignment()
+    for _, unit in pairs({"player", "target"}) do
+        local reversed = srslylawlUI.GetSettingByUnit("hp.reverse", "mainUnits", unit)
+        local oAnchor1, oAnchor2 = "TOPRIGHT", "TOPLEFT"
+        local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
+        local oXOffset, xOffset = -1, 1
+
+        local frame = srslylawlUI.mainUnits[unit].unitFrame
+        frame.unit.healthBar:SetReverseFill(reversed)
+        frame.unit.healthBar.reversed = reversed
+
+        if reversed then
+            anchor1, anchor2 = "TOPRIGHT", "TOPLEFT"
+            oAnchor1, oAnchor2 = "TOPLEFT", "TOPRIGHT"
+            oXOffset, xOffset = 1, -1
+        end
+
+        local parent = frame.unit.healthBar
+        for i=1, #srslylawlUI.mainUnits[unit].absorbFramesOverlap do
+            local f = srslylawlUI.mainUnits[unit].absorbFramesOverlap[i]
+            f:ClearAllPoints()
+            srslylawlUI.Utils_SetPointPixelPerfect(f, oAnchor1, parent, oAnchor2, oXOffset, 0)
+            parent = f
+        end
+        parent = frame.unit.healthBar
+        for i=1, #srslylawlUI.mainUnits[unit].absorbFrames do
+            local f = srslylawlUI.mainUnits[unit].absorbFrames[i]
+            f:ClearAllPoints()
+            srslylawlUI.Utils_SetPointPixelPerfect(f, anchor1, parent, anchor2, xOffset, 0)
+            parent = f
+        end
+    end
+    srslylawlUI.Main_HandleAuras_ALL()
 end
 
 --main
@@ -1829,13 +1906,11 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
     button.unit.powerBar:ClearAllPoints()
     local width
     local baseWidth
-    print(unitsType, button:GetAttribute("unit"))
     if unitsType == "partyUnits" or unitsType == "fauxUnits" then
         baseWidth = srslylawlUI.GetDefault("party.power.width")
         width = srslylawlUI.GetSetting("party.power.width")
         srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
-        print(button.unit.powerBar:IsVisible(), button.unit.powerBar:GetPoint())
     else
         local unit = button:GetAttribute("unit")
         baseWidth = srslylawlUI.GetDefaultByUnit("power.width", unitsType, unit)
