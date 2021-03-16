@@ -255,7 +255,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
         --create fake aura frames for player and target frames
 
         srslylawlUI.mainFauxUnits = {}
-        for _, unit in pairs({"player", "target"}) do
+        for _, unit in pairs({"player", "target", "focus"}) do
             local fauxFrame = CreateFrame("Frame", "srslylawlUI_FAUX_"..unit, nil)
             fauxFrame:SetPoint("TOPLEFT", srslylawlUI.mainUnits[unit].unitFrame.unit, "TOPLEFT", 0, 0)
             fauxFrame:SetPoint("BOTTOMRIGHT", srslylawlUI.mainUnits[unit].unitFrame.unit, "BOTTOMRIGHT", 0, 0 )
@@ -324,6 +324,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
     srslylawlUI.mainFauxUnits.player.unitFrame:SetShown(visible)
     srslylawlUI.mainFauxUnits.target.unitFrame:SetShown(visible)
+    srslylawlUI.mainFauxUnits.focus.unitFrame:SetShown(visible)
 end
 
 function srslylawlUI.SortFauxFrames()
