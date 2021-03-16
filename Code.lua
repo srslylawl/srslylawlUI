@@ -110,6 +110,7 @@ local debugString = ""
 
 
 --[[ TODO:
+marker icons on frames
 better cc implementation
 totem bar GetTotemInfo(1)
 some environment defensive buffs arent properly recognized (amz etc)

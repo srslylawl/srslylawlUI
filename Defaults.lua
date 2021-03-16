@@ -172,7 +172,7 @@ srslylawlUI.defaultSettings = {
     },
     colors = {
         buffBaseColor = {0.960, 0.952, 0.760},
-        buffIsStealableColor = {0.760, 1, 0.984},
+        buffIsStealableColor = {0.988, 0.984, 0.392},
         buffIsEnemyColor = {0.603, 0.137, 0.1521}
     },
     announcements = true
