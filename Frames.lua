@@ -380,6 +380,9 @@ function srslylawlUI.FrameSetup()
 
         --for omnicd
         unitFrame.unitID = unit
+        if unit == "player" and unitsType == "partyUnits" then
+            srslylawlUI_PartyHeader_party5 = unitFrame
+        end
 
 
         local height, width = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit), srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
@@ -674,6 +677,19 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
     frame.unitLevel.text:SetPoint("CENTER", frame.unitLevel)
     srslylawlUI.Utils_SetSizePixelPerfect(frame.unitLevel, 20, 20)
     frame.unitLevel.text:SetText("??")
+
+    local oldSetPoint = frame.unitLevel.SetPoint
+    function frame.unitLevel:SetPoint(...)
+            local points = {...}
+            local fAnchor = points[2]
+            local unitCaps = unit:sub(1,1):upper()..unit:sub(2)
+            if fAnchor == srslylawlUI.TranslateFrameAnchor(unitCaps.."FramePortrait") and not srslylawlUI.GetSetting("player."..unit.."Frame.portrait.enabled")
+            then
+                points[2] = srslylawlUI.TranslateFrameAnchor(unitCaps.."Frame")
+                srslylawlUI.ChangeSetting("player."..unit.."Frame.unitLevel.position.2", unitCaps.."Frame")
+            end
+            oldSetPoint(self, unpack(points))
+    end
 
     frame.factionIcon = CreateFrame("Frame", "$parent_FactionIcon", frame.unit)
     frame.factionIcon:SetFrameLevel(frame.unit:GetFrameLevel()+1)

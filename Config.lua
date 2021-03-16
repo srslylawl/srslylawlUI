@@ -12,7 +12,8 @@ srslylawlUI.UnitToColor = {
     ["party"] = {0.019, 0.407, 1, .4},
     ["player"] = {0.109, 0.807, 0.301, .4},
     ["target"] = {0.937, 0.121, 0.101, .4},
-    ["targettarget"] = {0.901, 0.156, 0.490, .4}
+    ["targettarget"] = {0.901, 0.156, 0.490, .4},
+    ["focus"] = {0.929, 0.796, 0.172, .4}
 }
 
 function srslylawlUI.CreateConfigWindow()
@@ -772,7 +773,7 @@ function srslylawlUI.CreateConfigWindow()
 
         local anchor = partySorting
 
-        for _, unit in pairs({"Party", "Player", "Target"}) do
+        for _, unit in pairs({"Party", "Player", "Target", "Focus"}) do
             local cap = unit
             unit = string.lower(unit)
             local path = unit == "party" and "party." or "player."..unit.."Frame."

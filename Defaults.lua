@@ -159,7 +159,7 @@ srslylawlUI.defaultSettings = {
                 anchor = "Frame"
             },
             unitLevel = {
-                position = { "CENTER", "FocusFramePortrait", "BOTTOMRIGHT", 0, 2}
+                position = { "CENTER", "FocusFrame", "RIGHT", 0, 2}
             }
         },
     },
