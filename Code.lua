@@ -109,11 +109,10 @@ local debugString = ""
 
 --[[ TODO:
 better cc implementation
-focus frame
 totem bar GetTotemInfo(1)
-ehealth only updates after second time defensive is applied?
+some environment defensive buffs arent properly recognized (amz etc)
 powerbar fadeout instead of hide
-incoming ressurection
+incoming ressurrection
 incoming summon
 faux frames for player pet
 more sort methods?
