@@ -120,7 +120,48 @@ srslylawlUI.defaultSettings = {
                 text = true,
                 position = "RIGHT"
             },
-        }
+        },
+        focusFrame = {
+            enabled = true,
+            position = { "CENTER", "Screen", "CENTER", 200, 100},
+            hp = {
+                width = 300, height = 70, fontSize = 6, reversed = false
+            },
+            buffs = {
+                anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10, maxBuffs = 25,
+                showCastByPlayer = true, maxDuration = 60, showDefensives = true, showInfiniteDuration = true, showDefault = true, showLongDuration = true
+            },
+            debuffs = {
+                anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10, maxDebuffs = 40,
+                showCastByPlayer = true, maxDuration = 180, showInfiniteDuration = true, showDefault = true, showLongDuration = true
+            },
+            power = {
+                width = 15,
+                position = "LEFT",
+                text = true
+            },
+            cast = {
+                disabled = false,
+                fontSize = 10,
+                height = 40,
+                priority = 0,
+                reversed = false
+            },
+            ccbar = {
+                disabled = false,
+                height = 20,
+                priority = 1,
+                reversed = false,
+            },
+            portrait = {
+                enabled = false,
+                position = "RIGHT",
+                anchor = "Frame"
+            },
+            unitLevel = {
+                position = { "CENTER", "FocusFramePortrait", "BOTTOMRIGHT", 0, 2}
+            }
+        },
     },
     blizzard = {
         player = {enabled = false},

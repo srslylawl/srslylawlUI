@@ -697,9 +697,7 @@ function srslylawlUI.CreateConfigWindow()
     end
     local function CreateSaveLoadButtons(frame)
         -- Save Button
-        frame.SaveButton = CreateFrame("Button", "srslylawlUI_Config_SaveButton",
-                                    srslylawlUI_ConfigFrame,
-                                    "UIPanelButtonTemplate")
+        frame.SaveButton = CreateFrame("Button", "srslylawlUI_Config_SaveButton", srslylawlUI_ConfigFrame, "UIPanelButtonTemplate")
         local s = frame.SaveButton
         s:SetPoint("TOPRIGHT", -5, -30)
         s:SetText("Save")
@@ -708,9 +706,7 @@ function srslylawlUI.CreateConfigWindow()
         table.insert(srslylawlUI.unsaved.buttons, s)
 
         -- Load Button
-        frame.LoadButton = CreateFrame("Button", "srslylawlUI_Config_LoadButton",
-                                    srslylawlUI_ConfigFrame,
-                                    "UIPanelButtonTemplate")
+        frame.LoadButton = CreateFrame("Button", "srslylawlUI_Config_LoadButton", srslylawlUI_ConfigFrame, "UIPanelButtonTemplate")
         local l = frame.LoadButton
         l:SetPoint("TOPRIGHT", s, "TOPLEFT")
         l:SetText("Load")
@@ -719,9 +715,7 @@ function srslylawlUI.CreateConfigWindow()
         table.insert(srslylawlUI.unsaved.buttons, l)
         l:Disable()
         s:Disable()
-        frame.CloseButton = CreateFrame("Button", "srslylawlUI_Config_CloseButton",
-                                     srslylawlUI_ConfigFrame,
-                                     "UIPanelCloseButton")
+        frame.CloseButton = CreateFrame("Button", "srslylawlUI_Config_CloseButton", srslylawlUI_ConfigFrame, "UIPanelCloseButton")
         local c = frame.CloseButton
         c:SetPoint("TOPRIGHT", 0, 0)
     end
@@ -988,9 +982,11 @@ function srslylawlUI.CreateConfigWindow()
             playerPosControl:ChainToControl(playerFrameControl)
             local aTable
             if unit == "player" then
-                aTable = {"Screen", "TargetFrame", "TargetFramePortrait"}
+                aTable = {"Screen", "TargetFrame"}
             elseif unit == "target" then
                 aTable = {"Screen", "PlayerFrame"}
+            elseif unit == "focus" then
+                aTable = {"Screen", "PlayerFrame", "TargetFrame"}
             end
 
             local anchorElements = CreateAnchoringPanel(tab, path.."position", unitFrame.unit, aTable)
@@ -1180,41 +1176,44 @@ function srslylawlUI.CreateConfigWindow()
                 powerBarControl:ChainToControl(anchor)
                 if unit == "targettarget" then
                     anchor = powerBarControl
-                elseif unit == "target" then
-                    local castBarControl = CreateConfigControl(tab, "Target CastBar", nil, unit)
-                    local castBarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.cast.disabled", function()
+                elseif unit == "target" or unit == "focus" then
+                    local castBarControl = CreateConfigControl(tab, unitName.." CastBar", nil, unit)
+                    local castBarEnabled = CreateSettingsCheckButton("Disable", tab, path.."cast.disabled", function()
                         unitFrame:ReRegisterAll()
                     end, true)
-                    local castBarHeight = CreateCustomSlider("Height", tab, 0, 100, "player.targetFrame.cast.height", 1, 0, function()
+                    local castBarHeight = CreateCustomSlider("Height", tab, 0, 100, path.."cast.height", 1, 0, function()
                         unitFrame:ReRegisterAll()
                     end)
-                    local castBarPriority = CreateCustomSlider("Order", tab, 0, 10, "player.targetFrame.cast.priority", 1, 0, function()
+                    local castBarPriority = CreateCustomSlider("Order", tab, 0, 10, path.."cast.priority", 1, 0, function()
                         unitFrame:ReRegisterAll()
                     end)
-                    local castReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "player.targetFrame.cast.reversed", function() unitFrame:ReRegisterAll() end, true)
+                    local castReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."cast.reversed", function() unitFrame:ReRegisterAll() end, true)
                     castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority, castReverseFill)
                     castBarControl:ChainToControl(powerBarControl)
-                    local ccbarControl = CreateConfigControl(tab, "Target CrowdControl", nil, unit)
-                    local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, "player.targetFrame.ccbar.disabled", function()
+                    local ccbarControl = CreateConfigControl(tab, unitName.." CrowdControl", nil, unit)
+                    local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, path.."ccbar.disabled", function()
                         unitFrame:ReRegisterAll()
                     end, true)
-                    local ccbarHeight = CreateCustomSlider("Height", tab, 0, 100, "player.targetFrame.ccbar.height", 1, 0, function()
+                    local ccbarHeight = CreateCustomSlider("Height", tab, 0, 100, path.."ccbar.height", 1, 0, function()
                         unitFrame:ReRegisterAll()
                     end)
-                    local ccbarPriority = CreateCustomSlider("Order", tab, 0, 10, "player.targetFrame.ccbar.priority", 1, 0, function()
+                    local ccbarPriority = CreateCustomSlider("Order", tab, 0, 10, path.."ccbar.priority", 1, 0, function()
                         unitFrame:ReRegisterAll()
                     end)
-                    local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "player.targetFrame.ccbar.reversed", function() unitFrame:ReRegisterAll() end, true)
+                    local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."ccbar.reversed", function() unitFrame:ReRegisterAll() end, true)
                     ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority, ccBarReverseFill)
                     ccbarControl:ChainToControl(castBarControl)
-                    local portraitControl = CreateConfigControl(tab, "Target Portrait", nil, unit)
-                    local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, "player.targetFrame.portrait.enabled", function() unitFrame:TogglePortrait() end)
-                    local portraitPosition = CreateCustomDropDown("Position", 250, tab, "player.targetFrame.portrait.position", {"LEFT", "RIGHT"}, function() unitFrame:TogglePortrait() end)
-                    local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, "player.targetFrame.portrait.anchor", {"Frame", "Powerbar"}, function() unitFrame:TogglePortrait() end)
+                    local portraitControl = CreateConfigControl(tab, unitName.." Portrait", nil, unit)
+                    local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path.."portrait.enabled", function() unitFrame:TogglePortrait() end)
+                    local portraitPosition = CreateCustomDropDown("Position", 250, tab, path.."portrait.position", {"LEFT", "RIGHT"}, function() unitFrame:TogglePortrait() end)
+                    local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, path.."portrait.anchor", {"Frame", "Powerbar"}, function() unitFrame:TogglePortrait() end)
                     portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
                     portraitControl:ChainToControl(ccbarControl)
-                    local unitLevelControl = CreateConfigControl(tab, "Target Level", nil, unit)
-                    local elements = CreateAnchoringPanel(tab, "player.targetFrame.unitLevel.position", unitFrame.unitLevel, {"TargetFrame", "TargetFramePortrait"})
+
+                    local anchorT = unit == "target" and {"TargetFrame", "TargetFramePortrait"} or {"FocusFrame", "FocusFramePortrait"}
+
+                    local unitLevelControl = CreateConfigControl(tab, unitName.." Level", nil, unit)
+                    local elements = CreateAnchoringPanel(tab, path.."unitLevel.position", unitFrame.unitLevel, anchorT)
                     unitLevelControl:Add(unpack(elements))
                     unitLevelControl:ChainToControl(portraitControl)
                     anchor = unitLevelControl

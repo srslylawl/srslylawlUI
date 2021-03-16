@@ -643,8 +643,8 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
         buttonFrame.pet:Hide()
     end
 
-    if unit == "target" then
-        srslylawlUI.Frame_SetupTargetFrame(buttonFrame)
+    if unit == "target" or unit == "focus" then
+        srslylawlUI.Frame_SetupTargetFocusFrame(buttonFrame)
     end
 
     if unit == "targettarget" then
@@ -661,9 +661,10 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
 end
 
 
-function srslylawlUI.Frame_SetupTargetFrame(frame)
+function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
+    local unit = frame:GetAttribute("unit")
     srslylawlUI.BarHandler_Create(frame, frame.unit)
-    frame.CastBar = srslylawlUI.CreateCastBar(frame, frame:GetAttribute("unit"))
+    frame.CastBar = srslylawlUI.CreateCastBar(frame, unit)
     frame:RegisterBar(frame.CastBar, 0)
     frame:RegisterBar(frame.unit.CCDurBar)
 
@@ -683,10 +684,12 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
     frame.factionIcon.icon:SetTexCoord(0, 0.625, 0, 0.625)
     frame:RegisterEvent("UNIT_FACTION", "target")
 
-
+    if unit == "focus" then
+        frame:RegisterEvent("PLAYER_FOCUS_CHANGED")
+    end
 
     function frame:TogglePortrait()
-        local enabled = srslylawlUI.GetSetting("player.targetFrame.portrait.enabled")
+        local enabled = srslylawlUI.GetSetting("player."..unit.."Frame.portrait.enabled")
 
         if enabled and not frame.portrait then
             frame.portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame.unit)
@@ -696,9 +699,9 @@ function srslylawlUI.Frame_SetupTargetFrame(frame)
             frame.portrait:SetFrameLevel(frame.unit:GetFrameLevel())
 
             function frame.portrait:ResetPosition()
-                local height = srslylawlUI.GetSetting("player.targetFrame.hp.height")
-                local anchor = srslylawlUI.GetSetting("player.targetFrame.portrait.anchor") == "Frame" and frame.unit or frame.unit.powerBar
-                local position = srslylawlUI.GetSetting("player.targetFrame.portrait.position")
+                local height = srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")
+                local anchor = srslylawlUI.GetSetting("player."..unit.."Frame.portrait.anchor") == "Frame" and frame.unit or frame.unit.powerBar
+                local position = srslylawlUI.GetSetting("player."..unit.."Frame.portrait.position")
                 frame.portrait:ClearAllPoints()
                 if position == "LEFT" then
                     srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "TOPRIGHT", anchor, "TOPLEFT", -1, 0)
@@ -1701,6 +1704,19 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             end
             srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
         end
+    elseif event == "PLAYER_FOCUS_CHANGED" then
+        if self.CastBar then
+            self.CastBar:Hide()
+            self.CastBar:Show()
+        end
+        if self.portrait then
+            self.portrait:PortraitUpdate()
+        end
+        self:UpdateUnitLevel()
+        self:UpdateUnitFaction()
+        srslylawlUI.HandleAuras(self.unit, unit)
+        srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
+        srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
     elseif event == "PLAYER_SPECIALIZATION_CHANGED" and unit == "player" then
         srslylawlUI.PowerBar.Set(self, unit)
     elseif event == "PLAYER_DEAD" or event == "PLAYER_UNGHOST" then
@@ -1771,7 +1787,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             self.portrait:PortraitUpdate()
         elseif event == "UNIT_MODEL_CHANGED" and unit == "target" then
             self.portrait:ModelUpdate()
-        elseif event == "UNIT_FACTION" and unit == "target" then
+        elseif event == "UNIT_FACTION" then
             self:UpdateUnitFaction()
         elseif event == "UNIT_ENTERED_VEHICLE" then
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
@@ -1989,7 +2005,7 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
         local unit = button:GetAttribute("unit")
         baseWidth = srslylawlUI.GetDefaultByUnit("power.width", unitsType, unit)
         width = srslylawlUI.GetSettingByUnit("power.width", unitsType, unit)
-        if unit == "target" or unit == "targettarget" then
+        if unit ~= "player" then
             local pos = srslylawlUI.GetSettingByUnit("power.position", unitsType, unit)
             if pos == "LEFT" then
                 srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
@@ -1998,9 +2014,6 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
                 srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1, 0)
                 srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", (2+width), 0)
             end
-        -- else
-        --     srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
-        --     srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
         end
     end
 

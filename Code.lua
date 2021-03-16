@@ -78,12 +78,13 @@ srslylawlUI.partyUnits = {
 srslylawlUI.mainUnits = {
     player = {},
     target = {},
-    targettarget = {}
+    targettarget = {},
+    focus = {}
 }
 srslylawlUI.fauxUnits = {}
 srslylawlUI.customTooltip = CreateFrame("GameTooltip", "srslylawl_CustomTooltip", UIParent, "GameTooltipTemplate")
 srslylawlUI.partyUnitsTable = { "player", "party1", "party2", "party3", "party4"}
-srslylawlUI.mainUnitsTable = {"player", "target", "targettarget"}
+srslylawlUI.mainUnitsTable = {"player", "target", "targettarget", "focus"}
 srslylawlUI.crowdControlTable = { "stuns", "incaps", "disorients", "silences", "roots"}
 srslylawlUI.anchorTable = {
     "TOP", "RIGHT", "BOTTOM", "LEFT", "CENTER", "TOPRIGHT", "TOPLEFT", "BOTTOMLEFT", "BOTTOMRIGHT"
@@ -416,6 +417,10 @@ function srslylawlUI.TranslateFrameAnchor(anchor)
             return srslylawlUI.mainUnits.target.unitFrame.unit
         elseif anchor == "TargetFramePortrait" then
             return srslylawlUI.mainUnits.target.unitFrame.portrait
+        elseif anchor == "FocusFrame" then
+            return srslylawlUI.mainUnits.focus.unitFrame.unit
+        elseif anchor == "FocusFramePortrait" then
+            return srslylawlUI.mainUnits.focus.unitFrame.portrait
         end
     elseif type(anchor) == "table" then
         if anchor == srslylawlUI.mainUnits.player.unitFrame.unit then
@@ -426,8 +431,12 @@ function srslylawlUI.TranslateFrameAnchor(anchor)
             return "Screen"
         elseif anchor == srslylawlUI.mainUnits.target.unitFrame.portrait then
             return "TargetFramePortrait"
+        elseif anchor == srslylawlUI.mainUnits.focus.unitFrame.unit then
+            return "FocusFrame"
+        elseif anchor == srslylawlUI.mainUnits.focus.unitFrame.portrait then
+            return "FocusFramePortrait"
         end
-    elseif anchor == nil then
+    elseif not anchor then
         return "Screen"
     end
 end
@@ -1669,7 +1678,7 @@ function srslylawlUI.SaveSettings()
     srslylawlUI.RemoveDirtyFlag()
 end
 function srslylawlUI.SetDirtyFlag()
-    if srslylawlUI.unsaved.flag == true then return end
+    if #srslylawlUI.unsaved.buttons < 2 or srslylawlUI.unsaved.flag == true then return end
     srslylawlUI.unsaved.flag = true
     for _, v in ipairs(srslylawlUI.unsaved.buttons) do v:Enable() end
 end
