@@ -11,7 +11,17 @@ srslylawlUI_Saved = {
 				["isDefensive"] = true,
 				["reductionAmount"] = 30,
 			},
+            [1966] = {
+			    ["autoDetect"] = true,
+			    ["isAbsorb"] = false,
+			    ["autoDetectAmount"] = false,
+			    ["name"] = "Feint",
+			    ["text"] = "Damage taken from area-of-effect attacks reduced by 40% and all other damage taken reduced by 30%.\r\n",
+			    ["isDefensive"] = true,
+			    ["reductionAmount"] = 40,
+            },
         },
+        
         absorbs = {},
         defensives = {
             [118038] = {
@@ -22,6 +32,15 @@ srslylawlUI_Saved = {
 				["isDefensive"] = true,
 				["reductionAmount"] = 30,
 			},
+            [1966] = {
+			    ["autoDetect"] = true,
+			    ["isAbsorb"] = false,
+			    ["autoDetectAmount"] = false,
+			    ["name"] = "Feint",
+			    ["text"] = "Damage taken from area-of-effect attacks reduced by 40% and all other damage taken reduced by 30%.\r\n",
+			    ["isDefensive"] = true,
+			    ["reductionAmount"] = 40,
+            },
         },
         whiteList = {},
         blackList = {}

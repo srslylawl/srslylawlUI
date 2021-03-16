@@ -1320,9 +1320,10 @@ function srslylawlUI.CreateConfigWindow()
         local function SetEnableButtons(attributePanel, auraType, checked)
             if auraType == "buffs" then
                     attributePanel.isDefensive:SetEnabled(not checked)
-                    attributePanel.DefensiveAmount:SetEnabled(not checked)
+                    attributePanel.DefensiveAmount:SetEnabled(not attributePanel.AutoDetectDefensiveAmount:GetChecked())
                     attributePanel.isAbsorb:SetEnabled(not checked)
                     attributePanel.DefensiveAmount:SetShown(attributePanel.isDefensive:GetChecked())
+                    attributePanel.AutoDetectDefensiveAmount:SetShown(attributePanel.isDefensive:GetChecked())
             elseif auraType == "debuffs" then
                 if (checked) then
                     UIDropDownMenu_DisableDropDown(attributePanel.CCType)
@@ -1397,7 +1398,7 @@ function srslylawlUI.CreateConfigWindow()
             attributePanel.AutoDetect = CreateCheckButton("Auto-Detect settings", attributePanel)
             attributePanel.AutoDetect:SetPoint("TOPLEFT", attributePanel.isBlacklisted, "BOTTOMLEFT")
 
-            AddTooltip(attributePanel.AutoDetect, "Automatically detect settings based on spell tooltip. Disable this to stop updating the settings when spell is encountered.\nUse this if auto settings aren't accurate for this spell, recommended for non-english language clients")
+            AddTooltip(attributePanel.AutoDetect, "Automatically detect if spell has damage reduction or absorb, based on spell tooltip.\nThis will automatically detect if, for example, a rogue has skilled his feint.\nDisable this if auto settings aren't accurate for this spell, recommended for non-english language clients")
             attributePanel.AutoDetect:SetScript("OnClick", function(self)
                 local id = self.bounds:GetParent():GetAttribute("spellId")
                 local checked = self:GetChecked()
@@ -1438,6 +1439,17 @@ function srslylawlUI.CreateConfigWindow()
                         srslylawlUI.Log("Damage reduction amount for spell " .. GetSpellInfo(id) .. " set from " .. old .. "% to " .. amount .. "%!")
                     end)
                 AddTooltip(attributePanel.DefensiveAmount, "Set custom damage reduction effect (per stack) in % and confirm with [ENTER]-Key.\n(For example: Enter 15 for 15% damage reduction)\n\nSetting this to 100 will cause this spell to be treated as an immunity")
+
+                attributePanel.AutoDetectDefensiveAmount = CreateCheckButton("Auto-Detect amount", attributePanel)
+                attributePanel.AutoDetectDefensiveAmount.bounds:SetPoint("LEFT", attributePanel.DefensiveAmount.bounds, "RIGHT")
+                attributePanel.AutoDetectDefensiveAmount:SetScript("OnClick", function(self)
+                    local id = self.bounds:GetParent():GetAttribute("spellId")
+                    local checked = self:GetChecked()
+                    srslylawlUI_Saved[auraType].known[id].autoDetectAmount = checked
+                    SetEnableButtons(attributePanel, auraType, attributePanel.AutoDetect:GetChecked())
+                end)
+                AddTooltip(attributePanel.AutoDetectDefensiveAmount, "Auto-detecting the defensive amount is recommended for most spells, however, some spells with multiple reduction values are inconsistent to parse.\nFor such spells, such as Feint or Die by the Sword, I'd recommend setting a custom value.")
+
 
                 attributePanel.isAbsorb = CreateCheckButton("is Absorb effect", attributePanel)
                 attributePanel.isAbsorb:SetPoint("TOPLEFT", attributePanel.isDefensive, "BOTTOMLEFT")
@@ -1514,6 +1526,7 @@ function srslylawlUI.CreateConfigWindow()
             attributePanel.isDefensive:SetChecked(srslylawlUI_Saved.buffs.known[spellId].isDefensive)
             attributePanel.isAbsorb:SetChecked(srslylawlUI_Saved.buffs.known[spellId].isAbsorb)
             attributePanel.DefensiveAmount:SetNumber(srslylawlUI_Saved[auraType].known[spellId].reductionAmount or 0)
+            attributePanel.AutoDetectDefensiveAmount:SetChecked(srslylawlUI_Saved[auraType].known[spellId].autoDetectAmount ~= false)
         elseif auraType == "debuffs" then
             --dropdown cctype
             local dropDown = attributePanel.CCType

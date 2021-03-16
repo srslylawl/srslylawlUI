@@ -107,7 +107,7 @@ local debugString = ""
 
 
 --[[ TODO:
-separate autodetect for auratype and defense values
+better cc implementation
 scaling auras partyframes
 aurasorting fauxframes
 focus frame
@@ -1096,7 +1096,6 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
         local keyWordImmunity = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.immunity)
         local isKnown = srslylawlUI_Saved.buffs.known[spellId] ~= nil
         local autoDetectDisabled = isKnown and srslylawlUI_Saved.buffs.known[spellId].autoDetect ~= nil and srslylawlUI_Saved.buffs.known[spellId].autoDetect == false
-
         if autoDetectDisabled then
             srslylawlUI_Saved.buffs.known[spellId].text = buffText
             return
@@ -1123,32 +1122,39 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             
             spell.reductionAmount = 100
             
-            if (srslylawlUI_Saved.buffs.defensives[spellId] == nil) then
+            if not srslylawlUI_Saved.buffs.defensives[spellId] then
                 local log = "new defensive spell " .. link .. " encountered as immunity!"
                 -- first time entry
                 srslylawlUI.Log(log)
             end
             srslylawlUI_Saved.buffs.defensives[spellId] = spell
         elseif keyWordDefensive then
-            local amount = GetPercentValue(buffLower)
-            local log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "%!"
+            local amount
+            if not isKnown or srslylawlUI_Saved.buffs.known[spellId].autoDetectAmount ~= false then
+                print(spellName, srslylawlUI_Saved.buffs.known[spellId].autoDetectAmount)
+                local log
+                amount = GetPercentValue(buffLower)
+                log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "%!"
 
-            if stacks ~= 0 then
-                amount = amount / stacks
-                log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "% per stack!"
+                if stacks ~= 0 then
+                    amount = amount / stacks
+                    log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "% per stack!"
+                end
+
+                if abs(amount) ~= 0 then
+                    spell.reductionAmount = amount
+                else
+                    error("reduction amount is 0 " .. spellName .. " " .. buffText)
+                end
+
+                if not isKnown then
+                    -- first time entry
+                    srslylawlUI.Log(log)
+                end
+            else
+                spell.reductionAmount = srslylawlUI_Saved.buffs.known[spellId].reductionAmount
             end
 
-            if abs(amount) ~= 0 then
-                spell.reductionAmount = amount
-            else
-                error("reduction amount is 0 " .. spellName .. " " .. buffText)
-            end
-            if (srslylawlUI_Saved.buffs.defensives[spellId] == nil) then
-                -- first time entry
-                srslylawlUI.Log(log)
-            else
-                -- srslylawlUI.Log("spell updated " .. spellName .. "!")
-            end
             srslylawlUI_Saved.buffs.defensives[spellId] = spell
         end
 
@@ -1738,9 +1744,9 @@ function srslylawlUI.GetSetting(path, canBeNil)
                 end
             else
                 --found in default settings, just wasnt loaded
-                local printVar = type(variable) ~= "table" and ": "..tostring(variable).." " or " "
+                local pVar = type(variable) ~= "table" and ": "..tostring(variable).." " or " "
                 CreateValueAtPath(variable, pathTable, srslylawlUI_Saved.settings)
-                srslylawlUI.Log("Variable not found in saved settings: '" .. path .. "'. Default value"..printVar.."used instead. Seeing this message after updating this addon should be fine.")
+                srslylawlUI.Log("Variable not found in saved settings: '" .. path .. "'. Default value"..pVar.."used instead. Seeing this message after updating this addon should be fine.")
             end
         end
     end
