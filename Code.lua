@@ -520,6 +520,7 @@ function srslylawlUI.GetBuffText(buffIndex, unit)
     tooltipTextGrabber:SetUnitBuff(unit, buffIndex)
     local n2 = srslylawl_TooltipTextGrabberTextLeft2:GetText()
     tooltipTextGrabber:Hide()
+
     return n2
 end
 function srslylawlUI.GetDebuffText(debuffIndex, unit)
@@ -1088,12 +1089,22 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
               isStealable, nameplateShowPersonal, spellId, canApplyAura,
               isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1 =
             UnitAura(unit, buffIndex, "HELPFUL")
+        local isKnown = srslylawlUI_Saved.buffs.known[spellId] ~= nil
         local buffText = srslylawlUI.GetBuffText(buffIndex, unit)
+        print(spellName, buffText, type(buffText))
+        if not buffText then
+            --so, for some buffs that are applied by the environment (AMZ, consecration, guardian of the forgotten queen, etc),
+            --the buff can actually not have a proper tooltip
+            --if this happens, we use our stored tooltip. it usually gets updated next frame though.
+            print(spellName, "bufftext nil")
+            if isKnown then
+                buffText = srslylawlUI_Saved.buffs.known[spellId].text
+            end
+        end
         local buffLower = buffText ~= nil and string.lower(buffText) or ""
         local keyWordAbsorb = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.absorbs) and ((arg1 ~= nil) and (arg1 > 1))
         local keyWordDefensive = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.defensive)
         local keyWordImmunity = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.immunity)
-        local isKnown = srslylawlUI_Saved.buffs.known[spellId] ~= nil
         local autoDetectDisabled = isKnown and srslylawlUI_Saved.buffs.known[spellId].autoDetect ~= nil and srslylawlUI_Saved.buffs.known[spellId].autoDetect == false
         if autoDetectDisabled then
             srslylawlUI_Saved.buffs.known[spellId].text = buffText

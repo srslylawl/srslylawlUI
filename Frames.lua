@@ -15,11 +15,12 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
                 GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
                 GameTooltip:SetUnitBuff(self:GetAttribute("unit"), self:GetID())
             end)
-            f:SetScript("OnUpdate", function(self)
-            if GameTooltip:IsOwned(f) then
-                GameTooltip:SetUnitBuff(self:GetAttribute("unit"),self:GetID())
-            end
-            end)
+            f:SetScript("OnUpdate", nil)
+            -- f:SetScript("OnUpdate", function(self)
+            -- if GameTooltip:IsOwned(f) then
+            --     GameTooltip:SetUnitBuff(self:GetAttribute("unit"),self:GetID())
+            -- end
+            -- end)
             --shift-Right click blacklists spell
             f:SetScript("OnClick", function(self, button, down)
             local id = self:GetID()
@@ -79,11 +80,12 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
                 srslylawlUI.Auras_BlacklistSpell(spellID, "debuffs")
             end
             end)
-            f:SetScript("OnUpdate", function(self)
-            if GameTooltip:IsOwned(f) then
-                GameTooltip:SetUnitDebuff(self:GetAttribute("unit"),self:GetID())
-            end
-            end)
+            f:SetScript("OnUpdate", nil)
+            -- f:SetScript("OnUpdate", function(self)
+            -- if GameTooltip:IsOwned(f) then
+            --     GameTooltip:SetUnitDebuff(self:GetAttribute("unit"),self:GetID())
+            -- end
+            -- end)
 
             --template creates a border thats not pixel perfect (yikes)
             f.border:ClearAllPoints()
@@ -498,6 +500,25 @@ function srslylawlUI.FrameSetup()
             srslylawlUI.CreateBuffFrames(frame, unit)
             srslylawlUI.CreateDebuffFrames(frame, unit)
             CreateCustomFrames(frame, unit)
+        end
+        if unit == "targettarget" then
+            local oldSetPoint = frame.unit.SetPoint
+            function frame.unit:SetPoint(...)
+                print("setting targettarget points")
+                local points = {...}
+                local fAnchor = points[2]
+                if fAnchor == srslylawlUI.TranslateFrameAnchor("TargetFramePortrait") and not srslylawlUI.GetSetting("player.targetFrame.portrait.enabled")
+                then
+                    points[2] = srslylawlUI.TranslateFrameAnchor("TargetFrame")
+                    srslylawlUI.ChangeSetting("player.targettargetFrame.position.2", "TargetFrame")
+                end
+                oldSetPoint(self, unpack(points))
+            end
+            -- local a = srslylawlUI.GetSetting("player.targettargetFrame.position")
+            -- if a[2] == "TargetFramePortrait" and not srslylawlUI.GetSetting("player.targetFrame.portrait.enabled") then
+            --     a[2] = "TargetFrame"
+            --     srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
+            -- end
         end
         srslylawlUI.Frame_AnchorFromSettings(frame.unit, "player."..unit.."Frame.position")
         srslylawlUI.Frame_InitialMainUnitConfig(frame)

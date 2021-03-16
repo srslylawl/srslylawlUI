@@ -1814,7 +1814,7 @@ function srslylawlUI.CreateConfigWindow()
 
     CreateSaveLoadButtons(cFrame)
 
-    local generalTab, playerFrames, partyFramesTab, buffsTab, debuffsTab = SetTabs(cFrame.body, "General", "Player Frames", "Party Frames", "Buffs", "Debuffs")
+    local generalTab, playerFrames, partyFramesTab, buffsTab, debuffsTab = SetTabs(cFrame.body, "General", "Player/Target/Focus Frames", "Party Frames", "Buffs", "Debuffs")
 
     -- Create General Tab
     Mixin(generalTab, BackdropTemplateMixin)
