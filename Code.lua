@@ -10,6 +10,8 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
+local version = "1.0"
+
 
 srslylawlUI.loadedSettings = {}
 srslylawlUI.buffs = {
@@ -1815,13 +1817,8 @@ local function Initialize()
     local function CreateSlashCommands()
         -- Setting Slash Commands
         SLASH_SRSLYLAWLUI1 = "/srslylawlUI"
-        SLASH_SRSLYLAWLUI2 = "/srslylawlUI"
-        SLASH_SRSLYLAWLUI3 = "/srsUI"
-        SLASH_SRSLYLAWLUI4 = "/srslylawl"
-        SLASH_SRSLYLAWLUI5 = "/srslylawl save"
-        SLASH_SRSLYLAWLUIDEBUG1 = "/srsdbg"
-
-        SLASH_SRLYLAWLAPPROVESPELL1 = "/approvespell id"
+        SLASH_SRSLYLAWLUI2 = "/srsUI"
+        SLASH_SRSLYLAWLUI3 = "/srslylawl"
 
         SlashCmdList["SRSLYLAWLUI"] = function(msg, txt)
             if InCombatLockdown() then
@@ -1830,14 +1827,13 @@ local function Initialize()
             end
             if msg and msg == "save" then
                 srslylawlUI.SaveSettings()
+            elseif msg and msg == "version" then
+                print("|cff4D00FFsrslylawlUI:|r " .. version)
             else
                 srslylawlUI.ToggleConfigVisible(true)
             end
         end
 
-        SlashCmdList["SRSLYLAWLUIDEBUG"] = function()
-            srslylawlUI.Debug()
-        end
     end
     local function HideBlizzardFrames()
         local function Hide(frame)
