@@ -2021,8 +2021,8 @@ function srslylawlUI.ToggleAllFrames(bool)
     end
 end
 
-function UnitDebug(unit, condition,  ...)
-    if unit == "target" and condition then
+function UnitDebug(unit, unitsType, condition,  ...)
+    if unit == "target" and unitsType == "mainFauxUnits" and condition then
         print(...)
     end
 end
@@ -2080,6 +2080,7 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
     local offset = 3
     local initialXOffset, initialYOffset, xOffset, yOffset
     local defaultSize = srslylawlUI.GetSetting(path..auraType..".size")
+    local scaledSize = defaultSize + srslylawlUI.GetSetting(path..auraType..".scaledSize")
     local frameXOffset = srslylawlUI.GetSetting(path..auraType..".xOffset")
     local frameYOffset = srslylawlUI.GetSetting(path..auraType..".yOffset")
 
@@ -2179,7 +2180,7 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
                 --doesnt fit into row
                 frame.anchor = rowAnchor
                 if rowHasScaledFrame and not rowAnchorIsScaled and rowAnchor.size then
-                    local scaledOffset = (frameSize-rowAnchor.size) / 2
+                    local scaledOffset scaledOffset = (scaledSize-rowAnchor.size) / 2
                     srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset)+(initialXOffset*scaledOffset), (initialYOffset*offset)+(initialYOffset*scaledOffset))
                 else
                     srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset), (initialYOffset*offset))
@@ -2219,6 +2220,7 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
             anchorFrame.rowHasScaledFrame = true
             anchorFrame.isScaled = anchorFrame.size > defaultSize
         end
+        rowHasScaledFrame = false
         srslylawlUI.Utils_SetSizePixelPerfect(frame, frameSize, frameSize)
     end
 end

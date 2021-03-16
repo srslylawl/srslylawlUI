@@ -235,13 +235,13 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     self.unit.CCDurBar:SetReverseFill(srslylawlUI.GetSetting("party.ccbar.reversed"))
                     srslylawlUI.Frame_ResetDimensions_Pet(self)
                     srslylawlUI.Frame_ResetDimensions_PowerBar(self)
-                    self.unit.healthBar:SetReverseFill(srslylawlUI.GetSetting("party.hp.reverse"))
+                    self.unit.healthBar:SetReverseFill(srslylawlUI.GetSetting("party.hp.reversed"))
 
                     self.unit.CCDurBar:SetShown(srslylawlUI.GetSetting("party.ccbar.enabled"))
                     self.unit.powerBar.text:SetShown(srslylawlUI.GetSetting("party.power.text"))
 
                     if srslylawlUI_FAUX_PartyHeader.showPlayer ~= srslylawlUI.GetSetting("party.visibility.showPlayer")
-                    or srslylawlUI_FAUX_PartyHeader.reversed ~= srslylawlUI.GetSetting("party.hp.reverse") then
+                    or srslylawlUI_FAUX_PartyHeader.reversed ~= srslylawlUI.GetSetting("party.hp.reversed") then
                         srslylawlUI.SortFauxFrames()
                     end
 
@@ -348,7 +348,7 @@ function srslylawlUI.SortFauxFrames()
         end
     end
 
-    local reversed = srslylawlUI.GetSetting("party.hp.reverse")
+    local reversed = srslylawlUI.GetSetting("party.hp.reversed")
     local alignment = reversed and "TOPRIGHT" or "TOPLEFT"
 
     for _, unit in pairs(srslylawlUI.partyUnitsTable) do

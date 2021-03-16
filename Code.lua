@@ -109,7 +109,6 @@ local debugString = ""
 --[[ TODO:
 better cc implementation
 scaling auras partyframes
-aurasorting fauxframes
 focus frame
 totem bar GetTotemInfo(1)
 ehealth only updates after second time defensive is applied?
@@ -811,7 +810,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
 	            f.border:SetVertexColor(color.r, color.g, color.b);
 
-                if source and source == "player" then
+                if source and source == "player" and units == "mainUnits" then
                     size = scaledDebuffSize
                 else
                     size = debuffSize
@@ -1131,7 +1130,6 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
         elseif keyWordDefensive then
             local amount
             if not isKnown or srslylawlUI_Saved.buffs.known[spellId].autoDetectAmount ~= false then
-                print(spellName, srslylawlUI_Saved.buffs.known[spellId].autoDetectAmount)
                 local log
                 amount = GetPercentValue(buffLower)
                 log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "%!"
