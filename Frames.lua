@@ -378,10 +378,9 @@ function srslylawlUI.FrameSetup()
         unitFrame.unit.powerBar.text.enabled = srslylawlUI.GetSettingByUnit("power.text", unitsType, unit)
         unitFrame.unit.powerBar.text:SetPoint("BOTTOM")
 
+        --for omnicd
         unitFrame.unitID = unit
-        -- if unitsType == "party" and unit == "player" then
-        --     unitFrame.unitID = "party5"
-        -- end
+
 
         local height, width = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit), srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
 
@@ -418,7 +417,7 @@ function srslylawlUI.FrameSetup()
         if party then
             header[unit] = unitFrame
         end
-        if unitsType ~= "mainUnits" or unit == "target" then
+        if (unitsType == "mainUnits" and unit == "target" or unit == "focus") or unitsType == "partyUnits" or unitsType == "fauxUnits" then
             local ccBar = CreateCCBar(unitFrame)
             ccBar:SetReverseFill(srslylawlUI.GetSettingByUnit("ccbar.reversed", unitsType, unit))
         end
@@ -504,7 +503,6 @@ function srslylawlUI.FrameSetup()
         if unit == "targettarget" then
             local oldSetPoint = frame.unit.SetPoint
             function frame.unit:SetPoint(...)
-                print("setting targettarget points")
                 local points = {...}
                 local fAnchor = points[2]
                 if fAnchor == srslylawlUI.TranslateFrameAnchor("TargetFramePortrait") and not srslylawlUI.GetSetting("player.targetFrame.portrait.enabled")
@@ -514,11 +512,6 @@ function srslylawlUI.FrameSetup()
                 end
                 oldSetPoint(self, unpack(points))
             end
-            -- local a = srslylawlUI.GetSetting("player.targettargetFrame.position")
-            -- if a[2] == "TargetFramePortrait" and not srslylawlUI.GetSetting("player.targetFrame.portrait.enabled") then
-            --     a[2] = "TargetFrame"
-            --     srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
-            -- end
         end
         srslylawlUI.Frame_AnchorFromSettings(frame.unit, "player."..unit.."Frame.position")
         srslylawlUI.Frame_InitialMainUnitConfig(frame)
@@ -1647,8 +1640,8 @@ function srslylawlUI.RegisterEvents(buttonFrame)
     buttonFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", unit)
     buttonFrame:RegisterUnitEvent("UNIT_TARGET", unit)
     buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
-
-
+    
+    
     if unit ~= "targettarget" then
         buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
         buttonFrame:RegisterUnitEvent("UNIT_CONNECTION", unit)
@@ -1661,6 +1654,7 @@ function srslylawlUI.RegisterEvents(buttonFrame)
         buttonFrame:RegisterEvent("READY_CHECK")
         buttonFrame:RegisterEvent("READY_CHECK_FINISHED")
         buttonFrame:RegisterEvent("PARTY_LEADER_CHANGED")
+        buttonFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
         buttonFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     end
 end

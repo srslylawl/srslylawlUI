@@ -108,7 +108,6 @@ local debugString = ""
 
 --[[ TODO:
 better cc implementation
-scaling auras partyframes
 focus frame
 totem bar GetTotemInfo(1)
 ehealth only updates after second time defensive is applied?
@@ -1091,12 +1090,10 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             UnitAura(unit, buffIndex, "HELPFUL")
         local isKnown = srslylawlUI_Saved.buffs.known[spellId] ~= nil
         local buffText = srslylawlUI.GetBuffText(buffIndex, unit)
-        print(spellName, buffText, type(buffText))
         if not buffText then
             --so, for some buffs that are applied by the environment (AMZ, consecration, guardian of the forgotten queen, etc),
             --the buff can actually not have a proper tooltip
             --if this happens, we use our stored tooltip. it usually gets updated next frame though.
-            print(spellName, "bufftext nil")
             if isKnown then
                 buffText = srslylawlUI_Saved.buffs.known[spellId].text
             end
