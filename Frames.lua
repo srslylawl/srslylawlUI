@@ -409,6 +409,24 @@ function srslylawlUI.FrameSetup()
 
         unitFrame.unit.healthBar:SetReverseFill(srslylawlUI.GetSettingByUnit("hp.reversed", unitsType, unit))
 
+        unitFrame.unit.RaidIcon = CreateFrame("Frame", "$parent_RaidIcon", unitFrame)
+        srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.RaidIcon, 32, 32)
+        unitFrame.unit.RaidIcon:SetPoint("TOPLEFT", 10, 0)
+        unitFrame.unit.RaidIcon.icon = unitFrame.unit.RaidIcon:CreateTexture("$parent_Icon", "OVERLAY")
+        unitFrame.unit.RaidIcon.icon:SetAllPoints()
+        function unitFrame.unit.RaidIcon:SetRaidIcon(id)
+            if not id and not UnitExists(unit) then return end
+            id = id or GetRaidTargetIndex(unit)
+            if id and id >= 0 and id <= 8 and self.id ~= id then
+                self.id = id
+                self.icon:SetTexture("Interface/TARGETINGFRAME/UI-RaidTargetingIcon_"..id)
+            end
+        end
+        unitFrame.unit.RaidIcon:RegisterEvent("RAID_TARGET_UPDATE")
+        unitFrame.unit.RaidIcon:SetScript("OnShow", function(self) self:SetRaidIcon() end)
+        unitFrame.unit.RaidIcon:SetScript("OnEvent", function(self) self:SetRaidIcon() end)
+        unitFrame.unit.RaidIcon:SetFrameLevel(8)
+
         unitFrame.PartyLeader = CreateFrame("Frame", "$parent_PartyLeader", unitFrame)
         unitFrame.PartyLeader:SetPoint("TOPLEFT", unitFrame.unit, "TOPLEFT")
         unitFrame.PartyLeader:SetFrameLevel(5)
@@ -1826,6 +1844,7 @@ function srslylawlUI.Frame_ResetUnitButton(button, unit)
     srslylawlUI.Frame_ResetHealthBar(button, unit)
     srslylawlUI.Frame_ResetPowerBar(button, unit)
     srslylawlUI.Frame_ResetName(button, unit)
+    button.RaidIcon:SetRaidIcon()
     if UnitIsUnit(unit, "target") and button:GetAttribute("unitsType") == "partyUnits" then
         button.selected:Show()
     else
