@@ -122,15 +122,12 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
             frame.pet.healthBar:SetMinMaxValues(0, 1)
             frame.pet.healthBar:SetValue(fauxUnit.pethp)
+            frame.unit.healthBar.leftText:SetText(unit)
+            frame.unit.healthBar.rightText:SetText(hp)
+            frame.unit.healthBar:SetMinMaxValues(0, fauxUnit.hpmax)
+            frame.unit.healthBar:SetValue(fauxUnit.hp)
 
-            if unit == "player" then
-                frame.unit.healthBar.leftText:SetText(unit)
-                frame.unit.healthBar.rightText:SetText(hp)
-            else
-                frame.unit.healthBar.leftText:SetText(unit)
-                frame.unit.healthBar.rightText:SetText(hp)
-                frame.unit.healthBar:SetMinMaxValues(0, fauxUnit.hpmax)
-                frame.unit.healthBar:SetValue(fauxUnit.hp)
+            if unit ~= "player" then
                 frame.unit.healthBar:SetStatusBarColor(color.r, color.g, color.b)
             end
 
