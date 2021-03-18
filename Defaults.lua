@@ -50,7 +50,7 @@ srslylawlUI.defaultSettings = {
             hp = {
                 width = 225, height = 70, fontSize = 9, reversed = false, absorbHeightPercent = .7
             },
-            buffs = { anchor = "TOPRIGHT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10, maxBuffs = 16,
+            buffs = { anchor = "TOPRIGHT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 16, scaledSize = 10, maxBuffs = 16,
                 showCastByPlayer = true, maxDuration = 60, showDefensives = true, showInfiniteDuration = true, showDefault = true, showLongDuration = true
             },
             debuffs = { anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10, maxDebuffs = 15,
