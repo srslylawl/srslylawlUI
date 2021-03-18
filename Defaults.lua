@@ -82,7 +82,7 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = { "TOPLEFT", "Screen", "CENTER", 200, -100},
             hp = {
-                width = 300, height = 70, fontSize = 9, reversed = false, absorbHeightPercent = .7
+                width = 225, height = 70, fontSize = 9, reversed = false, absorbHeightPercent = .7
             },
             buffs = {
                 anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 16, scaledSize = 10, maxBuffs = 24,

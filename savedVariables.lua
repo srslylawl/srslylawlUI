@@ -18,7 +18,7 @@ srslylawlUI_Saved = {
 			    ["name"] = "Feint",
 			    ["text"] = "Damage taken from area-of-effect attacks reduced by 40% and all other damage taken reduced by 30%.\r\n",
 			    ["isDefensive"] = true,
-			    ["reductionAmount"] = 40,
+			    ["reductionAmount"] = 30,
             },
 			[190456] = {
 				["autoDetect"] = false,
@@ -53,7 +53,7 @@ srslylawlUI_Saved = {
 			    ["name"] = "Feint",
 			    ["text"] = "Damage taken from area-of-effect attacks reduced by 40% and all other damage taken reduced by 30%.\r\n",
 			    ["isDefensive"] = true,
-			    ["reductionAmount"] = 40,
+			    ["reductionAmount"] = 30,
             },
         },
         whiteList = {},
