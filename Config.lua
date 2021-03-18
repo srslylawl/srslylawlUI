@@ -783,10 +783,10 @@ function srslylawlUI.CreateConfigWindow()
         local showParty = CreateSettingsCheckButton("Party", tab, "party.visibility.showParty", function() srslylawlUI.Frame_UpdateVisibility() end)
         AddTooltip(showParty, "Show Frames while in a Party")
 
-        local showPlayer = CreateSettingsCheckButton("Show Player", tab, "party.visibility.showPlayer", function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() end)
+        local showPlayer = CreateSettingsCheckButton("Show Player", tab, "party.visibility.showPlayer", function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() srslylawlUI.Frame_ResizeHealthBarScale() end)
         AddTooltip(showPlayer, "Show Player as Party Member (recommended)")
 
-        local showSolo = CreateSettingsCheckButton("Solo", tab, "party.visibility.showSolo", function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() end)
+        local showSolo = CreateSettingsCheckButton("Solo", tab, "party.visibility.showSolo", function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() srslylawlUI.Frame_ResizeHealthBarScale() end)
         AddTooltip(showSolo, "Show Party with Player as sole member while not in a group (implies Show Player)")
 
         local showArena = CreateSettingsCheckButton("Arena", tab, "party.visibility.showArena", function() srslylawlUI.Frame_UpdateVisibility() end)

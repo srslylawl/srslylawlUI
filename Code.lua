@@ -492,8 +492,9 @@ function srslylawlUI.GetPartyHealth()
     local hasUnknownMember = false
 
     local highestHP, averageHP, memberCount = 0, 0, 0
-
     local currentUnit = "player"
+
+
     local partyIndex = 0
     if not UnitExists("player") then
         --error("player doesnt exist?")
@@ -501,10 +502,11 @@ function srslylawlUI.GetPartyHealth()
     else
         -- loop through all units
         repeat
-            if unitHealthBars[currentUnit] == nil then
-                unitHealthBars[currentUnit] = {}
-            end
+            unitHealthBars[currentUnit] = unitHealthBars[currentUnit] or {}
             local maxHealth = UnitHealthMax(currentUnit)
+            if currentUnit == "player" and not srslylawlUI.GetSetting("party.visibility.showPlayer") then
+                maxHealth = 0
+            end
             if maxHealth > highestHP then highestHP = maxHealth end
             local name = srslylawlUI.Utils_GetUnitNameWithServer(currentUnit)
 
@@ -517,15 +519,13 @@ function srslylawlUI.GetPartyHealth()
             unitHealthBars[currentUnit]["name"] = name
 
             averageHP = averageHP + maxHealth
-            table.insert(nameStringSortedByHealthDesc,
-                         unitHealthBars[currentUnit])
+            table.insert(nameStringSortedByHealthDesc, unitHealthBars[currentUnit])
             memberCount = memberCount + 1
             currentUnit = "party" .. memberCount
         until not UnitExists(currentUnit)
     end
 
-    table.sort(nameStringSortedByHealthDesc,
-               function(a, b) return b.maxHealth < a.maxHealth end)
+    table.sort(nameStringSortedByHealthDesc, function(a, b) return b.maxHealth < a.maxHealth end)
     averageHP = floor(averageHP / memberCount)
 
     return nameStringSortedByHealthDesc, highestHP, averageHP, hasUnknownMember
