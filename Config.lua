@@ -445,7 +445,7 @@ function srslylawlUI.CreateConfigWindow()
                     else
                         self.rowBounds[index]:SetPoint("TOPLEFT", self.rowBounds[index-1], "BOTTOMLEFT", 0, -offset)
                     end
-                    self.rowBounds[index]:SetSize(availableWidth, 1)
+                    self.rowBounds[index]:SetSize(availableWidth, 5)
                     self.rowBounds[index].height = 1
                     self.rowBounds[index].currentOffset = 10
                 end
@@ -470,7 +470,7 @@ function srslylawlUI.CreateConfigWindow()
                 local elementWidth = element.bounds:GetWidth()
                 local elementHeight = element.bounds:GetHeight()
 
-                if currentWidth + elementWidth + offset <= availableWidth then
+                if not element.newRow and currentWidth + elementWidth + offset <= availableWidth then
                     --append to row
                     element.bounds:SetPoint("TOPLEFT", GetRowBounds(rowIndex), "TOPLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
                     currentWidth = currentWidth + elementWidth + offset
@@ -481,10 +481,10 @@ function srslylawlUI.CreateConfigWindow()
                     currentWidth = elementWidth + offset + inset
                     rowIndex = rowIndex + 1
                     local rB = GetRowBounds(rowIndex)
-                    rB.height = elementHeight
                     rB.currentOffset = inset
                     element.bounds:SetPoint("TOPLEFT", rB, "TOPLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
                     rB.currentOffset = inset+elementWidth + offset
+                    AdjustRowBounds(rowIndex, elementHeight)
                 end
                 totalWidth = currentWidth > totalWidth and currentWidth or totalWidth
             end
@@ -502,6 +502,9 @@ function srslylawlUI.CreateConfigWindow()
         function frame:Add(...)
             for i=1, select("#", ...) do
                 local e = select(i, ...)
+                if i==1 and #self.elements > 0 then
+                    e.newRow = true
+                end
                 table.insert(self.elements, #self.elements+1, e)
             end
             self:ResizeElements()
@@ -891,10 +894,11 @@ function srslylawlUI.CreateConfigWindow()
         local minWidthPercent = CreateCustomSlider("Minimum Width %", tab, .01, 1, path.."hp.minWidthPercent", .01, 2, srslylawlUI.UpdateEverything)
         AddTooltip(minWidthPercent, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
         local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, srslylawlUI.UpdateEverything)
+        local absorbHeight = CreateCustomSlider("Absorb Frame Height %", tab, 0.1, 1, path.."hp.absorbHeightPercent", 0.05, 2, srslylawlUI.Party_HandleAuras_ALL)
         local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "party.hp.reversed", srslylawlUI.Frame_UpdatePartyHealthBarAlignment)
         local partyAnchors = CreateAnchoringPanel(tab, "party.header.position", srslylawlUI_PartyHeader)
-        healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize, unpack(partyAnchors))
-        healthControl:Add(reverseFill)
+        healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize, reverseFill, absorbHeight)
+        healthControl:Add(unpack(partyAnchors))
 
         --raidIcon
         local raidIconControl = CreateConfigControl(tab, "Party Raid Icon", nil, "party")
@@ -1018,7 +1022,13 @@ function srslylawlUI.CreateConfigWindow()
             local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path.."hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
             local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
             local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."hp.reversed", srslylawlUI.Frame_UpdateMainHealthBarAlignment)
-            playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill)
+
+            if unit == "targettarget" then
+                playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill)
+            else
+                local absorbHeight = CreateCustomSlider("Absorb Frame Height %", tab, 0.1, 1, path.."hp.absorbHeightPercent", 0.05, 2, srslylawlUI.Main_HandleAuras_ALL)
+                playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill, absorbHeight)
+            end
 
             local playerPosControl = CreateConfigControl(tab, unitName.." Frame Position", nil, unit)
             playerPosControl:ChainToControl(playerFrameControl)

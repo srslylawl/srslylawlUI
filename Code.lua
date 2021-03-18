@@ -110,11 +110,10 @@ local debugString = ""
 
 
 --[[ TODO:
-marker icons on frames repositionable/sizeable
-absorb aura heightpercent
-better cc implementation
+partyhealth when player not shown
+let cc bar show multiple ccs
 totem bar GetTotemInfo(1)
-some environment defensive buffs arent properly recognized (amz etc)
+some environment defensive buffs arent immediately recognized (amz etc)
 powerbar fadeout instead of hide
 incoming ressurrection
 incoming summon
@@ -1351,11 +1350,11 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     local height, width, currentBarLength
     local barWidth
     if unitsType == "partyUnits" then
-        height = srslylawlUI.GetSetting("party.hp.height")*0.7
+        height = srslylawlUI.GetSetting("party.hp.height")*(srslylawlUI.GetSetting("party.hp.absorbHeightPercent") or .7)
         width = srslylawlUI.GetSetting("party.hp.width")
         barWidth = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar:GetWidth())
     elseif unitsType == "mainUnits" then
-        height = srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")*0.7
+        height = srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")*(srslylawlUI.GetSetting("player."..unit.."Frame.hp.absorbHeightPercent") or .7)
         width = srslylawlUI.GetSetting("player."..unit.."Frame.hp.width")
         barWidth = width
     end

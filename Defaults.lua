@@ -7,7 +7,7 @@ srslylawlUI.defaultSettings = {
             position = { "LEFT", "Screen", "LEFT", 100, 100},
         },
         hp = {
-            width = 300, height = 60, minWidthPercent = 0.55, fontSize = 12, reversed = false
+            width = 300, height = 60, minWidthPercent = 0.55, fontSize = 12, reversed = false, absorbHeightPercent = .7
         },
         power = {
             width = 15,
@@ -48,7 +48,7 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = { "TOPRIGHT", "Screen", "CENTER", -200, -100},
             hp = {
-                width = 300, height = 70, fontSize = 6, reversed = false
+                width = 300, height = 70, fontSize = 6, reversed = false, absorbHeightPercent = .7
             },
             buffs = { anchor = "TOPRIGHT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10, maxBuffs = 25,
                 showCastByPlayer = true, maxDuration = 60, showDefensives = true, showInfiniteDuration = true, showDefault = true, showLongDuration = true
@@ -82,7 +82,7 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = { "TOPLEFT", "Screen", "CENTER", 200, -100},
             hp = {
-                width = 300, height = 70, fontSize = 6, reversed = false
+                width = 300, height = 70, fontSize = 6, reversed = false, absorbHeightPercent = .7
             },
             buffs = {
                 anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10, maxBuffs = 25,
@@ -145,7 +145,7 @@ srslylawlUI.defaultSettings = {
             enabled = true,
             position = { "CENTER", "Screen", "CENTER", 200, 100},
             hp = {
-                width = 300, height = 70, fontSize = 6, reversed = false
+                width = 300, height = 70, fontSize = 6, reversed = false, absorbHeightPercent = .7
             },
             buffs = {
                 anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10, maxBuffs = 25,
