@@ -227,9 +227,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         local barSize = srslylawlUI.Utils_ScuffedRound(totalSize/buttons)
         totalSize = barSize*buttons+totalpadding
         local diff = desiredSize - totalSize
-        -- print(diff > 0 and "pointbar too small by " .. diff or diff < 0 and "pointbar too big by " .. diff or "pointbar perfect size")
         local middleFrame = ceil(self.desiredButtonCount/2)
-        -- print("frame", middleFrame, "size adjusted by ", diff)
         local pixelPerfectCompensation
         for i=1, #self.pointFrames do
             local current = self.pointFrames[i]

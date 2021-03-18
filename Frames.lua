@@ -2112,12 +2112,6 @@ function srslylawlUI.ToggleAllFrames(bool)
     end
 end
 
-function UnitDebug(unit, unitsType, condition,  ...)
-    if unit == "target" and unitsType == "mainFauxUnits" and condition then
-        print(...)
-    end
-end
-
 function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
     local function ReversePos(str)
         if str == "TOP" then return "BOTTOM"

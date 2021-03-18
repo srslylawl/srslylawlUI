@@ -110,16 +110,15 @@ local debugString = ""
 
 
 --[[ TODO:
-partyhealth when player not shown
 let cc bar show multiple ccs
-totem bar GetTotemInfo(1)
-some environment defensive buffs arent immediately recognized (amz etc)
+totem bar
 powerbar fadeout instead of hide
 incoming ressurrection
 incoming summon
 faux frames for player pet
 more sort methods?
 faux frames absorb auras
+some environment defensive buffs arent immediately recognized (amz etc)
 vehiclestuff
 alt powerbar
 refactoring, performance optimization
