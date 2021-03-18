@@ -723,15 +723,14 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
 
     local oldSetPoint = frame.unitLevel.SetPoint
     function frame.unitLevel:SetPoint(...)
-            local points = {...}
-            local fAnchor = points[2]
-            local unitCaps = unit:sub(1,1):upper()..unit:sub(2)
-            if fAnchor == srslylawlUI.TranslateFrameAnchor(unitCaps.."FramePortrait") and not srslylawlUI.GetSetting("player."..unit.."Frame.portrait.enabled")
-            then
-                points[2] = srslylawlUI.TranslateFrameAnchor(unitCaps.."Frame")
-                srslylawlUI.ChangeSetting("player."..unit.."Frame.unitLevel.position.2", unitCaps.."Frame")
-            end
-            oldSetPoint(self, unpack(points))
+        local points = {...}
+        local fAnchor = points[2]
+        local unitCaps = unit:sub(1,1):upper()..unit:sub(2)
+        if fAnchor == srslylawlUI.TranslateFrameAnchor(unitCaps.."FramePortrait") and not srslylawlUI.GetSetting("player."..unit.."Frame.portrait.enabled") then
+            points[2] = srslylawlUI.TranslateFrameAnchor(unitCaps.."Frame")
+            srslylawlUI.ChangeSetting("player."..unit.."Frame.unitLevel.position.2", unitCaps.."Frame")
+        end
+        oldSetPoint(self, unpack(points))
     end
 
     frame.factionIcon = CreateFrame("Frame", "$parent_FactionIcon", frame.unit)
@@ -814,7 +813,8 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
         end
     end
     function frame:ResetUnitLevelIcon()
-        srslylawlUI.Frame_AnchorFromSettings(self.unitLevel, "player.targetFrame.unitLevel.position")
+        unit = self:GetAttribute("unit")
+        srslylawlUI.Frame_AnchorFromSettings(self.unitLevel, "player."..unit.."Frame.unitLevel.position")
     end
     local oldSetSize = frame.SetSize
     function frame:SetSize(x, y)
@@ -1882,7 +1882,7 @@ function srslylawlUI.Frame_ResetName(button, unit)
         return
     end
     local name = UnitName(unit) or UNKNOWN
-    button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.5, name, true)
+    button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.45, name, true)
 end
 function srslylawlUI.Frame_ResetPetButton(button, unit)
     if UnitExists(unit) then
@@ -1942,13 +1942,13 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local healthPercent = srslylawlUI.Utils_ScuffedRound(health / healthMax * 100)
     if unit == "target" then
         local name = UnitName(unit) or UNKNOWN
-        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.5, healthPercent .. "%".." ".. name, true)
-        button.healthBar.rightText:SetText(srslylawlUI.ShortenNumber(health).."/"..srslylawlUI.ShortenNumber(healthMax))
+        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.45, healthPercent .. "%".." ".. name, true)
+        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.45, srslylawlUI.ShortenNumber(health).."/"..srslylawlUI.ShortenNumber(healthMax))
     elseif unit == "targettarget" then
         local name = UnitName(unit) or UNKNOWN
         button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth(), healthPercent .. "%".." ".. name, true)
     else
-        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.5, srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%")
+        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.45, srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%")
     end
     button.healthBar:SetMinMaxValues(0, healthMax)
     button.healthBar:SetValue(health)

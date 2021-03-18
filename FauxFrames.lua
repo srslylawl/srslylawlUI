@@ -210,12 +210,12 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     end
                     srslylawlUI.SetAuraPointsAll(unit, "fauxUnits")
                     fontSizeChanged = self.fontSize ~= srslylawlUI.GetSetting("party.hp.fontSize")
-                    if fontSizeChanged and unit ~= "player" then
+                    if fontSizeChanged then
                         self.fontSize = srslylawlUI.GetSetting("party.hp.fontSize")
                         self.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", self.fontSize)
                         self.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", self.fontSize)
-                        srslylawlUI.Utils_SetLimitedText(self.unit.healthBar.leftText, self.unit.healthBar:GetWidth()*0.5, unit, true)
-                        srslylawlUI.Utils_SetLimitedText(self.unit.healthBar.rightText, self.unit.healthBar:GetWidth()*0.5, hp, true)
+                        srslylawlUI.Utils_SetLimitedText(self.unit.healthBar.leftText, self.unit.healthBar:GetWidth()*0.45, unit, true)
+                        srslylawlUI.Utils_SetLimitedText(self.unit.healthBar.rightText, self.unit.healthBar:GetWidth()*0.45, hp, true)
                     end
                     local h = srslylawlUI.GetSetting("party.hp.height")
                     local lowerCap = srslylawlUI.GetSetting("party.hp.minWidthPercent")
@@ -287,6 +287,18 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 trackedAurasByIndex = {},
                 unitFrame = fauxFrame
             }
+
+            if unit == "focus" or unit == "target" then
+                local function OnEnter(self)
+                    srslylawlUI.customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
+                    srslylawlUI.customTooltip:SetText("Make sure a "..(unit == "focus" and "focus " or "").."target exists before trying to move the frame.")
+                end
+                local function OnLeave(self) srslylawlUI.customTooltip:Hide() end
+
+                fauxFrame:EnableMouse(true)
+                fauxFrame:SetScript("OnEnter", OnEnter)
+                fauxFrame:SetScript("OnLeave", OnLeave)
+            end
 
             srslylawlUI.CreateBuffFrames(fauxFrame, unit)
             srslylawlUI.CreateDebuffFrames(fauxFrame, unit)
