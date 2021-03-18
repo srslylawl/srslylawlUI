@@ -186,6 +186,8 @@ function srslylawlUI.CreateConfigWindow()
         function slider:Reset()
             local setting = srslylawlUI.GetSetting(valuePath, canBeNil)
             setting = srslylawlUI.Utils_DecimalRound(setting, decimals) or 0
+            if self:GetValue() == setting then return end
+
             self:SetValue(setting)
             self.editbox:SetText(setting)
         end
@@ -268,6 +270,7 @@ function srslylawlUI.CreateConfigWindow()
         function slider:Reset()
             local setting = srslylawlUI.GetSetting(valuePath, canBeNil)
             setting = setting or default
+            if self:GetValue() == setting and self.editbox:GetText() == setting then return end
             self:SetValue(setting)
             self.editbox:SetText(setting)
             if onChangeFunc then
@@ -335,7 +338,9 @@ function srslylawlUI.CreateConfigWindow()
         table.insert(srslylawlUI.ConfigElements.Dropdowns, dropDown)
 
         function dropDown:Reset()
-            self:SetValue(srslylawlUI.GetSetting(valuePath, true))
+            local setting = srslylawlUI.GetSetting(valuePath, true)
+            if UIDropDownMenu_GetText(self) == setting then return end
+            self:SetValue(setting)
         end
 
         return dropDown
@@ -394,7 +399,9 @@ function srslylawlUI.CreateConfigWindow()
         table.insert(srslylawlUI.ConfigElements.Dropdowns, dropDown)
 
         function dropDown:Reset()
-            self:SetValue(srslylawlUI.GetSetting(valuePath, true))
+            local setting = srslylawlUI.GetSetting(valuePath, true)
+            if UIDropDownMenu_GetText(self) == setting then return end
+            self:SetValue(setting)
         end
 
         return dropDown
@@ -690,7 +697,9 @@ function srslylawlUI.CreateConfigWindow()
             end
         end)
         function checkButton:Reset()
-            self:SetChecked(srslylawlUI.GetSetting(valuePath, canBeNil) or false)
+            local setting = srslylawlUI.GetSetting(valuePath, canBeNil) or false
+            if self:GetChecked() == setting then return end
+            self:SetChecked(setting)
             if funcOnChanged then
                 funcOnChanged(self)
             end
@@ -722,27 +731,45 @@ function srslylawlUI.CreateConfigWindow()
         local c = frame.CloseButton
         c:SetPoint("TOPRIGHT", 0, 0)
     end
-    local function CreateAnchoringPanel(parent, path, frame, frameAnchorTable)
-        function Reanchor()
-            frame:ClearAllPoints()
-            local anchors = srslylawlUI.GetSetting(path)
-            anchors[2] = srslylawlUI.TranslateFrameAnchor(anchors[2])
-            srslylawlUI.Utils_SetPointPixelPerfect(frame, unpack(anchors))
-        end
+    local function CreateAnchoringPanel(parent, path, frame, frameAnchorTable, simple, forPartyUnits)
         local elements = {}
-        elements[1] = CreateCustomDropDown("Point", 100, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
-        elements[2] = CreateFrameAnchorDropDown("To Frame", parent, frame, path..".2", frameAnchorTable or srslylawlUI.FramesToAnchorTo, Reanchor)
-        elements[3] = CreateCustomDropDown("Relative To", 100, parent, path..".3", srslylawlUI.anchorTable, Reanchor)
-        elements[4] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".4", 1, 0, Reanchor)
-        elements[5] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path..".5", 1, 0, Reanchor)
+        if not simple then
+            function Reanchor()
+                frame:ClearAllPoints()
+                local anchors = srslylawlUI.GetSetting(path)
+                anchors[2] = srslylawlUI.TranslateFrameAnchor(anchors[2])
+                srslylawlUI.Utils_SetPointPixelPerfect(frame, unpack(anchors))
+            end
+            elements[1] = CreateCustomDropDown("Point", 100, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
+            elements[2] = CreateFrameAnchorDropDown("To Frame", parent, frame, path..".2", frameAnchorTable or srslylawlUI.FramesToAnchorTo, Reanchor)
+            elements[3] = CreateCustomDropDown("Relative To", 100, parent, path..".3", srslylawlUI.anchorTable, Reanchor)
+            elements[4] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".4", 1, 0, Reanchor)
+            elements[5] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path..".5", 1, 0, Reanchor)
 
-        function frame:ResetAnchoringPanel(...)
-            local e1, e2, e3, e4, e5 = ...
-            elements[1]:SetValueClean(e1)
-            elements[2]:SetValueClean(e2)
-            elements[3]:SetValueClean(e3)
-            elements[4]:SetValueClean(e4)
-            elements[5]:SetValueClean(e5)
+            function frame:ResetAnchoringPanel(...)
+                local e1, e2, e3, e4, e5 = ...
+                elements[1]:SetValueClean(e1)
+                elements[2]:SetValueClean(e2)
+                elements[3]:SetValueClean(e3)
+                elements[4]:SetValueClean(e4)
+                elements[5]:SetValueClean(e5)
+            end
+        else
+            function Reanchor()
+                frame:ClearAllPoints()
+                local anchors = srslylawlUI.GetSetting(path)
+                srslylawlUI.Utils_SetPointPixelPerfect(frame, unpack(anchors))
+            end
+            elements[1] = CreateCustomDropDown("Point", 100, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
+            elements[2] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".2", 1, 0, Reanchor)
+            elements[3] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path..".3", 1, 0, Reanchor)
+
+            function frame:ResetAnchoringPanel(...)
+                local e1, _, _, e4, e5 = ...
+                elements[1]:SetValueClean(e1)
+                elements[2]:SetValueClean(e4)
+                elements[3]:SetValueClean(e5)
+            end
         end
         return elements
     end
@@ -835,7 +862,9 @@ function srslylawlUI.CreateConfigWindow()
         local auras = CreateSettingsCheckButton("Auras", tab, "blizzard.auras.enabled", nil)
 
         local castbar = CreateSettingsCheckButton("Castbar", tab, "blizzard.castbar.enabled", nil)
-        showBlizzardFrames:Add(player, target, party, auras, castbar)
+
+        local focus = CreateSettingsCheckButton("Focus", tab, "blizzard.focus.enabled", nil)
+        showBlizzardFrames:Add(player, target, party, auras, castbar, focus)
 
         local other = CreateConfigControl(tab, "Other")
         other:AppendToControl(showBlizzardFrames)
@@ -867,9 +896,19 @@ function srslylawlUI.CreateConfigWindow()
         healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize, unpack(partyAnchors))
         healthControl:Add(reverseFill)
 
+        --raidIcon
+        local raidIconControl = CreateConfigControl(tab, "Party Raid Icon", nil, "party")
+        local raidEnable = CreateSettingsCheckButton("Enable", tab, path.."raidIcon.enabled", function(self) for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame.unit.RaidIcon:SetEnabled(self:GetChecked()) end end)
+        local raidAnchor = CreateCustomDropDown("Point", 100, tab, path.."raidIcon.position.1", srslylawlUI.anchorTable, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local raidX = CreateCustomSlider("X Offset", tab, -2000, 2000, path.."raidIcon.position.2", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local raidY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path.."raidIcon.position.3", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local raidSize = CreateCustomSlider("Size", tab, 1, 100, path.."raidIcon.size", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        raidIconControl:Add(raidEnable, raidSize, raidAnchor, raidX, raidY)
+        raidIconControl:ChainToControl(healthControl)
+
         --party powerbars
         local powerBars = CreateConfigControl(tab, "Party Power", nil, "party")
-        powerBars:ChainToControl(healthControl)
+        powerBars:ChainToControl(raidIconControl)
         local powerBarWidth = CreateCustomSlider("Width", tab, 1, 100, path.."power.width", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
         local showText = CreateSettingsCheckButton("Show Text", tab, "party.power.text", function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.Frame_ResetUnitButton(srslylawlUI.partyUnits[unit].unitFrame.unit, unit) end end)
         powerBars:Add(powerBarWidth, showText)
@@ -994,7 +1033,14 @@ function srslylawlUI.CreateConfigWindow()
 
             local anchorElements = CreateAnchoringPanel(tab, path.."position", unitFrame.unit, aTable)
             playerPosControl:Add(unpack(anchorElements))
-            anchor = playerPosControl
+
+            local raidIconControl = CreateConfigControl(tab, unitName.." Raid Icon", nil, unit)
+            local raidEnable = CreateSettingsCheckButton("Enable", tab, path.."raidIcon.enabled", function(self) unitFrame.unit.RaidIcon:SetEnabled(self:GetChecked()) end)
+            local raidPos = CreateAnchoringPanel(tab, path.."raidIcon.position", unitFrame.unit.RaidIcon, nil, true)
+            local raidSize = CreateCustomSlider("Size", tab, 1, 100, path.."raidIcon.size", 1, 0, function() unitFrame.unit.RaidIcon:Resize() end)
+            raidIconControl:Add(raidEnable, raidSize, unpack(raidPos))
+            raidIconControl:ChainToControl(playerPosControl)
+            anchor = raidIconControl
 
             if unit ~= "targettarget" then
                 for i=1, 2 do

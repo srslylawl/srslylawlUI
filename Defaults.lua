@@ -34,6 +34,11 @@ srslylawlUI.defaultSettings = {
             showRaid = false,
             showPlayer = true,
         },
+        raidIcon = {
+            enabled = true,
+            position = {"TOPLEFT", 10, 0},
+            size = 32
+        },
         sorting = {
             enabled = true,
         }
@@ -66,6 +71,11 @@ srslylawlUI.defaultSettings = {
                 height = 40,
                 priority = 0,
                 reversed = false
+            },
+            raidIcon = {
+                enabled = true,
+                position = {"TOPLEFT", 10, 0},
+                size = 32
             },
         },
         targetFrame = {
@@ -107,7 +117,12 @@ srslylawlUI.defaultSettings = {
             },
             unitLevel = {
                 position = { "CENTER", "TargetFramePortrait", "BOTTOMRIGHT", 0, 2}
-            }
+            },
+            raidIcon = {
+                enabled = true,
+                position = {"TOPLEFT", 10, 0},
+                size = 32
+            },
         },
         targettargetFrame = {
             enabled = true,
@@ -119,6 +134,11 @@ srslylawlUI.defaultSettings = {
                 width = 15,
                 text = true,
                 position = "RIGHT"
+            },
+            raidIcon = {
+                enabled = true,
+                position = {"TOPLEFT", 10, 0},
+                size = 32
             },
         },
         focusFrame = {
@@ -160,7 +180,12 @@ srslylawlUI.defaultSettings = {
             },
             unitLevel = {
                 position = { "CENTER", "FocusFrame", "RIGHT", 0, 2}
-            }
+            },
+            raidIcon = {
+                enabled = true,
+                position = {"TOPLEFT", 10, 0},
+                size = 32
+            },
         },
     },
     blizzard = {
@@ -168,7 +193,8 @@ srslylawlUI.defaultSettings = {
         target = {enabled = false},
         party = {enabled = false},
         auras = { enabled = false},
-        castbar = {enabled = false}
+        castbar = {enabled = false},
+        focus = {enabled = false}
     },
     colors = {
         buffBaseColor = {0.960, 0.952, 0.760},

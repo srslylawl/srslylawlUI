@@ -265,9 +265,15 @@ function srslylawlUI.Utils_SetSizePixelPerfect(frame, width, height)
     local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
     frame:SetSize(width*scaleX, height*scaleY)
 end
-function srslylawlUI.Utils_SetPointPixelPerfect(frame, point, parent, relativeTo, offsetX, offsetY)
+function srslylawlUI.Utils_SetPointPixelPerfect(frame, ...)
     local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
-    frame:SetPoint(point, parent, relativeTo, offsetX*scaleX, offsetY*scaleY)
+    if select('#', ...) == 5 then
+        local point, parent, relativeTo, offsetX, offsetY = ...
+        frame:SetPoint(point, parent, relativeTo, offsetX*scaleX, offsetY*scaleY)
+    else
+        local point, offsetX, offsetY = ...
+        frame:SetPoint(point, offsetX*scaleX, offsetY*scaleY)
+    end
 end
 function srslylawlUI.Utils_PixelFromCodeToScreen(width, height)
     if width and height then
@@ -1840,6 +1846,7 @@ local function Initialize()
     local function HideBlizzardFrames()
         local function Hide(frame)
             frame:SetScript("OnEvent", nil)
+            frame:UnregisterAllEvents()
             frame:Hide()
         end
         local showPlayer = srslylawlUI.GetSetting("blizzard.player.enabled")
@@ -1847,6 +1854,7 @@ local function Initialize()
         local showParty = srslylawlUI.GetSetting("blizzard.party.enabled")
         local showCastbar = srslylawlUI.GetSetting("blizzard.castbar.enabled")
         local showAuras = srslylawlUI.GetSetting("blizzard.auras.enabled")
+        local showFocus = srslylawlUI.GetSetting("blizzard.focus.enabled")
 
         if not showPlayer then
             Hide(PlayerFrame)
@@ -1864,6 +1872,9 @@ local function Initialize()
         end
         if not showAuras then
             Hide(BuffFrame)
+        end
+        if not showFocus then
+            Hide(FocusFrame)
         end
 
         UIParent:HookScript("OnHide", function(self)

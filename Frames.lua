@@ -409,24 +409,49 @@ function srslylawlUI.FrameSetup()
 
         unitFrame.unit.healthBar:SetReverseFill(srslylawlUI.GetSettingByUnit("hp.reversed", unitsType, unit))
 
+        --raid icon
         unitFrame.unit.RaidIcon = CreateFrame("Frame", "$parent_RaidIcon", unitFrame)
-        srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.RaidIcon, 32, 32)
-        unitFrame.unit.RaidIcon:SetPoint("TOPLEFT", 10, 0)
-        unitFrame.unit.RaidIcon.icon = unitFrame.unit.RaidIcon:CreateTexture("$parent_Icon", "OVERLAY")
-        unitFrame.unit.RaidIcon.icon:SetAllPoints()
         function unitFrame.unit.RaidIcon:SetRaidIcon(id)
-            if not id and not UnitExists(unit) then return end
+            if not self.enabled or (not id and not UnitExists(unit)) then return end
+
             id = id or GetRaidTargetIndex(unit)
-            if id and id >= 0 and id <= 8 and self.id ~= id then
+            if id and id >= 0 and id <= 8 then
+                if self.id == id then return end
                 self.id = id
                 self.icon:SetTexture("Interface/TARGETINGFRAME/UI-RaidTargetingIcon_"..id)
+                self.icon:Show()
+            else
+                self.icon:Hide()
             end
         end
-        unitFrame.unit.RaidIcon:RegisterEvent("RAID_TARGET_UPDATE")
-        unitFrame.unit.RaidIcon:SetScript("OnShow", function(self) self:SetRaidIcon() end)
-        unitFrame.unit.RaidIcon:SetScript("OnEvent", function(self) self:SetRaidIcon() end)
-        unitFrame.unit.RaidIcon:SetFrameLevel(8)
+        function unitFrame.unit.RaidIcon:SetEnabled(enable)
+            if self.enabled == enable then return end
+            self.enabled = enable
+            self:SetShown(enable)
+        end
+        function unitFrame.unit.RaidIcon:Resize()
+            local raidIconSize = srslylawlUI.GetSettingByUnit("raidIcon.size", unitsType, unit)
+            srslylawlUI.Utils_SetSizePixelPerfect(self, raidIconSize, raidIconSize)
+        end
+        function unitFrame.unit.RaidIcon:SetPoints()
+            self:ClearAllPoints()
+            local anchors = srslylawlUI.GetSettingByUnit("raidIcon.position", unitsType, unit)
+            srslylawlUI.Utils_SetPointPixelPerfect(self, unpack(anchors))
+        end
+        
+        unitFrame.unit.RaidIcon:Resize()
+        unitFrame.unit.RaidIcon:SetPoints()
+        unitFrame.unit.RaidIcon.icon = unitFrame.unit.RaidIcon:CreateTexture("$parent_Icon", "OVERLAY")
+        unitFrame.unit.RaidIcon.icon:SetAllPoints()
 
+        if not unitsType:match("faux") then
+            unitFrame.unit.RaidIcon:RegisterEvent("RAID_TARGET_UPDATE")
+            unitFrame.unit.RaidIcon:SetScript("OnShow", function(self) self:SetRaidIcon() end)
+            unitFrame.unit.RaidIcon:SetScript("OnEvent", function(self) self:SetRaidIcon() end)
+        end
+        unitFrame.unit.RaidIcon:SetFrameLevel(8)
+        unitFrame.unit.RaidIcon:SetEnabled(srslylawlUI.GetSettingByUnit("raidIcon.enabled", unitsType, unit))
+        --
         unitFrame.PartyLeader = CreateFrame("Frame", "$parent_PartyLeader", unitFrame)
         unitFrame.PartyLeader:SetPoint("TOPLEFT", unitFrame.unit, "TOPLEFT")
         unitFrame.PartyLeader:SetFrameLevel(5)
@@ -2002,6 +2027,9 @@ function srslylawlUI.Frame_ResetDimensions(button)
 
     button.unit.healthBar.leftText:SetFont("Fonts\\FRIZQT__.TTF", fontSize)
     button.unit.healthBar.rightText:SetFont("Fonts\\FRIZQT__.TTF", fontSize)
+
+    button.unit.RaidIcon:SetPoints()
+    button.unit.RaidIcon:Resize()
 
     srslylawlUI.Frame_ResetUnitButton(button.unit, button:GetAttribute("unit"))
 end

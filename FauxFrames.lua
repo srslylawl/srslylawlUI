@@ -118,6 +118,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame.unit.powerBar:Show()
             frame.unit.powerBar.text:SetText(ceil(fauxUnit.mana/1*100))
 
+            frame.unit.RaidIcon:SetRaidIcon(i+1)
+
             frame.pet.healthBar:SetMinMaxValues(0, 1)
             frame.pet.healthBar:SetValue(fauxUnit.pethp)
 
@@ -245,6 +247,10 @@ function srslylawlUI.ToggleFauxFrames(visible)
                         srslylawlUI.SortFauxFrames()
                     end
 
+                    self.unit.RaidIcon:SetEnabled(srslylawlUI.GetSetting("party.raidIcon.enabled"))
+                    self.unit.RaidIcon:Resize()
+                    self.unit.RaidIcon:SetPoints()
+
                     timerFrame = 0
                 end
             end)
@@ -259,6 +265,12 @@ function srslylawlUI.ToggleFauxFrames(visible)
             local fauxFrame = CreateFrame("Frame", "srslylawlUI_FAUX_"..unit, nil)
             fauxFrame:SetPoint("TOPLEFT", srslylawlUI.mainUnits[unit].unitFrame.unit, "TOPLEFT", 0, 0)
             fauxFrame:SetPoint("BOTTOMRIGHT", srslylawlUI.mainUnits[unit].unitFrame.unit, "BOTTOMRIGHT", 0, 0 )
+            fauxFrame.tex = fauxFrame:CreateTexture(nil, "ARTWORK")
+            fauxFrame.tex:SetAllPoints()
+            fauxFrame.tex:SetColorTexture(0, 0.5, 0.1, 0.2)
+            fauxFrame.nameString = srslylawlUI.CreateCustomFontString(fauxFrame, "title", 12)
+            fauxFrame.nameString:SetPoint("CENTER")
+            fauxFrame.nameString:SetText(unit:sub(1,1):upper()..unit:sub(2))
             fauxFrame.unit = fauxFrame
             fauxFrame:SetAttribute("unit", unit)
             fauxFrame:SetAttribute("unitsType", "mainFauxUnits")
