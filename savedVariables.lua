@@ -20,9 +20,23 @@ srslylawlUI_Saved = {
 			    ["isDefensive"] = true,
 			    ["reductionAmount"] = 40,
             },
+			[190456] = {
+				["autoDetect"] = false,
+				["isAbsorb"] = true,
+				["text"] = "Ignoring 50% of damage taken, preventing 1686 total damage.",
+				["isDefensive"] = false,
+				["name"] = "Ignore Pain",
+			},
         },
-        
-        absorbs = {},
+        absorbs = {
+			[190456] = {
+				["autoDetect"] = false,
+				["isAbsorb"] = true,
+				["text"] = "Ignoring 50% of damage taken, preventing 1686 total damage.",
+				["isDefensive"] = false,
+				["name"] = "Ignore Pain",
+			},
+		},
         defensives = {
             [118038] = {
 				["autoDetect"] = false,

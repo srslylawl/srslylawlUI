@@ -826,7 +826,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
 	            f.border:SetVertexColor(color.r, color.g, color.b);
 
-                if source and source == "player" and units == "mainUnits" then
+                if source and source == "player" and unitsType == "mainUnits" then
                     size = scaledDebuffSize
                 else
                     size = debuffSize
