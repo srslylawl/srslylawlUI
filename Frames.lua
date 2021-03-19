@@ -1788,6 +1788,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             srslylawlUI.Frame_ReadyCheck(self, arg2 and "ready" or "notready")
     elseif event == "READY_CHECK_FINISHED" then
             srslylawlUI.Frame_ReadyCheck(self, "end")
+    elseif event == "UNIT_TARGET" and unit == "target" or unit == "targettarget" then
+            srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
     elseif arg1 and UnitIsUnit(unit, arg1) and arg1 ~= "nameplate1" then
         if event == "UNIT_MAXHEALTH" then
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
@@ -1852,8 +1854,6 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
         elseif event == "UNIT_EXITED_VEHICLE" then
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
-        elseif event == "UNIT_TARGET" then
-            srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
         end
     elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
         if event == "UNIT_MAXHEALTH" then
@@ -1903,7 +1903,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local rightText = ""
     if unit == "target" then
         rightText = srslylawlUI.ShortenNumber(health).."/"..srslylawlUI.ShortenNumber(healthMax)
-    else 
+    else
         rightText = srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%"
     end
     if isPlayer and class then
@@ -1941,7 +1941,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
         button.dead = (not alive)
         button.online = online
         button.wasInRange = inRange
-    else
+    else --npc
         SBColor = {UnitSelectionColor(unit, true)}
         if not UnitPlayerControlled(unit) and UnitIsTapDenied(unit) and UnitCanAttack("player", unit) then
             SBColor = {0.5, 0.5, 0.5, 1}
