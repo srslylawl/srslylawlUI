@@ -1929,12 +1929,42 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     elseif event == "ADDON_LOADED" then
 	    if arg1 == "srslylawlUI" or arg1 == "OmniCD" then
-		local func = OmniCD and OmniCD.AddUnitFrameData
-		if func then
-			func("srslylawlUI", "srslylawlUI_PartyHeader_party", "unitID", 1)
+        --register omnicd
+		local ofunc = OmniCD and OmniCD.AddUnitFrameData
+		if ofunc then
+			ofunc("srslylawlUI", "srslylawlUI_PartyHeader_party", "unitID", 1)
 		end
-	end
+
+        --register bigdebuffs
+        if arg1 == "srslylawlUI" or arg1 == "BigDebuffs" then
+            local exists = BigDebuffs and BigDebuffs.anchors
+            if exists then
+                BigDebuffs.anchors.srslylawlUI = {
+                    func = function(anchor)
+                        local frame = _G[anchor]
+                        if not frame then return end
+                        local portrait = _G[anchor.."_Portrait"]
+                        if portrait and portrait:IsShown() then
+                            return portrait, frame
+                        else
+                            return frame, frame, true
+                        end
+                    end,
+                    units = {
+                        player = "srslylawlUI_PartyHeader_player_Unit", -- "srslylawlUI_Main_player_Unit",
+                        pet = "srslylawlUI_Main_player_Pet_HealthBar",
+                        target = "srslylawlUI_Main_target_Unit",
+                        focus = "srslylawlUI_Main_focus_Unit",
+                        party1 = "srslylawlUI_PartyHeader_party1_Unit",
+                        party2 = "srslylawlUI_PartyHeader_party2_Unit",
+                        party3 = "srslylawlUI_PartyHeader_party3_Unit",
+                        party4 = "srslylawlUI_PartyHeader_party4_Unit",
+                    },
+                }
+            end
+        end
     end
+	end
 end)
 -- since events seem to fire in arbitrary order after login, we use this frame for the first time the maxhealth event fires
 srslylawlUI_FirstMaxHealthEventFrame = CreateFrame("Frame")
