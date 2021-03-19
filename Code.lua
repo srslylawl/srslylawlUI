@@ -1890,8 +1890,9 @@ end
 srslylawlUI_EventFrame = CreateFrame("Frame")
 srslylawlUI_EventFrame:RegisterEvent("PLAYER_LOGIN")
 srslylawlUI_EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+srslylawlUI_EventFrame:RegisterEvent("ADDON_LOADED")
 srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
-    if (event == "PLAYER_LOGIN") then
+    if event == "PLAYER_LOGIN" then
         Initialize()
         srslylawlUI.SortAfterLogin()
         self:UnregisterEvent("PLAYER_LOGIN")
@@ -1926,6 +1927,13 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         -- regen enabled sort
         srslylawlUI.UpdateEverything()
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    elseif event == "ADDON_LOADED" then
+	    if arg1 == "srslylawlUI" or arg1 == "OmniCD" then
+		local func = OmniCD and OmniCD.AddUnitFrameData
+		if func then
+			func("srslylawlUI", "srslylawlUI_PartyHeader_party", "unitID", 1)
+		end
+	end
     end
 end)
 -- since events seem to fire in arbitrary order after login, we use this frame for the first time the maxhealth event fires
