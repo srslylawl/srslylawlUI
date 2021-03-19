@@ -1896,6 +1896,16 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local class = select(2, UnitClass(unit))
     local SBColor
     local isPlayer = UnitIsPlayer(unit)
+    local health = UnitHealth(unit)
+    local healthMax = UnitHealthMax(unit)
+    local healthPercent = srslylawlUI.Utils_ScuffedRound(health / healthMax * 100)
+
+    local rightText = ""
+    if unit == "target" then
+        rightText = srslylawlUI.ShortenNumber(health).."/"..srslylawlUI.ShortenNumber(healthMax)
+    else 
+        rightText = srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%"
+    end
     if isPlayer and class then
         SBColor = { RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b, RAID_CLASS_COLORS[class].a }
         local alive = not UnitIsDeadOrGhost(unit)
@@ -1906,9 +1916,9 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
             -- set bar color to grey and fill bar
             SBColor[1], SBColor[2], SBColor[3] = 0.3, 0.3, 0.3
             if not alive then
-                button.healthBar.rightText:SetText("DEAD")
+                rightText = "DEAD"
             elseif not online then
-                button.healthBar.rightText:SetText("offline")
+                rightText = "offline"
             end
         elseif differentPhase then
             local phaseReason
@@ -1921,7 +1931,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
             elseif differentPhase == Enum.PhaseReason.Sharding then
                 phaseReason = "different Shard"
             end
-            button.healthBar.rightText:SetText(phaseReason)
+            rightText = phaseReason
         end
         if unit == "player" or inRange or button:GetAttribute("unitsType") == "mainUnits" then
             SBColor[4] = 1
@@ -1937,18 +1947,16 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
             SBColor = {0.5, 0.5, 0.5, 1}
         end
     end
-    local health = UnitHealth(unit)
-    local healthMax = UnitHealthMax(unit)
-    local healthPercent = srslylawlUI.Utils_ScuffedRound(health / healthMax * 100)
+
     if unit == "target" then
         local name = UnitName(unit) or UNKNOWN
         button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.45, healthPercent .. "%".." ".. name, true)
-        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.45, srslylawlUI.ShortenNumber(health).."/"..srslylawlUI.ShortenNumber(healthMax))
+        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.45, rightText)
     elseif unit == "targettarget" then
         local name = UnitName(unit) or UNKNOWN
         button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth(), healthPercent .. "%".." ".. name, true)
     else
-        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.45, srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%")
+        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.45, rightText)
     end
     button.healthBar:SetMinMaxValues(0, healthMax)
     button.healthBar:SetValue(health)
