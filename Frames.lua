@@ -643,7 +643,14 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     srslylawlUI.SetupUnitFrame(buttonFrame, unit)
 
     srslylawlUI.RegisterEvents(buttonFrame)
-    RegisterUnitWatch(buttonFrame)
+    local enabled = srslylawlUI.GetSettingByUnit("enabled", "mainUnits", unit)
+    buttonFrame.enabled = enabled
+    if enabled then
+        RegisterUnitWatch(buttonFrame)
+    else
+        UnregisterUnitWatch(buttonFrame)
+        buttonFrame:Hide()
+    end
     buttonFrame.unit.registered = true
     buttonFrame:SetMovable(true)
     buttonFrame.unit:RegisterForDrag("LeftButton")

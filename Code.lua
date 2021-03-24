@@ -110,6 +110,8 @@ local debugString = ""
 
 
 --[[ TODO:
+blizzard party frames sometimes visible (instance?)
+adjust combat icon size/pos
 let cc bar show multiple ccs
 totem bar
 powerbar fadeout instead of hide
