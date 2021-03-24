@@ -248,6 +248,19 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     self.unit.RaidIcon:Resize()
                     self.unit.RaidIcon:SetPoints()
 
+                    local portraitEnabled = srslylawlUI.GetSetting("party.portrait.enabled")
+                    local portraitPos = srslylawlUI.GetSetting("party.portrait.position")
+                    local portraitAnchor = srslylawlUI.GetSetting("party.portrait.anchor")
+
+                    local portraitSettingsChanged = self.portraitEnabled ~= portraitEnabled or self.portraitPos ~= portraitPos or self.portraitAnchor ~= portraitAnchor
+
+                    if portraitSettingsChanged then
+                        self:TogglePortrait()
+                        self.portraitAnchor = portraitAnchor
+                        self.portraitPos = portraitPos
+                        self.portraitEnabled = portraitEnabled
+                    end
+
                     timerFrame = 0
                 end
             end)

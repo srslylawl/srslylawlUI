@@ -979,6 +979,14 @@ function srslylawlUI.CreateConfigWindow()
             anchor = auraControl
         end
 
+        --portrait
+        local portraitControl = CreateConfigControl(tab, "Party Portrait", nil, "party")
+        local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path.."portrait.enabled", function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
+        local portraitPosition = CreateCustomDropDown("Position", 250, tab, path.."portrait.position", {"LEFT", "RIGHT"}, function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
+        local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, path.."portrait.anchor", {"Frame", "Powerbar"}, function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
+        portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
+        portraitControl:ChainToControl(anchor)
+
         local h = 0
         for _, v in pairs(tab.controls) do
             h = h + v

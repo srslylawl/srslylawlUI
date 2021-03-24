@@ -41,7 +41,12 @@ srslylawlUI.defaultSettings = {
         },
         sorting = {
             enabled = true,
-        }
+        },
+        portrait = {
+            enabled = false,
+            position = "LEFT",
+            anchor = "Frame"
+        },
     },
     player = {
         playerFrame = {

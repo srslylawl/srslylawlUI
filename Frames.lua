@@ -637,6 +637,7 @@ function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
     srslylawlUI.Frame_ResetDimensions_PowerBar(buttonFrame)
     srslylawlUI.Frame_ResetDimensions(buttonFrame)
     srslylawlUI.Frame_ResetCCDurBar(buttonFrame)
+    srslylawlUI.Frame_SetupPortrait(buttonFrame)
 end
 function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     local unit = buttonFrame:GetAttribute("unit")
@@ -697,6 +698,7 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     end
 
     if unit == "target" or unit == "focus" then
+        srslylawlUI.Frame_SetupPortrait(buttonFrame)
         srslylawlUI.Frame_SetupTargetFocusFrame(buttonFrame)
     end
 
@@ -713,6 +715,81 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     end
 end
 
+function srslylawlUI.Frame_SetupPortrait(frame)
+    local unit = frame:GetAttribute("unit")
+    local unitsType = frame:GetAttribute("unitsType")
+
+    function frame:TogglePortrait()
+        local enabled = srslylawlUI.GetSettingByUnit("portrait.enabled", unitsType, unit)
+
+        if enabled and not frame.portrait then
+            frame.portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame.unit)
+            frame.portrait:SetAlpha(1)
+            frame.portrait:SetUnit(unit)
+            frame.portrait:SetPortraitZoom(1)
+            frame.portrait:SetFrameLevel(frame.unit:GetFrameLevel())
+
+            function frame.portrait:ResetPosition()
+                local height = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
+                local anchor = srslylawlUI.GetSettingByUnit("portrait.anchor", unitsType, unit) == "Frame" and frame.unit or frame.unit.powerBar
+                local position = srslylawlUI.GetSettingByUnit("portrait.position", unitsType, unit)
+                frame.portrait:ClearAllPoints()
+                if position == "LEFT" then
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "TOPRIGHT", anchor, "TOPLEFT", -1, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMLEFT", anchor, "BOTTOMLEFT", -(height+1), 0)
+                elseif position == "RIGHT" then
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "TOPLEFT", anchor, "TOPRIGHT", 1, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMRIGHT", anchor, "BOTTOMRIGHT", height+1, 0)
+                end
+            end
+
+            srslylawlUI.CreateBackground(frame.portrait)
+            function frame.portrait:ModelUpdate()
+                --order seems very important here
+                if not UnitIsVisible(unit) or not UnitIsConnected(unit) then
+	                self:SetModelScale(5.5)
+	                self:SetPosition(2, 0, .9)
+                    self:SetPortraitZoom(5)
+                    self:ClearModel()
+	                self:SetModel("Interface\\Buttons\\talktomequestionmark.m2")
+                else
+		            self:SetPortraitZoom(1)
+		            self:SetPosition(0, 0, 0)
+                    self:ClearModel()
+		            self:SetUnit(unit)
+                end
+            end
+            function frame.portrait:PortraitUpdate()
+                local guid = UnitGUID(unit)
+	        	if self.guid ~= guid then
+                    self.guid = guid
+	        		self:ModelUpdate()
+	        	end
+            end
+            --portrait seems to be very sensitive to order of execution, needs it as onshow or else it wont update properly
+            frame.portrait:SetScript("OnShow", function(self) self:ModelUpdate() end)
+        end
+
+        if enabled then
+            frame:RegisterEvent("UNIT_PORTRAIT_UPDATE", unit)
+	        frame:RegisterEvent("UNIT_MODEL_CHANGED", unit)
+            frame.portrait:ResetPosition()
+            frame.portrait:Show()
+            if frame.factionIcon then
+                frame.factionIcon:SetPoint("CENTER", frame.portrait, "TOPRIGHT", 0, 0)
+            end
+        elseif not enabled then
+            frame:UnregisterEvent("UNIT_PORTRAIT_UPDATE")
+	        frame:UnregisterEvent("UNIT_MODEL_CHANGED")
+            if frame.portrait then
+                frame.portrait:Hide()
+            end
+            if frame.factionIcon then
+                frame.factionIcon:SetPoint("CENTER", frame.unit, "TOPRIGHT", 0, 0)
+            end
+        end
+    end
+end
 
 function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
     local unit = frame:GetAttribute("unit")
@@ -747,78 +824,12 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
     srslylawlUI.Utils_SetSizePixelPerfect(frame.factionIcon.icon, 20, 20)
     frame.factionIcon.icon:SetPoint("CENTER")
     frame.factionIcon.icon:SetTexCoord(0, 0.625, 0, 0.625)
-    frame:RegisterEvent("UNIT_FACTION", "target")
+    frame:RegisterEvent("UNIT_FACTION", unit)
 
     if unit == "focus" then
         frame:RegisterEvent("PLAYER_FOCUS_CHANGED")
     end
 
-    function frame:TogglePortrait()
-        local enabled = srslylawlUI.GetSetting("player."..unit.."Frame.portrait.enabled")
-
-        if enabled and not frame.portrait then
-            frame.portrait = CreateFrame("PlayerModel", "$parent_Portrait", frame.unit)
-            frame.portrait:SetAlpha(1)
-            frame.portrait:SetUnit("target")
-            frame.portrait:SetPortraitZoom(1)
-            frame.portrait:SetFrameLevel(frame.unit:GetFrameLevel())
-
-            function frame.portrait:ResetPosition()
-                local height = srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")
-                local anchor = srslylawlUI.GetSetting("player."..unit.."Frame.portrait.anchor") == "Frame" and frame.unit or frame.unit.powerBar
-                local position = srslylawlUI.GetSetting("player."..unit.."Frame.portrait.position")
-                frame.portrait:ClearAllPoints()
-                if position == "LEFT" then
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "TOPRIGHT", anchor, "TOPLEFT", -1, 0)
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMLEFT", anchor, "BOTTOMLEFT", -(height+1), 0)
-                elseif position == "RIGHT" then
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "TOPLEFT", anchor, "TOPRIGHT", 1, 0)
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMRIGHT", anchor, "BOTTOMRIGHT", height+1, 0)
-                end
-            end
-
-            srslylawlUI.CreateBackground(frame.portrait)
-            function frame.portrait:ModelUpdate()
-                --order seems very important here
-                if not UnitIsVisible("target") or not UnitIsConnected("target") then
-	                self:SetModelScale(5.5)
-	                self:SetPosition(2, 0, .9)
-                    self:SetPortraitZoom(5)
-                    self:ClearModel()
-	                self:SetModel("Interface\\Buttons\\talktomequestionmark.m2")
-                else
-		            self:SetPortraitZoom(1)
-		            self:SetPosition(0, 0, 0)
-                    self:ClearModel()
-		            self:SetUnit("target")
-                end
-            end
-            function frame.portrait:PortraitUpdate()
-                local guid = UnitGUID("target")
-	        	if self.guid ~= guid then
-                    self.guid = guid
-	        		self:ModelUpdate()
-	        	end
-            end
-            --portrait seems to be very sensitive to order of execution, needs it as onshow or else it wont update properly
-            frame.portrait:SetScript("OnShow", function(self) self:ModelUpdate() end)
-        end
-
-        if enabled then
-            frame:RegisterEvent("UNIT_PORTRAIT_UPDATE", "target")
-	        frame:RegisterEvent("UNIT_MODEL_CHANGED", "target")
-            frame.portrait:ResetPosition()
-            frame.portrait:Show()
-            frame.factionIcon:SetPoint("CENTER", frame.portrait, "TOPRIGHT", 0, 0)
-        elseif not enabled then
-            frame:UnregisterEvent("UNIT_PORTRAIT_UPDATE")
-	        frame:UnregisterEvent("UNIT_MODEL_CHANGED")
-            if frame.portrait then
-                frame.portrait:Hide()
-            end
-            frame.factionIcon:SetPoint("CENTER", frame.unit, "TOPRIGHT", 0, 0)
-        end
-    end
     function frame:ResetUnitLevelIcon()
         unit = self:GetAttribute("unit")
         srslylawlUI.Frame_AnchorFromSettings(self.unitLevel, "player."..unit.."Frame.unitLevel.position")
@@ -829,7 +840,7 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
         self:TogglePortrait()
     end
     function frame:UpdateUnitLevel()
-        local unitLevel = UnitLevel("target")
+        local unitLevel = UnitLevel(unit)
 
         if unitLevel < 0 then
             self.unitLevel.text:SetText("??")
@@ -838,7 +849,7 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
         end
     end
     function frame:UpdateUnitFaction()
-        local ffa = UnitIsPVPFreeForAll("target")
+        local ffa = UnitIsPVPFreeForAll(unit)
 
         if ffa then
             if self.faction ~= "FFA" then
@@ -847,7 +858,7 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
                 self.faction = "FFA"
             end
         else
-            local faction = UnitFactionGroup("target")
+            local faction = UnitFactionGroup(unit)
             if not faction or faction == "Neutral" then
                 if self.faction then
                     self.factionIcon.icon:Hide()
@@ -1832,13 +1843,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                 srslylawlUI.Frame_ResetName(self.unit, unit)
             end
         elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
-            local status = UnitThreatSituation(unit)
-            if status and status > 0 then
-                local r, g, b = GetThreatStatusColor(status)
-                self.unit.healthBar.leftText:SetTextColor(r, g, b)
-            else
-                self.unit.healthBar.leftText:SetTextColor(1, 1, 1)
-            end
+            srslylawlUI.Frame_ResetUnitThreat(self.unit, unit)
         elseif event == "UNIT_CONNECTION" then
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
@@ -1872,6 +1877,16 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
     end
 end
 
+function srslylawlUI.Frame_ResetUnitThreat(button, unit)
+    if not UnitExists(unit) then return end
+    local status = UnitThreatSituation(unit)
+    if status and status > 0 then
+        local r, g, b = GetThreatStatusColor(status)
+        button.healthBar.leftText:SetTextColor(r, g, b)
+    else
+        button.healthBar.leftText:SetTextColor(1, 1, 1)
+    end
+end
 function srslylawlUI.Frame_ResetUnitButton(button, unit)
     srslylawlUI.Frame_ResetHealthBar(button, unit)
     srslylawlUI.Frame_ResetPowerBar(button, unit)
@@ -1971,6 +1986,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     if button:GetAttribute("unitsType") ~= "fauxUnits" and unit ~= "targettarget" then
         button.healthBar.effectiveHealthFrame.texture:SetVertexColor(SBColor[1], SBColor[2], SBColor[3], .5)
     end
+    srslylawlUI.Frame_ResetUnitThreat(button, unit)
 end
 function srslylawlUI.Frame_ResetPowerBar(button, unit)
     local unitsType = button:GetAttribute("unitsType")
