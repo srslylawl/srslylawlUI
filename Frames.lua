@@ -366,8 +366,11 @@ function srslylawlUI.FrameSetup()
             unitFrame.unit.CombatIcon.texture:SetTexCoord(0.5, 1, 0, .5)
             -- unitFrame.unit.CombatIcon.texture:SetTexCoord(0, .5, 0, .5)
             -- unitFrame.CombatIcon.texture:SetTexCoord(0.5, 1, 0, .5)
-            srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CombatIcon, 16, 16)
-            srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CombatIcon, "BOTTOMLEFT", unitFrame.unit, "BOTTOMLEFT", -1, -1)
+            -- local size = srslylawlUI.GetSettingByUnit("combatRestIcon.size", unitsType, unit)
+            -- local position = srslylawlUI.GetSettingByUnit("combatRestIcon.position", unitsType, unit)
+            -- srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CombatIcon, size, size)
+            -- srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CombatIcon, unpack(position))
+            srslylawlUI.Frame_ResetCombatIcon(unitFrame)
             unitFrame.unit.CombatIcon:SetFrameLevel(4)
             unitFrame.unit.CombatIcon.texture:Hide()
         end
@@ -628,9 +631,9 @@ function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
         RegisterUnitWatch(buttonFrame)
         RegisterUnitWatch(buttonFrame.pet)
         buttonFrame.unit.registered = true
+        buttonFrame.unit.CombatIcon:SetScript("OnUpdate", srslylawlUI.Frame_UpdateCombatIcon)
     end
 
-    buttonFrame.unit.CombatIcon:SetScript("OnUpdate", srslylawlUI.Frame_UpdateCombatIcon)
     buttonFrame.PartyLeader:SetShown(UnitIsGroupLeader(unit))
 
     srslylawlUI.Frame_ResetDimensions_Pet(buttonFrame)
@@ -1445,6 +1448,16 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
     end
 end
 function srslylawlUI.Frame_SetCombatIcon(button)
+    if srslylawlUI_ConfigFrame and srslylawlUI_ConfigFrame.fakeFramesToggled then
+        button.texture:SetTexCoord(0.5, 1, 0, .5)
+        button.wasCombat = true
+        button.texture:Show()
+        button.wasDemoMode = true
+    elseif srslylawlUI_ConfigFrame and button.wasDemoMode and not srslylawlUI_ConfigFrame.fakeFramesToggled then
+        button.texture:Hide()
+        button.wasDemoMode = nil
+        button.inCombat = nil
+    end
     local unit = button:GetParent():GetAttribute("unit")
     local inCombat = UnitAffectingCombat(unit)
     if button.inCombat == inCombat then return end
@@ -1516,6 +1529,7 @@ function srslylawlUI.Frame_Party_ResetDimensions_ALL()
             srslylawlUI.Frame_ResetDimensions_Pet(button)
             srslylawlUI.Frame_ResetDimensions_PowerBar(button)
             srslylawlUI.Frame_ResetCCDurBar(button)
+            srslylawlUI.Frame_ResetCombatIcon(button)
         end
     end
 end
@@ -2114,6 +2128,15 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
     if button.unit.powerBar.text.enabled then
         button.unit.powerBar.text:ScaleToFit(width, width, baseWidth)
     end
+end
+function srslylawlUI.Frame_ResetCombatIcon(unitFrame)
+    local unitsType = unitFrame:GetAttribute("unitsType")
+    local unit = unitFrame:GetAttribute("unit")
+    local size = srslylawlUI.GetSettingByUnit("combatRestIcon.size", unitsType, unit)
+    local position = srslylawlUI.GetSettingByUnit("combatRestIcon.position", unitsType, unit)
+    srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit.CombatIcon, size, size)
+    srslylawlUI.Utils_SetPointPixelPerfect(unitFrame.unit.CombatIcon, unpack(position))
+    unitFrame.unit.CombatIcon:SetShown(srslylawlUI.GetSettingByUnit("combatRestIcon.enabled", unitsType, unit))
 end
 
 function srslylawlUI.ToggleAllFrames(bool)

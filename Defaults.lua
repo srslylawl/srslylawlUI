@@ -9,6 +9,11 @@ srslylawlUI.defaultSettings = {
         hp = {
             width = 225, height = 70, minWidthPercent = 0.55, fontSize = 7, reversed = false, absorbHeightPercent = .7
         },
+        combatRestIcon = {
+            enabled = true,
+            size = 16,
+            position = {"BOTTOMLEFT", -1, -1}
+        },
         power = {
             width = 15,
             text = true
@@ -64,6 +69,11 @@ srslylawlUI.defaultSettings = {
             pet = {
                 width = 20
             },
+            combatRestIcon = {
+                enabled = true,
+                size = 16,
+                position = {"BOTTOMLEFT", -1, -1}
+            },
             power = {
                 text = false,
                 fontSize = 6,
@@ -101,6 +111,11 @@ srslylawlUI.defaultSettings = {
                 width = 15,
                 position = "LEFT",
                 text = true
+            },
+            combatRestIcon = {
+                enabled = true,
+                size = 16,
+                position = {"BOTTOMLEFT", -1, -1}
             },
             cast = {
                 disabled = false,
@@ -164,6 +179,11 @@ srslylawlUI.defaultSettings = {
                 width = 15,
                 position = "LEFT",
                 text = true
+            },
+            combatRestIcon = {
+                enabled = true,
+                size = 16,
+                position = {"BOTTOMLEFT", -1, -1}
             },
             cast = {
                 disabled = false,

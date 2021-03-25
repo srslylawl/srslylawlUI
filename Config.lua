@@ -734,7 +734,7 @@ function srslylawlUI.CreateConfigWindow()
         local c = frame.CloseButton
         c:SetPoint("TOPRIGHT", 0, 0)
     end
-    local function CreateAnchoringPanel(parent, path, frame, frameAnchorTable, simple, forPartyUnits)
+    local function CreateAnchoringPanel(parent, path, frame, frameAnchorTable, simple)
         local elements = {}
         if not simple then
             function Reanchor()
@@ -987,6 +987,16 @@ function srslylawlUI.CreateConfigWindow()
         portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
         portraitControl:ChainToControl(anchor)
 
+        --combaticon
+        local combatIconControl = CreateConfigControl(tab, "Party Combat Icon", nil, "party")
+        local combatIconEnabled = CreateSettingsCheckButton("Enabled", tab, path.."combatRestIcon.enabled", srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local combatIconSize = CreateCustomSlider("Size", tab, 1, 200, path.."combatRestIcon.size", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local combatIconAnchor = CreateCustomDropDown("Point", 100, tab, path.."combatRestIcon.position.1", srslylawlUI.anchorTable, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local combatIconX = CreateCustomSlider("X Offset", tab, -2000, 2000, path.."combatRestIcon.position.2", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local combatIconY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path.."combatRestIcon.position.3", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        combatIconControl:Add(combatIconEnabled, combatIconSize, combatIconAnchor, combatIconX, combatIconY)
+        combatIconControl:ChainToControl(portraitControl)
+
         local h = 0
         for _, v in pairs(tab.controls) do
             h = h + v
@@ -1117,6 +1127,17 @@ function srslylawlUI.CreateConfigWindow()
                     auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, scaledAuraSize, maxAuras)
                     anchor = auraControl
                 end
+
+                --combaticon
+                local combatIconControl = CreateConfigControl(tab, unitName.." Combat Icon", nil, unit)
+                local combatIconEnabled = CreateSettingsCheckButton("Enabled", tab, path.."combatRestIcon.enabled", function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconSize = CreateCustomSlider("Size", tab, 1, 200, path.."combatRestIcon.size", 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconAnchor = CreateCustomDropDown("Point", 100, tab, path.."combatRestIcon.position.1", srslylawlUI.anchorTable, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconX = CreateCustomSlider("X Offset", tab, -2000, 2000, path.."combatRestIcon.position.2", 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path.."combatRestIcon.position.3", 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                combatIconControl:Add(combatIconEnabled, combatIconSize, combatIconAnchor, combatIconX, combatIconY)
+                combatIconControl:ChainToControl(anchor)
+                anchor = combatIconControl
             end
 
             if unit == "player" then

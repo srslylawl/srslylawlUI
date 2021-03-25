@@ -126,6 +126,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame.unit.healthBar.rightText:SetText(hp)
             frame.unit.healthBar:SetMinMaxValues(0, fauxUnit.hpmax)
             frame.unit.healthBar:SetValue(fauxUnit.hp)
+            frame.unit.CombatIcon.texture:SetTexCoord(0.5, 1, 0, .5)
+            frame.unit.CombatIcon.texture:Show()
 
             if unit ~= "player" then
                 frame.unit.healthBar:SetStatusBarColor(color.r, color.g, color.b)
@@ -259,6 +261,19 @@ function srslylawlUI.ToggleFauxFrames(visible)
                         self.portraitAnchor = portraitAnchor
                         self.portraitPos = portraitPos
                         self.portraitEnabled = portraitEnabled
+                    end
+
+                    local combatIconEnabled = srslylawlUI.GetSetting("party.combatRestIcon.enabled")
+                    local combatIconPos = srslylawlUI.GetSetting("party.combatRestIcon.position")
+                    local combatIconSize = srslylawlUI.GetSetting("party.combatRestIcon.size")
+
+                    local combatIconSettingsChanged = self.combatIconEnabled ~= combatIconEnabled or self.combatIconPos ~= combatIconPos or self.combatIconSize ~= combatIconSize
+
+                    if combatIconSettingsChanged then
+                        srslylawlUI.Frame_ResetCombatIcon(self)
+                        self.combatIconSize = combatIconSize
+                        self.combatIconPos = combatIconPos
+                        self.combatIconEnabled = combatIconEnabled
                     end
 
                     timerFrame = 0
