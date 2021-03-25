@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.2"
+local version = "1.21"
 
 
 srslylawlUI.loadedSettings = {}
@@ -111,9 +111,8 @@ local debugString = ""
 
 --[[ TODO:
 castbar text size
-hide blizzard boss frames
 plus minus button for sliders
-blizzard party frames visible when not using raid style party frames
+blizzard party frames visible when not using raid style party frames -> should be fixed
 let cc bar show multiple ccs
 totem bar
 powerbar fadeout instead of hide
@@ -1846,9 +1845,24 @@ local function Initialize()
 
     end
     local function HideBlizzardFrames()
+        srslylawlUI.HiddenFrameAnchor = CreateFrame("Frame")
+        srslylawlUI.HiddenFrameAnchor:Hide()
         local function Hide(frame)
             frame:SetScript("OnEvent", nil)
             frame:UnregisterAllEvents()
+
+            if frame.manabar then frame.manabar:UnregisterAllEvents() end
+		    if frame.healthbar then frame.healthbar:UnregisterAllEvents() end
+		    if frame.spellbar then frame.spellbar:UnregisterAllEvents() end
+		    if frame.powerBarAlt then frame.powerBarAlt:UnregisterAllEvents() end
+
+            if frame ~= CastingBarFrame then
+                frame:SetParent(srslylawlUI.HiddenFrameAnchor)
+			    frame:HookScript("OnShow", function(self)
+                    if InCombatLockdown() then return end
+		            self:Hide()
+                end)
+            end
             frame:Hide()
         end
         local showPlayer = srslylawlUI.GetSetting("blizzard.player.enabled")
@@ -1857,6 +1871,7 @@ local function Initialize()
         local showCastbar = srslylawlUI.GetSetting("blizzard.castbar.enabled")
         local showAuras = srslylawlUI.GetSetting("blizzard.auras.enabled")
         local showFocus = srslylawlUI.GetSetting("blizzard.focus.enabled")
+        local showBoss = srslylawlUI.GetSetting("blizzard.boss.enabled")
 
         if not showPlayer then
             Hide(PlayerFrame)
@@ -1865,7 +1880,7 @@ local function Initialize()
             Hide(TargetFrame)
         end
         if not showParty then
-            for i=1, 4 do
+            for i=1, MAX_PARTY_MEMBERS do
                 Hide(_G["PartyMemberFrame"..i])
             end
         end
@@ -1878,6 +1893,14 @@ local function Initialize()
         if not showFocus then
             Hide(FocusFrame)
         end
+        if not showBoss then
+            for i=1, MAX_BOSS_FRAMES do
+			    local name = "Boss"..i.."TargetFrame"
+			    Hide(_G[name])
+                Hide(_G[name.."HealthBar"])
+                Hide(_G[name.."ManaBar"])
+            end
+		end
 
         UIParent:HookScript("OnHide", function(self)
             srslylawlUI.ToggleAllFrames(false)

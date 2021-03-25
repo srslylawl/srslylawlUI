@@ -219,7 +219,8 @@ srslylawlUI.defaultSettings = {
         party = {enabled = false},
         auras = { enabled = false},
         castbar = {enabled = false},
-        focus = {enabled = false}
+        focus = {enabled = false},
+        boss = {enabled = false}
     },
     colors = {
         buffBaseColor = {0.960, 0.952, 0.760},

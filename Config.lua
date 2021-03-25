@@ -867,7 +867,11 @@ function srslylawlUI.CreateConfigWindow()
         local castbar = CreateSettingsCheckButton("Castbar", tab, "blizzard.castbar.enabled", nil)
 
         local focus = CreateSettingsCheckButton("Focus", tab, "blizzard.focus.enabled", nil)
-        showBlizzardFrames:Add(player, target, party, auras, castbar, focus)
+
+        local boss = CreateSettingsCheckButton("Boss Frames", tab, "blizzard.boss.enabled", nil)
+        AddTooltip(boss, "Boss Frames are special frames that exist only in boss encounters, such as in raids or some dungeons and scenarios.")
+        
+        showBlizzardFrames:Add(player, target, party, auras, castbar, focus, boss)
 
         local other = CreateConfigControl(tab, "Other")
         other:AppendToControl(showBlizzardFrames)
