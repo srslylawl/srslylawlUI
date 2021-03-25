@@ -110,6 +110,8 @@ local debugString = ""
 
 
 --[[ TODO:
+castbar text size
+hide blizzard boss frames
 plus minus button for sliders
 blizzard party frames visible when not using raid style party frames
 let cc bar show multiple ccs
