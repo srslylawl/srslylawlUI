@@ -1460,7 +1460,8 @@ function srslylawlUI.Frame_SetCombatIcon(button)
     end
     local unit = button:GetParent():GetAttribute("unit")
     local inCombat = UnitAffectingCombat(unit)
-    if button.inCombat == inCombat then return end
+    local isResting = unit == "player" and IsResting() and button:GetParent():GetAttribute("unitsType") == "mainUnits" or nil
+    if button.inCombat == inCombat and button.isResting == isResting then return end
 
     if inCombat then
         if not button.wasCombat then
@@ -1468,17 +1469,19 @@ function srslylawlUI.Frame_SetCombatIcon(button)
             button.wasCombat = true
         end
         button.texture:Show()
-    elseif unit == "player" then
+    elseif isResting then
         if button.wasCombat ~= false then
             button.texture:SetTexCoord(0, .5, 0, .5)
             button.wasCombat = false
         end
+        button.isResting = true
         button.texture:Show()
     else
         button.texture:Hide()
     end
 
     button.inCombat = inCombat
+    button.isResting = isResting
 end
 function srslylawlUI.CreateBackground(frame, customSize, opacity)
     customSize = customSize or 1
