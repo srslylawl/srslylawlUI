@@ -110,6 +110,7 @@ local debugString = ""
 
 
 --[[ TODO:
+party portrait right will overlap with pet frame, needs more options
 castbar text size
 plus minus button for sliders
 blizzard party frames visible when not using raid style party frames -> should be fixed
