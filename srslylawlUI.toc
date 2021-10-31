@@ -1,7 +1,7 @@
 ## Title: |cff4D00FFsrslylawlUI|r
 ## Version: 1.21
 ## Author: srslylawl
-## Interface: 90100
+## Interface: 90105
 ## X-Category: UnitFrame
 ## SavedVariables: srslylawlUI_Saved
 
