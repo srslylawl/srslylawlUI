@@ -1937,7 +1937,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local isPlayer = UnitIsPlayer(unit)
     local health = UnitHealth(unit)
     local healthMax = UnitHealthMax(unit)
-    local healthPercent = srslylawlUI.Utils_ScuffedRound(health / healthMax * 100)
+    local healthPercent = healthMax == 0 and 100 or srslylawlUI.Utils_ScuffedRound(health / healthMax * 100)
 
     local rightText = ""
     if unit == "target" then

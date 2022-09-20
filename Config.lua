@@ -9,11 +9,11 @@ srslylawlUI.ConfigElements = {
 }
 
 srslylawlUI.UnitToColor = {
-    ["party"] = {0.019, 0.407, 1, .4},
-    ["player"] = {0.109, 0.807, 0.301, .4},
-    ["target"] = {0.937, 0.121, 0.101, .4},
-    ["targettarget"] = {0.901, 0.156, 0.490, .4},
-    ["focus"] = {0.929, 0.796, 0.172, .4}
+    ["party"] = { 0.019, 0.407, 1, .4 },
+    ["player"] = { 0.109, 0.807, 0.301, .4 },
+    ["target"] = { 0.937, 0.121, 0.101, .4 },
+    ["targettarget"] = { 0.901, 0.156, 0.490, .4 },
+    ["focus"] = { 0.929, 0.796, 0.172, .4 }
 }
 
 function srslylawlUI.CreateConfigWindow()
@@ -37,6 +37,7 @@ function srslylawlUI.CreateConfigWindow()
 
         srslylawlUI.Log((bool and "Frames can now be dragged!" or "Frames locked in place."))
     end
+
     local function CreateInfoBox(parent, content, width)
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
         local infoBox = bounds:CreateFontString("$parent_InfoBox", "ARTWORK")
@@ -44,20 +45,20 @@ function srslylawlUI.CreateConfigWindow()
         infoBox.background = CreateFrame("Frame", "$parent_BG", bounds, "BackdropTemplate")
         infoBox:SetParent(infoBox.background)
         infoBox.background:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        -- edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        -- edgeSize = 0,
-        insets = {left = 0, right = 0, top = 0, bottom = 0}
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            -- edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            -- edgeSize = 0,
+            insets = { left = 0, right = 0, top = 0, bottom = 0 }
         })
         infoBox.background:SetBackdropColor(0.05, 0.05, .05, .5)
         infoBox:SetPoint("CENTER")
         infoBox:SetWidth(width)
-        infoBox:SetFont("Fonts\\FRIZQT__.TTF", 11)
+        infoBox:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
         infoBox:SetTextColor(0.980, 0.862, 0.180)
 
         infoBox:SetText(content)
 
-        bounds:SetSize(width + 20, infoBox:GetStringHeight()+20)
+        bounds:SetSize(width + 20, infoBox:GetStringHeight() + 20)
         infoBox.background:SetPoint("TOPLEFT", bounds, "TOPLEFT", 8, -8)
         infoBox.background:SetPoint("BOTTOMRIGHT", bounds, "BOTTOMRIGHT", -8, 8)
 
@@ -65,27 +66,28 @@ function srslylawlUI.CreateConfigWindow()
         local oldSetText = infoBox.SetText
         function infoBox:SetText(str)
             oldSetText(self, str)
-            bounds:SetSize(width + 20, infoBox:GetStringHeight()+20)
+            bounds:SetSize(width + 20, infoBox:GetStringHeight() + 20)
         end
 
         return infoBox
     end
+
     local function CreateCustomEditBox(parent, title)
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
-        local editBox = CreateFrame("EditBox", "$parent_"..title, bounds, "BackdropTemplate")
+        local editBox = CreateFrame("EditBox", "$parent_" .. title, bounds, "BackdropTemplate")
         editBox.bounds = bounds
         editBox:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 12,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 12,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
         })
         editBox:SetAllPoints(true)
         editBox:SetBackdropColor(0.05, 0.05, .05, .5)
         editBox:SetTextInsets(5, 5, 0, 0)
         bounds:SetSize(40, 25)
         editBox:SetAutoFocus(false)
-        editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
+        editBox:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
 
         function editBox:SetTitle(title)
             if not self.title then
@@ -95,11 +97,13 @@ function srslylawlUI.CreateConfigWindow()
             end
             self.title:SetText(title)
         end
+
         return editBox
     end
+
     local function CreateCustomSlider(name, parent, min, max, valuePath, valueStep, decimals, onChangeFunc, canBeNil)
         local title = name
-        name = "$parent_Slider"..valuePath..name
+        name = "$parent_Slider" .. valuePath .. name
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
         local slider = CreateFrame("Slider", name, bounds, "OptionsSliderTemplate")
         slider.bounds = bounds
@@ -111,7 +115,7 @@ function srslylawlUI.CreateConfigWindow()
         slider.Text:SetText(title)
         slider.Text:SetTextColor(0.380, 0.705, 1, 1)
         slider.Text:SetPoint("TOP", 0, 15)
-        local width, height = slider:GetWidth() + 20, slider:GetHeight()+slider.Text:GetStringHeight() +15+10
+        local width, height = slider:GetWidth() + 20, slider:GetHeight() + slider.Text:GetStringHeight() + 15 + 10
 
         slider:SetMinMaxValues(min, max)
         local var = srslylawlUI.GetSetting(valuePath, canBeNil)
@@ -124,16 +128,16 @@ function srslylawlUI.CreateConfigWindow()
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
             edgeSize = 12,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
         })
         editBox:SetBackdropColor(0, 0.254, 0.478, 1)
         editBox:SetTextInsets(5, 5, 0, 0)
         editBox:SetSize(60, 20)
         editBox:SetPoint("TOP", slider, "BOTTOM", 0, 0)
         editBox:SetAutoFocus(false)
-        editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
+        editBox:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
         editBox:SetNumeric(false)
-        if (min >=0 and max >=0) and (not decimals or decimals == 0) then
+        if (min >= 0 and max >= 0) and (not decimals or decimals == 0) then
             editBox:SetNumber(var)
             editBox:SetScript("OnTextChanged", function(self) slider:SetValue(self:GetNumber()) end)
             slider:SetScript("OnValueChanged", function(self, value)
@@ -166,7 +170,7 @@ function srslylawlUI.CreateConfigWindow()
                 end
                 text = text or 0
                 text = srslylawlUI.Utils_DecimalRound(text, decimals)
-                
+
                 slider:SetValue(text)
             end)
             slider:SetScript("OnValueChanged", function(self, value)
@@ -191,6 +195,7 @@ function srslylawlUI.CreateConfigWindow()
             self:SetValue(setting)
             self.editbox:SetText(setting)
         end
+
         function slider:SetValueClean(val)
             local isDirty = srslylawlUI.unsaved.flag
             slider:SetValue(val)
@@ -199,22 +204,24 @@ function srslylawlUI.CreateConfigWindow()
                 srslylawlUI.RemoveDirtyFlag()
             end
         end
+
         slider.editbox = editBox
         table.insert(srslylawlUI.ConfigElements.Sliders, slider)
         bounds:SetSize(width, height)
         return slider
     end
+
     local function CreatePowerBarSlider(title, parent, name, specID, value, default, onChangeFunc)
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
-        local slider = CreateFrame("Slider", "$parent_Slider"..title..name, bounds, "OptionsSliderTemplate")
+        local slider = CreateFrame("Slider", "$parent_Slider" .. title .. name, bounds, "OptionsSliderTemplate")
         slider.bounds = bounds
 
         local px = srslylawlUI.Utils_PixelFromCodeToScreen(1)
-        local valuePath = "player.playerFrame.power.overrides."..specID.."."..name.."."
+        local valuePath = "player.playerFrame.power.overrides." .. specID .. "." .. name .. "."
         if name == "CastBar" then
             valuePath = "player.playerFrame.cast."
         end
-        valuePath = valuePath..value
+        valuePath = valuePath .. value
         local canBeNil = true
         local max = value == "priority" and 10 or 200
 
@@ -224,7 +231,7 @@ function srslylawlUI.CreateConfigWindow()
         slider.Text:SetText(title)
         slider.Text:SetTextColor(0.380, 0.705, 1, 1)
         slider.Text:SetPoint("TOP", 0, 15)
-        local width, height = slider:GetWidth() + 20, slider:GetHeight()+slider.Text:GetStringHeight()+15+10
+        local width, height = slider:GetWidth() + 20, slider:GetHeight() + slider.Text:GetStringHeight() + 15 + 10
         slider:SetMinMaxValues(0, max)
         local var = srslylawlUI.GetSetting(valuePath, canBeNil)
         var = var or default
@@ -237,13 +244,13 @@ function srslylawlUI.CreateConfigWindow()
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
             edgeSize = 12,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
         })
         editBox:SetBackdropColor(0, 0.254, 0.478, 1)
         editBox:SetTextInsets(5, 5, 0, 0)
         editBox:SetPoint("TOP", slider, "BOTTOM", 0, 0)
         editBox:SetAutoFocus(false)
-        editBox:SetFont("Fonts\\FRIZQT__.TTF", 10)
+        editBox:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
         editBox:SetNumeric(false)
         editBox:SetNumber(var)
         editBox:SetScript("OnTextChanged", function(self) slider:SetValue(self:GetNumber()) end)
@@ -277,6 +284,7 @@ function srslylawlUI.CreateConfigWindow()
                 onChangeFunc()
             end
         end
+
         function slider:SetValueClean(val)
             local isDirty = srslylawlUI.unsaved.flag
             slider:SetValue(val)
@@ -285,15 +293,17 @@ function srslylawlUI.CreateConfigWindow()
                 srslylawlUI.RemoveDirtyFlag()
             end
         end
+
         slider.editbox = editBox
         table.insert(srslylawlUI.ConfigElements.Sliders, slider)
         bounds:SetSize(width, height)
         return slider
     end
+
     local function CreateCustomDropDown(title, width, parent, valuePath, values, onChangeFunc)
         -- Create the dropdown, and configure its appearance
-        local bounds = CreateFrame("Frame", "$parent_"..valuePath.."Bounds", parent)
-        local dropDown = CreateFrame("FRAME", "$parent_"..title, bounds, "UIDropDownMenuTemplate")
+        local bounds = CreateFrame("Frame", "$parent_" .. valuePath .. "Bounds", parent)
+        local dropDown = CreateFrame("FRAME", "$parent_" .. title, bounds, "UIDropDownMenuTemplate")
         dropDown.title = dropDown:CreateFontString("$parent_Title", "OVERLAY", "GameFontHighlight")
         dropDown.title:SetText(title)
         dropDown.title:SetTextColor(0.380, 0.705, 1, 1)
@@ -304,12 +314,12 @@ function srslylawlUI.CreateConfigWindow()
 
         dropDown:SetPoint("BOTTOMLEFT", bounds, "BOTTOMLEFT", -10, 0)
 
-        local width = math.max(dropDown.title:GetWidth(), 40)+10
+        local width = math.max(dropDown.title:GetWidth(), 40) + 10
 
         UIDropDownMenu_SetWidth(dropDown, width)
         UIDropDownMenu_SetText(dropDown, srslylawlUI.GetSetting(valuePath, true))
 
-        bounds:SetSize(width+30, dropDown:GetHeight()+20)
+        bounds:SetSize(width + 30, dropDown:GetHeight() + 20)
 
         function dropDown:SetValue(newValue)
             UIDropDownMenu_SetText(dropDown, newValue)
@@ -345,9 +355,10 @@ function srslylawlUI.CreateConfigWindow()
 
         return dropDown
     end
+
     local function CreateFrameAnchorDropDown(title, parent, affectedFrame, valuePath, values, onChangeFunc)
-        local bounds = CreateFrame("Frame", "$parent_"..title.."Bounds", parent)
-        local dropDown = CreateFrame("FRAME", "$parent_"..title, bounds, "UIDropDownMenuTemplate")
+        local bounds = CreateFrame("Frame", "$parent_" .. title .. "Bounds", parent)
+        local dropDown = CreateFrame("FRAME", "$parent_" .. title, bounds, "UIDropDownMenuTemplate")
         dropDown.title = dropDown:CreateFontString("$parent_Title", "OVERLAY", "GameFontHighlight")
         dropDown.title:SetText(title)
         dropDown.title:SetTextColor(0.380, 0.705, 1, 1)
@@ -363,12 +374,12 @@ function srslylawlUI.CreateConfigWindow()
             end
         end
 
-        local width = math.max(dropDown.title:GetWidth(), 40)+10
+        local width = math.max(dropDown.title:GetWidth(), 40) + 10
 
         UIDropDownMenu_SetWidth(dropDown, width)
         UIDropDownMenu_SetText(dropDown, srslylawlUI.GetSetting(valuePath, true))
 
-        bounds:SetSize(width+30, dropDown:GetHeight()+20)
+        bounds:SetSize(width + 30, dropDown:GetHeight() + 20)
 
         dropDown:SetPoint("BOTTOMLEFT", bounds, "BOTTOMLEFT", -10, 0)
 
@@ -406,9 +417,10 @@ function srslylawlUI.CreateConfigWindow()
 
         return dropDown
     end
+
     local function CreateConfigControl(parent, title, useFullWidth, unitToken)
         local bounds = CreateFrame("Frame", "$parent_Bounds", parent)
-        local frame = CreateFrame("Frame", "$parent_"..title, bounds, "BackdropTemplate")
+        local frame = CreateFrame("Frame", "$parent_" .. title, bounds, "BackdropTemplate")
         frame.bounds = bounds
         frame.useFullWidth = useFullWidth
 
@@ -419,9 +431,9 @@ function srslylawlUI.CreateConfigWindow()
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
             edgeSize = 12,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
         })
-        local color = unitToken and srslylawlUI.UnitToColor[unitToken] or {0.796, 0.788, 0.564, .4}
+        local color = unitToken and srslylawlUI.UnitToColor[unitToken] or { 0.796, 0.788, 0.564, .4 }
         frame:SetBackdropColor(unpack(color))
         frame.title = frame:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
         frame.title:SetText(title)
@@ -432,18 +444,18 @@ function srslylawlUI.CreateConfigWindow()
 
         function frame:ResizeElements()
             local offset = 3
-            local availableWidth = ceil(parent:GetWidth() - inset*2)
+            local availableWidth = ceil(parent:GetWidth() - inset * 2)
             local totalWidth = 0
             local totalheight = 0
 
             local function GetRowBounds(index)
                 if not self.rowBounds[index] then
-                    self.rowBounds[index] = CreateFrame("Frame", "$parent_Row"..index, self)
+                    self.rowBounds[index] = CreateFrame("Frame", "$parent_Row" .. index, self)
 
                     if index == 1 then
                         self.rowBounds[index]:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
                     else
-                        self.rowBounds[index]:SetPoint("TOPLEFT", self.rowBounds[index-1], "BOTTOMLEFT", 0, -offset)
+                        self.rowBounds[index]:SetPoint("TOPLEFT", self.rowBounds[index - 1], "BOTTOMLEFT", 0, -offset)
                     end
                     self.rowBounds[index]:SetSize(availableWidth, 5)
                     self.rowBounds[index].height = 1
@@ -452,6 +464,7 @@ function srslylawlUI.CreateConfigWindow()
 
                 return self.rowBounds[index]
             end
+
             local function AdjustRowBounds(index, height)
                 local rB = GetRowBounds(index)
 
@@ -472,7 +485,8 @@ function srslylawlUI.CreateConfigWindow()
 
                 if not element.newRow and currentWidth + elementWidth + offset <= availableWidth then
                     --append to row
-                    element.bounds:SetPoint("TOPLEFT", GetRowBounds(rowIndex), "TOPLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
+                    element.bounds:SetPoint("TOPLEFT", GetRowBounds(rowIndex), "TOPLEFT",
+                        GetRowBounds(rowIndex).currentOffset + offset, 0)
                     currentWidth = currentWidth + elementWidth + offset
                     self.rowBounds[rowIndex].currentOffset = currentWidth
                     AdjustRowBounds(rowIndex, elementHeight)
@@ -482,30 +496,30 @@ function srslylawlUI.CreateConfigWindow()
                     rowIndex = rowIndex + 1
                     local rB = GetRowBounds(rowIndex)
                     rB.currentOffset = inset
-                    element.bounds:SetPoint("TOPLEFT", rB, "TOPLEFT", GetRowBounds(rowIndex).currentOffset+offset, 0)
-                    rB.currentOffset = inset+elementWidth + offset
+                    element.bounds:SetPoint("TOPLEFT", rB, "TOPLEFT", GetRowBounds(rowIndex).currentOffset + offset, 0)
+                    rB.currentOffset = inset + elementWidth + offset
                     AdjustRowBounds(rowIndex, elementHeight)
                 end
                 totalWidth = currentWidth > totalWidth and currentWidth or totalWidth
             end
-            
-            for i=1, rowIndex do
+
+            for i = 1, rowIndex do
                 totalheight = totalheight + self.rowBounds[i].height
             end
-            local height = totalheight + (rowIndex+2)*offset + inset*2
-            local w = self.useFullWidth and availableWidth or totalWidth + offset + inset*2
+            local height = totalheight + (rowIndex + 2) * offset + inset * 2
+            local w = self.useFullWidth and availableWidth or totalWidth + offset + inset * 2
             self.bounds:SetSize(w, height)
             self.totalHeight = height
             self:AddHeightToParent()
         end
 
         function frame:Add(...)
-            for i=1, select("#", ...) do
+            for i = 1, select("#", ...) do
                 local e = select(i, ...)
-                if i==1 and #self.elements > 0 then
+                if i == 1 and #self.elements > 0 then
                     e.newRow = true
                 end
-                table.insert(self.elements, #self.elements+1, e)
+                table.insert(self.elements, #self.elements + 1, e)
             end
             self:ResizeElements()
         end
@@ -521,7 +535,7 @@ function srslylawlUI.CreateConfigWindow()
         function frame:AppendToControl(control, anchor)
             if not anchor or anchor == "BOTTOM" then
                 self:SetPoint("TOPLEFT", control.bounds, "BOTTOMLEFT", 0, -10)
-                self.totalHeight = self:GetHeight()+10
+                self.totalHeight = self:GetHeight() + 10
                 self:AddHeightToParent()
             elseif anchor == "RIGHT" then
                 self:SetPoint("TOPLEFT", control.bounds, "TOPRIGHT", -10, 0)
@@ -557,6 +571,7 @@ function srslylawlUI.CreateConfigWindow()
 
         return frame
     end
+
     local function CreateConfigBody(name, parent)
         local f = CreateFrame("Frame", name, parent, "BackdropTemplate")
         f:SetSize(500, 500)
@@ -564,7 +579,7 @@ function srslylawlUI.CreateConfigWindow()
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
             edgeSize = 10,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
         })
         f:SetBackdropColor(0, 0, 0, .4)
         f:SetPoint("TOP", 0, -80)
@@ -574,17 +589,20 @@ function srslylawlUI.CreateConfigWindow()
 
         return f
     end
+
     local function AddTooltip(frame, text)
         local function OnEnter(self)
             srslylawlUI.customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
             srslylawlUI.customTooltip:SetText(text)
         end
+
         local function OnLeave(self) srslylawlUI.customTooltip:Hide() end
 
         frame:EnableMouse(true)
         frame:SetScript("OnEnter", OnEnter)
         frame:SetScript("OnLeave", OnLeave)
     end
+
     local function AddSpellTooltip(frame, id)
         --since the tooltip seems to glitch the first time we mouseover, we add an onupdate
         local function OnEnter(self)
@@ -592,12 +610,14 @@ function srslylawlUI.CreateConfigWindow()
             srslylawlUI.customTooltip:ClearLines()
             srslylawlUI.customTooltip:AddSpellByID(id)
         end
+
         local function OnUpdate(self)
             if srslylawlUI.customTooltip:IsOwned(self) then
                 srslylawlUI.customTooltip:ClearLines()
                 srslylawlUI.customTooltip:AddSpellByID(id)
             end
         end
+
         local function OnLeave(self) srslylawlUI.customTooltip:Hide() end
 
         frame:EnableMouse(true)
@@ -605,6 +625,7 @@ function srslylawlUI.CreateConfigWindow()
         frame:SetScript("OnUpdate", OnUpdate)
         frame:SetScript("OnLeave", OnLeave)
     end
+
     local function ScrollFrame_Update(frame)
         local tabcontent = frame:GetParent():GetParent()
         local list = tabcontent:GetAttribute("spellList")
@@ -615,8 +636,8 @@ function srslylawlUI.CreateConfigWindow()
         local totalItems = (sortedSpellList ~= nil and #sortedSpellList) or 0
         frame.TotalItems = totalItems
         local buttonHeight = frame.ButtonHeight or 0
-        FauxScrollFrame_Update(frame,totalItems,maxButtons,buttonHeight, nil, nil, nil, nil, nil, nil, true)
-        for line=1,maxButtons do
+        FauxScrollFrame_Update(frame, totalItems, maxButtons, buttonHeight, nil, nil, nil, nil, nil, nil, true)
+        for line = 1, maxButtons do
             lineplusoffset = line + (FauxScrollFrame_GetOffset(frame) >= 0 and FauxScrollFrame_GetOffset(frame) or 0)
             local curr = frame.Buttons[line]
             if curr == nil then error("button nil") end
@@ -631,9 +652,9 @@ function srslylawlUI.CreateConfigWindow()
                     curr:SetText(substring)
                     length = length - 1
                 end
-                AddTooltip(curr, name.."\nID: ".. spellId)
+                AddTooltip(curr, name .. "\nID: " .. spellId)
                 curr:SetAttribute("spellId", spellId)
-                if tabcontent.lastSelectedSpellId == spellId then 
+                if tabcontent.lastSelectedSpellId == spellId then
                     curr:Click()
                     curr:SetChecked(true)
                 else
@@ -647,51 +668,55 @@ function srslylawlUI.CreateConfigWindow()
             end
         end
     end
+
     local function CreateFrameWBG(name, parent)
-        local f = CreateFrame("Frame", "$parent_" ..name, parent, "BackdropTemplate")
+        local f = CreateFrame("Frame", "$parent_" .. name, parent, "BackdropTemplate")
         f:SetSize(500, 500)
         f:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
             edgeSize = 10,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
         })
         f:SetBackdropColor(0, 0, 0, .4)
         f.title = f:CreateFontString(
-                    "$parent_Title", "OVERLAY", "GameFontNormal")
+            "$parent_Title", "OVERLAY", "GameFontNormal")
         f.title:SetText(name)
         f.title:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 10, 0)
         return f
     end
+
     local function CreateCheckButton(name, parent)
         local nameWithoutSpace = name:gsub(" ", "_")
-        local bounds = CreateFrame("Frame", "$parent_"..nameWithoutSpace.."_Bounds", parent)
-        local checkButton = CreateFrame("CheckButton","$parent_Button", bounds ,"UICheckButtonTemplate")
+        local bounds = CreateFrame("Frame", "$parent_" .. nameWithoutSpace .. "_Bounds", parent)
+        local checkButton = CreateFrame("CheckButton", "$parent_Button", bounds, "UICheckButtonTemplate")
         checkButton.bounds = bounds
         checkButton:SetPoint("LEFT", bounds, "LEFT", 0, 0)
-        checkButton.text:SetTextColor(1,1,1,1)
+        checkButton.text:SetTextColor(1, 1, 1, 1)
         checkButton.text:SetText(name)
         local w = checkButton:GetWidth() + checkButton.text:GetStringWidth()
         local h = checkButton:GetHeight()
-        bounds:SetSize(w, h+10)
+        bounds:SetSize(w, h + 10)
 
         function checkButton:SetPoint(...)
             self.bounds:SetPoint(...)
         end
+
         return checkButton
     end
+
     local function CreateSettingsCheckButton(name, parent, valuePath, funcOnChanged, canBeNil)
         local nameWithoutSpace = name:gsub(" ", "_")
-        local bounds = CreateFrame("Frame", "$parent_"..nameWithoutSpace.."_Bounds", parent)
-        local checkButton = CreateFrame("CheckButton","$parent_Button", bounds ,"UICheckButtonTemplate")
+        local bounds = CreateFrame("Frame", "$parent_" .. nameWithoutSpace .. "_Bounds", parent)
+        local checkButton = CreateFrame("CheckButton", "$parent_Button", bounds, "UICheckButtonTemplate")
         checkButton.bounds = bounds
         checkButton:SetPoint("LEFT", bounds, "LEFT", 0, 0)
-        checkButton.text:SetTextColor(1,1,1,1)
+        checkButton.text:SetTextColor(1, 1, 1, 1)
         table.insert(srslylawlUI.ConfigElements.CheckButtons, checkButton)
         checkButton.text:SetText(name)
         local w = checkButton:GetWidth() + checkButton.text:GetStringWidth()
         local h = checkButton:GetHeight()
-        bounds:SetSize(w, h+10)
+        bounds:SetSize(w, h + 10)
         checkButton:SetChecked(srslylawlUI.GetSetting(valuePath, canBeNil))
         checkButton:SetScript("OnClick", function(self)
             srslylawlUI.ChangeSetting(valuePath, self:GetChecked())
@@ -710,9 +735,11 @@ function srslylawlUI.CreateConfigWindow()
 
         return checkButton
     end
+
     local function CreateSaveLoadButtons(frame)
         -- Save Button
-        frame.SaveButton = CreateFrame("Button", "srslylawlUI_Config_SaveButton", srslylawlUI_ConfigFrame, "UIPanelButtonTemplate")
+        frame.SaveButton = CreateFrame("Button", "srslylawlUI_Config_SaveButton", srslylawlUI_ConfigFrame,
+            "UIPanelButtonTemplate")
         local s = frame.SaveButton
         s:SetPoint("TOPRIGHT", -5, -30)
         s:SetText("Save")
@@ -721,7 +748,8 @@ function srslylawlUI.CreateConfigWindow()
         table.insert(srslylawlUI.unsaved.buttons, s)
 
         -- Load Button
-        frame.LoadButton = CreateFrame("Button", "srslylawlUI_Config_LoadButton", srslylawlUI_ConfigFrame, "UIPanelButtonTemplate")
+        frame.LoadButton = CreateFrame("Button", "srslylawlUI_Config_LoadButton", srslylawlUI_ConfigFrame,
+            "UIPanelButtonTemplate")
         local l = frame.LoadButton
         l:SetPoint("TOPRIGHT", s, "TOPLEFT")
         l:SetText("Load")
@@ -730,10 +758,12 @@ function srslylawlUI.CreateConfigWindow()
         table.insert(srslylawlUI.unsaved.buttons, l)
         l:Disable()
         s:Disable()
-        frame.CloseButton = CreateFrame("Button", "srslylawlUI_Config_CloseButton", srslylawlUI_ConfigFrame, "UIPanelCloseButton")
+        frame.CloseButton = CreateFrame("Button", "srslylawlUI_Config_CloseButton", srslylawlUI_ConfigFrame,
+            "UIPanelCloseButton")
         local c = frame.CloseButton
         c:SetPoint("TOPRIGHT", 0, 0)
     end
+
     local function CreateAnchoringPanel(parent, path, frame, frameAnchorTable, simple)
         local elements = {}
         if not simple then
@@ -743,11 +773,14 @@ function srslylawlUI.CreateConfigWindow()
                 anchors[2] = srslylawlUI.TranslateFrameAnchor(anchors[2])
                 srslylawlUI.Utils_SetPointPixelPerfect(frame, unpack(anchors))
             end
-            elements[1] = CreateCustomDropDown("Point", 100, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
-            elements[2] = CreateFrameAnchorDropDown("To Frame", parent, frame, path..".2", frameAnchorTable or srslylawlUI.FramesToAnchorTo, Reanchor)
-            elements[3] = CreateCustomDropDown("Relative To", 100, parent, path..".3", srslylawlUI.anchorTable, Reanchor)
-            elements[4] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".4", 1, 0, Reanchor)
-            elements[5] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path..".5", 1, 0, Reanchor)
+
+            elements[1] = CreateCustomDropDown("Point", 100, parent, path .. ".1", srslylawlUI.anchorTable, Reanchor)
+            elements[2] = CreateFrameAnchorDropDown("To Frame", parent, frame, path .. ".2",
+                frameAnchorTable or srslylawlUI.FramesToAnchorTo, Reanchor)
+            elements[3] = CreateCustomDropDown("Relative To", 100, parent, path .. ".3", srslylawlUI.anchorTable,
+                Reanchor)
+            elements[4] = CreateCustomSlider("X Offset", parent, -2000, 2000, path .. ".4", 1, 0, Reanchor)
+            elements[5] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path .. ".5", 1, 0, Reanchor)
 
             function frame:ResetAnchoringPanel(...)
                 local e1, e2, e3, e4, e5 = ...
@@ -763,9 +796,10 @@ function srslylawlUI.CreateConfigWindow()
                 local anchors = srslylawlUI.GetSetting(path)
                 srslylawlUI.Utils_SetPointPixelPerfect(frame, unpack(anchors))
             end
-            elements[1] = CreateCustomDropDown("Point", 100, parent, path..".1", srslylawlUI.anchorTable, Reanchor)
-            elements[2] = CreateCustomSlider("X Offset", parent, -2000, 2000, path..".2", 1, 0, Reanchor)
-            elements[3] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path..".3", 1, 0, Reanchor)
+
+            elements[1] = CreateCustomDropDown("Point", 100, parent, path .. ".1", srslylawlUI.anchorTable, Reanchor)
+            elements[2] = CreateCustomSlider("X Offset", parent, -2000, 2000, path .. ".2", 1, 0, Reanchor)
+            elements[3] = CreateCustomSlider("Y Offset", parent, -2000, 2000, path .. ".3", 1, 0, Reanchor)
 
             function frame:ResetAnchoringPanel(...)
                 local e1, _, _, e4, e5 = ...
@@ -776,76 +810,99 @@ function srslylawlUI.CreateConfigWindow()
         end
         return elements
     end
+
     local function FillGeneralTab(tab)
         local partyVisibility = CreateConfigControl(tab, "Party Frames Visibility", nil, "party")
         partyVisibility:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, -15)
 
-        local showParty = CreateSettingsCheckButton("Party", tab, "party.visibility.showParty", function() srslylawlUI.Frame_UpdateVisibility() end)
+        local showParty = CreateSettingsCheckButton("Party", tab, "party.visibility.showParty",
+            function() srslylawlUI.Frame_UpdateVisibility() end)
         AddTooltip(showParty, "Show Frames while in a Party")
 
-        local showPlayer = CreateSettingsCheckButton("Show Player", tab, "party.visibility.showPlayer", function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() srslylawlUI.Frame_ResizeHealthBarScale() end)
+        local showPlayer = CreateSettingsCheckButton("Show Player", tab, "party.visibility.showPlayer",
+            function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() srslylawlUI.Frame_ResizeHealthBarScale() end)
         AddTooltip(showPlayer, "Show Player as Party Member (recommended)")
 
-        local showSolo = CreateSettingsCheckButton("Solo", tab, "party.visibility.showSolo", function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() srslylawlUI.Frame_ResizeHealthBarScale() end)
+        local showSolo = CreateSettingsCheckButton("Solo", tab, "party.visibility.showSolo",
+            function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() srslylawlUI.Frame_ResizeHealthBarScale() end)
         AddTooltip(showSolo, "Show Party with Player as sole member while not in a group (implies Show Player)")
 
-        local showArena = CreateSettingsCheckButton("Arena", tab, "party.visibility.showArena", function() srslylawlUI.Frame_UpdateVisibility() end)
+        local showArena = CreateSettingsCheckButton("Arena", tab, "party.visibility.showArena",
+            function() srslylawlUI.Frame_UpdateVisibility() end)
         AddTooltip(showArena, "Show Frames in Arena")
 
-        local showRaid = CreateSettingsCheckButton("Raid", tab, "party.visibility.showRaid", function() srslylawlUI.Frame_UpdateVisibility() end)
+        local showRaid = CreateSettingsCheckButton("Raid", tab, "party.visibility.showRaid",
+            function() srslylawlUI.Frame_UpdateVisibility() end)
         AddTooltip(showRaid, "Show Party-Frames while in a Raid (not recommended)")
 
         partyVisibility:Add(showParty, showPlayer, showSolo, showArena, showRaid)
 
         local partySorting = CreateConfigControl(tab, "Party Frames Sorting", nil, "party")
-        local sortingEnabled = CreateSettingsCheckButton("Enabled", tab, "party.sorting.enabled", function() srslylawlUI.SortPartyFrames() end)
-        local sortInfoBox = CreateInfoBox(partySorting, "If enabled, party members will be sorted by their maximum hp, descending. This means that the highest hp party member will always be the first frame.", 600)
+        local sortingEnabled = CreateSettingsCheckButton("Enabled", tab, "party.sorting.enabled",
+            function() srslylawlUI.SortPartyFrames() end)
+        local sortInfoBox = CreateInfoBox(partySorting,
+            "If enabled, party members will be sorted by their maximum hp, descending. This means that the highest hp party member will always be the first frame."
+            , 600)
         partySorting:Add(sortInfoBox, sortingEnabled)
         partySorting:ChainToControl(partyVisibility)
 
         local anchor = partySorting
 
-        for _, unit in pairs({"Party", "Player", "Target", "Focus"}) do
+        for _, unit in pairs({ "Party", "Player", "Target", "Focus" }) do
             local cap = unit
             unit = string.lower(unit)
-            local path = unit == "party" and "party." or "player."..unit.."Frame."
+            local path = unit == "party" and "party." or "player." .. unit .. "Frame."
 
-            local buffVisibility = CreateConfigControl(tab, cap.." Buff Visibility", nil, unit)
+            local buffVisibility = CreateConfigControl(tab, cap .. " Buff Visibility", nil, unit)
             buffVisibility:AppendToControl(anchor)
 
-            local buffsDefault = CreateSettingsCheckButton("Default", tab, path.."buffs.showDefault", function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+            local buffsDefault = CreateSettingsCheckButton("Default", tab, path .. "buffs.showDefault",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
             if unit == "party" then
-                    AddTooltip(buffsDefault, "Show/hide all buffs per default, except if they are in/excluded by another setting.\n\nRecommended: Hiding all per default, while showing defensives and whitelisted auras.")
-                else
-                    AddTooltip(buffsDefault, "Show/hide all buffs per default, except if they are in/excluded by another setting.")
-                end
-            local buffsDefensive = CreateSettingsCheckButton("Defensives", tab, path.."buffs.showDefensives", function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL()end)
+                AddTooltip(buffsDefault,
+                    "Show/hide all buffs per default, except if they are in/excluded by another setting.\n\nRecommended: Hiding all per default, while showing defensives and whitelisted auras.")
+            else
+                AddTooltip(buffsDefault,
+                    "Show/hide all buffs per default, except if they are in/excluded by another setting.")
+            end
+            local buffsDefensive = CreateSettingsCheckButton("Defensives", tab, path .. "buffs.showDefensives",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
             AddTooltip(buffsDefensive, "Show/hide buffs categorized as Defensives")
 
-            local buffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, path.."buffs.showCastByPlayer", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
+            local buffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, path .. "buffs.showCastByPlayer",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
             AddTooltip(buffsPlayer, "Show/hide buffs that have been applied by the Player")
 
-            local buffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab, path.."buffs.showInfiniteDuration", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
+            local buffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab, path ..
+                "buffs.showInfiniteDuration",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
             AddTooltip(buffsInfinite, "Show/hide buffs with no expiration time")
 
-            local buffsLong = CreateSettingsCheckButton("Long Duration", tab, path.."buffs.showLongDuration", function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL()end)
+            local buffsLong = CreateSettingsCheckButton("Long Duration", tab, path .. "buffs.showLongDuration",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
             AddTooltip(buffsLong, "Show/hide buffs with a base duration longer than 60 seconds")
 
             buffVisibility:Add(buffsDefault, buffsDefensive, buffsPlayer, buffsInfinite, buffsLong)
 
-            local debuffVisibility = CreateConfigControl(tab, cap.." Debuff Visibility", nil, unit)
+            local debuffVisibility = CreateConfigControl(tab, cap .. " Debuff Visibility", nil, unit)
             debuffVisibility:ChainToControl(buffVisibility)
 
-            local debuffsDefault = CreateSettingsCheckButton("Default", tab, path.."debuffs.showDefault", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
-            AddTooltip(debuffsDefault, "Show/hide all debuffs per default, except if they are in/excluded by another setting.\n\nRecommended: Showing all per default, while hiding infinite duration auras")
+            local debuffsDefault = CreateSettingsCheckButton("Default", tab, path .. "debuffs.showDefault",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+            AddTooltip(debuffsDefault,
+                "Show/hide all debuffs per default, except if they are in/excluded by another setting.\n\nRecommended: Showing all per default, while hiding infinite duration auras")
 
-            local debuffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, path.."debuffs.showCastByPlayer", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
+            local debuffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, path .. "debuffs.showCastByPlayer",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
             AddTooltip(debuffsPlayer, "Show/hide debuffs that have been applied by the Player")
 
-            local debuffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab, path.."debuffs.showInfiniteDuration", function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL()end)
+            local debuffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab,
+                path .. "debuffs.showInfiniteDuration",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
             AddTooltip(debuffsInfinite, "Show/hide debuffs with no expiration time")
 
-            local debuffsLong = CreateSettingsCheckButton("Long Duration", tab, path.."debuffs.showLongDuration", function() srslylawlUI.Party_HandleAuras_ALL()srslylawlUI.Main_HandleAuras_ALL() end)
+            local debuffsLong = CreateSettingsCheckButton("Long Duration", tab, path .. "debuffs.showLongDuration",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
             AddTooltip(debuffsLong, "Show/hide buffs with a base duration longer than 180 seconds")
 
             debuffVisibility:Add(debuffsDefault, debuffsPlayer, debuffsInfinite, debuffsLong)
@@ -869,15 +926,17 @@ function srslylawlUI.CreateConfigWindow()
         local focus = CreateSettingsCheckButton("Focus", tab, "blizzard.focus.enabled", nil)
 
         local boss = CreateSettingsCheckButton("Boss Frames", tab, "blizzard.boss.enabled", nil)
-        AddTooltip(boss, "Boss Frames are special frames that exist only in boss encounters, such as in raids or some dungeons and scenarios.")
-        
+        AddTooltip(boss,
+            "Boss Frames are special frames that exist only in boss encounters, such as in raids or some dungeons and scenarios.")
+
         showBlizzardFrames:Add(player, target, party, auras, castbar, focus, boss)
 
         local other = CreateConfigControl(tab, "Other")
         other:AppendToControl(showBlizzardFrames)
 
         local enableAnnouncements = CreateSettingsCheckButton("Addon Announcements", tab, "announcements", nil)
-        AddTooltip(enableAnnouncements, "Enable/Disable the addon printing anything to the chat.\nExamples include: Successful save/load, learning a new defensive/absorb spell, errors, etc.")
+        AddTooltip(enableAnnouncements,
+            "Enable/Disable the addon printing anything to the chat.\nExamples include: Successful save/load, learning a new defensive/absorb spell, errors, etc.")
         other:Add(enableAnnouncements)
 
         local h = 0
@@ -887,53 +946,78 @@ function srslylawlUI.CreateConfigWindow()
 
         tab:SetHeight(h)
     end
+
     local function FillPartyFramesTab(tab)
         local path = "party."
         --party health bars
         local healthControl = CreateConfigControl(tab, "Party Health", nil, "party")
         healthControl:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, -15)
 
-        local hpWidth = CreateCustomSlider("Maximum Width", tab, 1, 3000, path.."hp.width", 1, 0, srslylawlUI.UpdateEverything)
-        local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path.."hp.height", 1, 0, srslylawlUI.UpdateEverything)
-        local minWidthPercent = CreateCustomSlider("Minimum Width %", tab, .01, 1, path.."hp.minWidthPercent", .01, 2, srslylawlUI.UpdateEverything)
+        local hpWidth = CreateCustomSlider("Maximum Width", tab, 1, 3000, path .. "hp.width", 1, 0,
+            srslylawlUI.UpdateEverything)
+        local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path .. "hp.height", 1, 0,
+            srslylawlUI.UpdateEverything)
+        local minWidthPercent = CreateCustomSlider("Minimum Width %", tab, .01, 1, path .. "hp.minWidthPercent", .01, 2,
+            srslylawlUI.UpdateEverything)
         AddTooltip(minWidthPercent, "Minimum percent of Max Width a bar can be scaled to. Default: 0.55")
-        local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, srslylawlUI.UpdateEverything)
-        local absorbHeight = CreateCustomSlider("Absorb Frame Height %", tab, 0.1, 1, path.."hp.absorbHeightPercent", 0.05, 2, srslylawlUI.Party_HandleAuras_ALL)
-        local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "party.hp.reversed", srslylawlUI.Frame_UpdatePartyHealthBarAlignment)
+        local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path .. "hp.fontSize", 0.5, 1,
+            srslylawlUI.UpdateEverything)
+        local absorbHeight = CreateCustomSlider("Absorb Frame Height %", tab, 0.1, 1, path .. "hp.absorbHeightPercent",
+            0.05, 2, srslylawlUI.Party_HandleAuras_ALL)
+        local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, "party.hp.reversed",
+            srslylawlUI.Frame_UpdatePartyHealthBarAlignment)
         local partyAnchors = CreateAnchoringPanel(tab, "party.header.position", srslylawlUI_PartyHeader)
         healthControl:Add(hpWidth, hpHeight, minWidthPercent, fontSize, reverseFill, absorbHeight)
         healthControl:Add(unpack(partyAnchors))
 
         --raidIcon
         local raidIconControl = CreateConfigControl(tab, "Party Raid Icon", nil, "party")
-        local raidEnable = CreateSettingsCheckButton("Enable", tab, path.."raidIcon.enabled", function(self) for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame.unit.RaidIcon:SetEnabled(self:GetChecked()) end end)
-        local raidAnchor = CreateCustomDropDown("Point", 100, tab, path.."raidIcon.position.1", srslylawlUI.anchorTable, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local raidX = CreateCustomSlider("X Offset", tab, -2000, 2000, path.."raidIcon.position.2", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local raidY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path.."raidIcon.position.3", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local raidSize = CreateCustomSlider("Size", tab, 1, 100, path.."raidIcon.size", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local raidEnable = CreateSettingsCheckButton("Enable", tab, path .. "raidIcon.enabled",
+            function(self) for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame.unit.RaidIcon:SetEnabled(self:
+                        GetChecked())
+                end
+            end)
+        local raidAnchor = CreateCustomDropDown("Point", 100, tab, path .. "raidIcon.position.1", srslylawlUI.anchorTable
+            , srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local raidX = CreateCustomSlider("X Offset", tab, -2000, 2000, path .. "raidIcon.position.2", 1, 0,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local raidY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path .. "raidIcon.position.3", 1, 0,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local raidSize = CreateCustomSlider("Size", tab, 1, 100, path .. "raidIcon.size", 1, 0,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
         raidIconControl:Add(raidEnable, raidSize, raidAnchor, raidX, raidY)
         raidIconControl:ChainToControl(healthControl)
 
         --party powerbars
         local powerBars = CreateConfigControl(tab, "Party Power", nil, "party")
         powerBars:ChainToControl(raidIconControl)
-        local powerBarWidth = CreateCustomSlider("Width", tab, 1, 100, path.."power.width", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local showText = CreateSettingsCheckButton("Show Text", tab, "party.power.text", function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.Frame_ResetUnitButton(srslylawlUI.partyUnits[unit].unitFrame.unit, unit) end end)
+        local powerBarWidth = CreateCustomSlider("Width", tab, 1, 100, path .. "power.width", 1, 0,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local showText = CreateSettingsCheckButton("Show Text", tab, "party.power.text",
+            function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.Frame_ResetUnitButton(srslylawlUI
+                        .partyUnits[unit].unitFrame.unit, unit)
+                end
+            end)
         powerBars:Add(powerBarWidth, showText)
 
         --party petbars
         local petBars = CreateConfigControl(tab, "Party Pet", nil, "party")
         petBars:ChainToControl(powerBars, "RIGHT")
-        local petBarWidth = CreateCustomSlider("Width", tab, 1, 100, path.."pet.width", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local petBarWidth = CreateCustomSlider("Width", tab, 1, 100, path .. "pet.width", 1, 0,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
         petBars:Add(petBarWidth)
 
         --cc bar
         local ccBars = CreateConfigControl(tab, "Party Crowd Control", nil, "party")
         ccBars:ChainToControl(powerBars)
-        local ccBarEnabled = CreateSettingsCheckButton("Enabled", tab, path.."ccbar.enabled", srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local ccBarWidth = CreateCustomSlider("Width", tab, 1, 1000, path.."ccbar.width", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local ccBarHeight = CreateCustomSlider("Height %", tab, .01, 1, path.."ccbar.heightPercent", .01, 2, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."ccbar.reversed", srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local ccBarEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "ccbar.enabled",
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local ccBarWidth = CreateCustomSlider("Width", tab, 1, 1000, path .. "ccbar.width", 1, 0,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local ccBarHeight = CreateCustomSlider("Height %", tab, .01, 1, path .. "ccbar.heightPercent", .01, 2,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path .. "ccbar.reversed",
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
 
         AddTooltip(ccBarHeight, "Percentage of HP Bar height")
         ccBars:Add(ccBarEnabled, ccBarWidth, ccBarHeight, ccBarReverseFill)
@@ -944,15 +1028,17 @@ function srslylawlUI.CreateConfigWindow()
                 srslylawlUI.SetAuraPointsAll(unit, "partyUnits")
             end
         end
-        for i=1, 2 do
+
+        for i = 1, 2 do
             local path = "party."
-            local anchorTable = i == 1 and {"Frame", "Debuffs"} or {"Frame", "Buffs"}
+            local anchorTable = i == 1 and { "Frame", "Debuffs" } or { "Frame", "Buffs" }
             local aType = i == 1 and "buff" or "debuff"
             local typeCap = i == 1 and "Buff" or "Debuff"
-            local auraControl = CreateConfigControl(tab, "Party "..typeCap.." Frames", nil, "party")
+            local auraControl = CreateConfigControl(tab, "Party " .. typeCap .. " Frames", nil, "party")
             auraControl:SetPoint("TOPLEFT", anchor.bounds, "BOTTOMLEFT", 0, 0)
-            local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path..aType.."s.anchoredTo", anchorTable)
-            local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path..aType.."s.anchor", srslylawlUI.auraSortMethodTable, function() ResetAuraAll() end)
+            local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path .. aType .. "s.anchoredTo", anchorTable)
+            local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path .. aType .. "s.anchor",
+                srslylawlUI.auraSortMethodTable, function() ResetAuraAll() end)
             --disabling the auraanchor dropdown, should we anchor to other auratype
             local onChanged = function(self, newValue)
                 ResetAuraAll()
@@ -963,41 +1049,54 @@ function srslylawlUI.CreateConfigWindow()
                 end
             end
             frameAnchor.onChangeFunc = onChanged
-            if srslylawlUI.GetSetting(path..aType.."s.anchoredTo") ~= "Frame" then
+            if srslylawlUI.GetSetting(path .. aType .. "s.anchoredTo") ~= "Frame" then
                 UIDropDownMenu_DisableDropDown(auraAnchor)
             end
-            local maxAuras = CreateCustomSlider("Max "..typeCap.."s", tab, 0, 40, path..aType.."s.max"..typeCap.."s", 1, 0, function()
+            local maxAuras = CreateCustomSlider("Max " .. typeCap .. "s", tab, 0, 40, path ..
+                aType .. "s.max" .. typeCap .. "s", 1, 0, function()
                 for _, unit in pairs(srslylawlUI.partyUnitsTable) do
                     srslylawlUI.CreateBuffFrames(srslylawlUI.partyUnits[unit].unitFrame, unit)
                 end
                 ResetAuraAll()
                 srslylawlUI.Party_HandleAuras_ALL()
             end)
-            local auraSize = CreateCustomSlider("Size", tab, 0, 200, path..aType.."s.size", 1, 0, function()
+            local auraSize = CreateCustomSlider("Size", tab, 0, 200, path .. aType .. "s.size", 1, 0, function()
                 srslylawlUI.Party_HandleAuras_ALL()
                 ResetAuraAll()
             end)
-            local xOffset = CreateCustomSlider("X Offset", tab, -500, 500, path..aType.."s.xOffset", 1, 0, ResetAuraAll)
-            local yOffset = CreateCustomSlider("Y Offset", tab, -500, 500, path..aType.."s.yOffset", 1, 0, ResetAuraAll)
+            local xOffset = CreateCustomSlider("X Offset", tab, -500, 500, path .. aType .. "s.xOffset", 1, 0,
+                ResetAuraAll)
+            local yOffset = CreateCustomSlider("Y Offset", tab, -500, 500, path .. aType .. "s.yOffset", 1, 0,
+                ResetAuraAll)
             auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, maxAuras)
             anchor = auraControl
         end
 
         --portrait
         local portraitControl = CreateConfigControl(tab, "Party Portrait", nil, "party")
-        local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path.."portrait.enabled", function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
-        local portraitPosition = CreateCustomDropDown("Position", 250, tab, path.."portrait.position", {"LEFT", "RIGHT"}, function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
-        local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, path.."portrait.anchor", {"Frame", "Powerbar"}, function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
+        local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "portrait.enabled",
+            function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
+        local portraitPosition = CreateCustomDropDown("Position", 250, tab, path .. "portrait.position",
+            { "LEFT", "RIGHT" },
+            function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
+        local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, path .. "portrait.anchor",
+            { "Frame", "Powerbar" }
+            , function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
         portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
         portraitControl:ChainToControl(anchor)
 
         --combaticon
         local combatIconControl = CreateConfigControl(tab, "Party Combat Icon", nil, "party")
-        local combatIconEnabled = CreateSettingsCheckButton("Enabled", tab, path.."combatRestIcon.enabled", srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local combatIconSize = CreateCustomSlider("Size", tab, 1, 200, path.."combatRestIcon.size", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local combatIconAnchor = CreateCustomDropDown("Point", 100, tab, path.."combatRestIcon.position.1", srslylawlUI.anchorTable, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local combatIconX = CreateCustomSlider("X Offset", tab, -2000, 2000, path.."combatRestIcon.position.2", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        local combatIconY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path.."combatRestIcon.position.3", 1, 0, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local combatIconEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "combatRestIcon.enabled",
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local combatIconSize = CreateCustomSlider("Size", tab, 1, 200, path .. "combatRestIcon.size", 1, 0,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local combatIconAnchor = CreateCustomDropDown("Point", 100, tab, path .. "combatRestIcon.position.1",
+            srslylawlUI.anchorTable, srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local combatIconX = CreateCustomSlider("X Offset", tab, -2000, 2000, path .. "combatRestIcon.position.2", 1, 0,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
+        local combatIconY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path .. "combatRestIcon.position.3", 1, 0,
+            srslylawlUI.Frame_Party_ResetDimensions_ALL)
         combatIconControl:Add(combatIconEnabled, combatIconSize, combatIconAnchor, combatIconX, combatIconY)
         combatIconControl:ChainToControl(portraitControl)
 
@@ -1008,15 +1107,16 @@ function srslylawlUI.CreateConfigWindow()
 
         tab:SetHeight(h)
     end
+
     local function FillPlayerFramesTab(tab)
         local cFrame = srslylawlUI_ConfigFrame
 
         local anchor = tab
         for _, unit in pairs(srslylawlUI.mainUnitsTable) do
-            local unitName = unit:sub(1,1):upper()..unit:sub(2)
-            local playerFrameControl = CreateConfigControl(tab, unitName.." Frame", nil, unit)
-            playerFrameControl.title:SetFont("Fonts\\FRIZQT__.TTF", 25)
-            local path = "player."..unit.."Frame."
+            local unitName = unit:sub(1, 1):upper() .. unit:sub(2)
+            local playerFrameControl = CreateConfigControl(tab, unitName .. " Frame", nil, unit)
+            playerFrameControl.title:SetFont("Fonts\\FRIZQT__.TTF", 25, "")
+            local path = "player." .. unit .. "Frame."
             local unitFrame = srslylawlUI.mainUnits[unit].unitFrame
             if unit == "player" then
                 playerFrameControl:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -15)
@@ -1027,7 +1127,7 @@ function srslylawlUI.CreateConfigWindow()
                 end
             end
 
-            local enable = CreateSettingsCheckButton("Enable", tab, path.."enabled", function(self)
+            local enable = CreateSettingsCheckButton("Enable", tab, path .. "enabled", function(self)
                 local checked = self:GetChecked()
                 if checked then
                     RegisterUnitWatch(unitFrame)
@@ -1040,49 +1140,58 @@ function srslylawlUI.CreateConfigWindow()
                 end
 
             end)
-            local hpWidth = CreateCustomSlider("Width", tab, 1, 3000, path.."hp.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
-            local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path.."hp.height", 1, 0, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
-            local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path.."hp.fontSize", 0.5, 1, function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
-            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."hp.reversed", srslylawlUI.Frame_UpdateMainHealthBarAlignment)
+            local hpWidth = CreateCustomSlider("Width", tab, 1, 3000, path .. "hp.width", 1, 0,
+                function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
+            local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path .. "hp.height", 1, 0,
+                function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
+            local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path .. "hp.fontSize", 0.5, 1,
+                function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
+            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path .. "hp.reversed",
+                srslylawlUI.Frame_UpdateMainHealthBarAlignment)
 
             if unit == "targettarget" then
                 playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill)
             else
-                local absorbHeight = CreateCustomSlider("Absorb Frame Height %", tab, 0.1, 1, path.."hp.absorbHeightPercent", 0.05, 2, srslylawlUI.Main_HandleAuras_ALL)
+                local absorbHeight = CreateCustomSlider("Absorb Frame Height %", tab, 0.1, 1,
+                    path .. "hp.absorbHeightPercent", 0.05, 2, srslylawlUI.Main_HandleAuras_ALL)
                 playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill, absorbHeight)
             end
 
-            local playerPosControl = CreateConfigControl(tab, unitName.." Frame Position", nil, unit)
+            local playerPosControl = CreateConfigControl(tab, unitName .. " Frame Position", nil, unit)
             playerPosControl:ChainToControl(playerFrameControl)
             local aTable
             if unit == "player" then
-                aTable = {"Screen", "TargetFrame"}
+                aTable = { "Screen", "TargetFrame" }
             elseif unit == "target" then
-                aTable = {"Screen", "PlayerFrame"}
+                aTable = { "Screen", "PlayerFrame" }
             elseif unit == "focus" then
-                aTable = {"Screen", "PlayerFrame", "TargetFrame"}
+                aTable = { "Screen", "PlayerFrame", "TargetFrame" }
             end
 
-            local anchorElements = CreateAnchoringPanel(tab, path.."position", unitFrame.unit, aTable)
+            local anchorElements = CreateAnchoringPanel(tab, path .. "position", unitFrame.unit, aTable)
             playerPosControl:Add(unpack(anchorElements))
 
-            local raidIconControl = CreateConfigControl(tab, unitName.." Raid Icon", nil, unit)
-            local raidEnable = CreateSettingsCheckButton("Enable", tab, path.."raidIcon.enabled", function(self) unitFrame.unit.RaidIcon:SetEnabled(self:GetChecked()) end)
-            local raidPos = CreateAnchoringPanel(tab, path.."raidIcon.position", unitFrame.unit.RaidIcon, nil, true)
-            local raidSize = CreateCustomSlider("Size", tab, 1, 100, path.."raidIcon.size", 1, 0, function() unitFrame.unit.RaidIcon:Resize() end)
+            local raidIconControl = CreateConfigControl(tab, unitName .. " Raid Icon", nil, unit)
+            local raidEnable = CreateSettingsCheckButton("Enable", tab, path .. "raidIcon.enabled",
+                function(self) unitFrame.unit.RaidIcon:SetEnabled(self:GetChecked()) end)
+            local raidPos = CreateAnchoringPanel(tab, path .. "raidIcon.position", unitFrame.unit.RaidIcon, nil, true)
+            local raidSize = CreateCustomSlider("Size", tab, 1, 100, path .. "raidIcon.size", 1, 0,
+                function() unitFrame.unit.RaidIcon:Resize() end)
             raidIconControl:Add(raidEnable, raidSize, unpack(raidPos))
             raidIconControl:ChainToControl(playerPosControl)
             anchor = raidIconControl
 
             if unit ~= "targettarget" then
-                for i=1, 2 do
-                    local anchorTable = i == 1 and {"Frame", "Debuffs"} or {"Frame", "Buffs"}
+                for i = 1, 2 do
+                    local anchorTable = i == 1 and { "Frame", "Debuffs" } or { "Frame", "Buffs" }
                     local aType = i == 1 and "buff" or "debuff"
                     local typeCap = i == 1 and "Buff" or "Debuff"
-                    local auraControl = CreateConfigControl(tab, unitName.." "..typeCap.." Frames", nil, unit)
+                    local auraControl = CreateConfigControl(tab, unitName .. " " .. typeCap .. " Frames", nil, unit)
                     auraControl:ChainToControl(anchor)
-                    local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path..aType.."s.anchoredTo", anchorTable)
-                    local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path..aType.."s.anchor", srslylawlUI.auraSortMethodTable, function() srslylawlUI.SetAuraPointsAll(unit, "mainUnits") end)
+                    local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path .. aType .. "s.anchoredTo",
+                        anchorTable)
+                    local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path .. aType .. "s.anchor",
+                        srslylawlUI.auraSortMethodTable, function() srslylawlUI.SetAuraPointsAll(unit, "mainUnits") end)
 
                     --disabling the auraanchor dropdown, should we anchor to other auratype
                     local onChanged = function(self, newValue)
@@ -1094,18 +1203,22 @@ function srslylawlUI.CreateConfigWindow()
                         end
                     end
                     frameAnchor.onChangeFunc = onChanged
-                    if srslylawlUI.GetSetting(path..aType.."s.anchoredTo") ~= "Frame" then
+                    if srslylawlUI.GetSetting(path .. aType .. "s.anchoredTo") ~= "Frame" then
                         UIDropDownMenu_DisableDropDown(auraAnchor)
                     end
-                    local maxAuras = CreateCustomSlider("Max "..typeCap.."s", tab, 0, 40, path..aType.."s.max"..typeCap.."s", 1, 0, function()
+                    local maxAuras = CreateCustomSlider("Max " .. typeCap .. "s", tab, 0, 40,
+                        path .. aType .. "s.max" .. typeCap .. "s", 1, 0, function()
                         srslylawlUI.CreateBuffFrames(unitFrame, unit)
                         srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                        srslylawlUI.HandleAuras(unitFrame, unit) end)
-                    local auraSize = CreateCustomSlider("Size", tab, 0, 200, path..aType.."s.size", 1, 0, function()
-                        srslylawlUI.HandleAuras(unitFrame, unit) 
-                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        srslylawlUI.HandleAuras(unitFrame, unit)
                     end)
-                    local scaledAuraSize = CreateCustomSlider("Scaled Size", tab, 0, 200, path..aType.."s.scaledSize", 1, 0, function()
+                    local auraSize = CreateCustomSlider("Size", tab, 0, 200, path .. aType .. "s.size", 1, 0,
+                        function()
+                            srslylawlUI.HandleAuras(unitFrame, unit)
+                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        end)
+                    local scaledAuraSize = CreateCustomSlider("Scaled Size", tab, 0, 200, path .. aType .. "s.scaledSize"
+                        , 1, 0, function()
                         srslylawlUI.HandleAuras(unitFrame, unit)
                         srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
                     end)
@@ -1122,31 +1235,39 @@ function srslylawlUI.CreateConfigWindow()
                             AddTooltip(scaledAuraSize, "Extra size of debuffs applied by yourself")
                         end
                     end
-                    local xOffset = CreateCustomSlider("X Offset", tab, -500, 500, path..aType.."s.xOffset", 1, 0, function()
-                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                    end)
-                    local yOffset = CreateCustomSlider("Y Offset", tab, -500, 500, path..aType.."s.yOffset", 1, 0, function()
-                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                    end)
+                    local xOffset = CreateCustomSlider("X Offset", tab, -500, 500, path .. aType .. "s.xOffset", 1, 0,
+                        function()
+                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        end)
+                    local yOffset = CreateCustomSlider("Y Offset", tab, -500, 500, path .. aType .. "s.yOffset", 1, 0,
+                        function()
+                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        end)
                     auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, scaledAuraSize, maxAuras)
                     anchor = auraControl
                 end
 
                 --combaticon
-                local combatIconControl = CreateConfigControl(tab, unitName.." Combat Icon", nil, unit)
-                local combatIconEnabled = CreateSettingsCheckButton("Enabled", tab, path.."combatRestIcon.enabled", function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
-                local combatIconSize = CreateCustomSlider("Size", tab, 1, 200, path.."combatRestIcon.size", 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
-                local combatIconAnchor = CreateCustomDropDown("Point", 100, tab, path.."combatRestIcon.position.1", srslylawlUI.anchorTable, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
-                local combatIconX = CreateCustomSlider("X Offset", tab, -2000, 2000, path.."combatRestIcon.position.2", 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
-                local combatIconY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path.."combatRestIcon.position.3", 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconControl = CreateConfigControl(tab, unitName .. " Combat Icon", nil, unit)
+                local combatIconEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "combatRestIcon.enabled",
+                    function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconSize = CreateCustomSlider("Size", tab, 1, 200, path .. "combatRestIcon.size", 1, 0,
+                    function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconAnchor = CreateCustomDropDown("Point", 100, tab, path .. "combatRestIcon.position.1",
+                    srslylawlUI.anchorTable, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconX = CreateCustomSlider("X Offset", tab, -2000, 2000, path .. "combatRestIcon.position.2"
+                    , 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path .. "combatRestIcon.position.3"
+                    , 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
                 combatIconControl:Add(combatIconEnabled, combatIconSize, combatIconAnchor, combatIconX, combatIconY)
                 combatIconControl:ChainToControl(anchor)
                 anchor = combatIconControl
             end
 
             if unit == "player" then
-                local petControl = CreateConfigControl(tab, unitName.." Pet Frame", nil, unit)
-                local petWidth = CreateCustomSlider("Width", tab, 1, 200, path.."pet.width", 1, 0, function() srslylawlUI.Frame_ResetDimensions_Pet(unitFrame) end)
+                local petControl = CreateConfigControl(tab, unitName .. " Pet Frame", nil, unit)
+                local petWidth = CreateCustomSlider("Width", tab, 1, 200, path .. "pet.width", 1, 0,
+                    function() srslylawlUI.Frame_ResetDimensions_Pet(unitFrame) end)
                 petControl:Add(petWidth)
                 petControl:ChainToControl(anchor)
                 anchor = petControl
@@ -1159,7 +1280,7 @@ function srslylawlUI.CreateConfigWindow()
                     currentStance = currentStance or 0
                     local barTable = srslylawlUI.mainUnits.player.unitFrame.BarHandler.bars
                     local newTable = {}
-                    for i=1, #barTable do
+                    for i = 1, #barTable do
                         table.insert(newTable, barTable[i])
                     end
                     cFrame.playerPowerBars = newTable
@@ -1171,7 +1292,7 @@ function srslylawlUI.CreateConfigWindow()
                     end
                     local cAnchor = petControl
                     local exists
-                    for i=1, #newTable do
+                    for i = 1, #newTable do
                         exists = false
                         local name = newTable[i].bar.name
                         for _, v in ipairs(cFrame.playerPowerBarControls) do
@@ -1180,35 +1301,42 @@ function srslylawlUI.CreateConfigWindow()
                                 break
                             end
                         end
-                        local p = "player.playerFrame.power.overrides."..specID.."."..name
+                        local p = "player.playerFrame.power.overrides." .. specID .. "." .. name
                         if isDruid then
                             local currentStance = GetShapeshiftFormID() or 0
-                            p = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..name
+                            p = "player.playerFrame.power.overrides." .. specID .. "." .. currentStance .. "." .. name
                         end
                         if name == "CastBar" then
                             p = "player.playerFrame.cast"
                         end
                         if not exists then
-                            local barControl = CreateConfigControl(tab, "Player "..name, nil, unit)
-                            local barEnabled = CreateSettingsCheckButton("Disable", tab, p..".disabled", function()
-                            unitFrame:ReRegisterAll()
+                            local barControl = CreateConfigControl(tab, "Player " .. name, nil, unit)
+                            local barEnabled = CreateSettingsCheckButton("Disable", tab, p .. ".disabled", function()
+                                unitFrame:ReRegisterAll()
                             end, true)
-                            local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height", newTable[i].height, function()
-                            unitFrame:ReRegisterAll()
+                            local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height",
+                                newTable[i].height, function()
+                                unitFrame:ReRegisterAll()
                             end)
-                            local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority", newTable[i].priority, function()
-                            unitFrame:ReRegisterAll()
+                            local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority",
+                                newTable[i].priority, function()
+                                unitFrame:ReRegisterAll()
                             end)
-                            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, p..".reversed", function() unitFrame:ReRegisterAll() end, true)
+                            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, p .. ".reversed"
+                                , function() unitFrame:ReRegisterAll() end, true)
                             if name ~= "CastBar" then
-                                local barHide = CreateSettingsCheckButton("Show when inactive", tab, p..".showWhenInactive", function() unitFrame:ReRegisterAll() end, true)
+                                local barHide = CreateSettingsCheckButton("Show when inactive", tab,
+                                    p .. ".showWhenInactive", function() unitFrame:ReRegisterAll() end, true)
                                 barControl:Add(barEnabled, barHeight, barPriority, reverseFill, barHide)
-                                AddTooltip(barHide, "Display bar even when it's idle, such as having full mana/energy, or combopoints/rage being empty")
+                                AddTooltip(barHide,
+                                    "Display bar even when it's idle, such as having full mana/energy, or combopoints/rage being empty")
                             else
                                 barControl:Add(barEnabled, barHeight, barPriority, reverseFill)
                             end
                             barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
-                            table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls+1, {name=newTable[i].bar.name, control=barControl, enabled=barEnabled, height=barHeight, prio=barPriority, spec = specID, stance = currentStance})
+                            table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls + 1,
+                                { name = newTable[i].bar.name, control = barControl, enabled = barEnabled,
+                                    height = barHeight, prio = barPriority, spec = specID, stance = currentStance })
                             cAnchor = barControl
                             anchor = barControl
                             cFrame.lastPlayerPowerBarAnchor = barControl
@@ -1218,15 +1346,19 @@ function srslylawlUI.CreateConfigWindow()
                             anchor = exists.control
                             exists.control:Show()
                             cFrame.lastPlayerPowerBarAnchor = exists.control
-                            exists.enabled:SetChecked(srslylawlUI.GetSetting(p..".disabled", true) or false)
-                            exists.height:SetValueClean(srslylawlUI.GetSetting(p..".height", true) or newTable[i].height)
-                            exists.prio:SetValueClean(srslylawlUI.GetSetting(p..".priority", true) or newTable[i].priority)
+                            exists.enabled:SetChecked(srslylawlUI.GetSetting(p .. ".disabled", true) or false)
+                            exists.height:SetValueClean(srslylawlUI.GetSetting(p .. ".height", true) or
+                                newTable[i].height)
+                            exists.prio:SetValueClean(srslylawlUI.GetSetting(p .. ".priority", true) or
+                                newTable[i].priority)
                         end
                         if i == 1 and not cFrame.infoBox then
-                            cFrame.infoBox = CreateInfoBox(tab, "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings.", 280)
+                            cFrame.infoBox = CreateInfoBox(tab,
+                                "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings."
+                                , 280)
                             cFrame.infoBox.bounds:SetPoint("TOPLEFT", petControl, "TOPRIGHT", 0, 8)
                         elseif i == 2 and isDruid then
-                        --[[
+                            --[[
                             humanoid form - nil
                             Aquatic Form - 4
                             Bear Form - 5
@@ -1237,19 +1369,23 @@ function srslylawlUI.CreateConfigWindow()
                             Travel Form - 3
                             Tree of Life - 2
                         ]]
-                        local form = currentStance == 0 and "Humanoid" or currentStance == 1 and "Cat Form" or currentStance == 5 and "Bear Form" or currentStance == 31 and "Moonkin Form" or "Travel Form"
-                        if not cFrame.shapeShiftBox then
-                            cFrame.shapeShiftBox = CreateInfoBox(tab, "Settings for current shapeshift form: "..form, 150)
-                        else
-                            cFrame.shapeShiftBox:SetText("Settings for current shapeshift form: "..form)
-                        end
-                        cFrame.shapeShiftBox.bounds:SetPoint("TOPLEFT", cFrame.infoBox.bounds, "TOPRIGHT", 0, 0)
+                            local form = currentStance == 0 and "Humanoid" or currentStance == 1 and "Cat Form" or
+                                currentStance == 5 and "Bear Form" or currentStance == 31 and "Moonkin Form" or
+                                "Travel Form"
+                            if not cFrame.shapeShiftBox then
+                                cFrame.shapeShiftBox = CreateInfoBox(tab, "Settings for current shapeshift form: " ..
+                                    form, 150)
+                            else
+                                cFrame.shapeShiftBox:SetText("Settings for current shapeshift form: " .. form)
+                            end
+                            cFrame.shapeShiftBox.bounds:SetPoint("TOPLEFT", cFrame.infoBox.bounds, "TOPRIGHT", 0, 0)
                         end
                     end
                     if cFrame.nextControlAfterPlayerPower then
                         cFrame.nextControlAfterPlayerPower:AppendToControl(cFrame.lastPlayerPowerBarAnchor)
                     end
                 end
+
                 tab:SetScript("OnShow", SetPlayerPowerBarOptions)
                 tab:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
                 tab:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "player")
@@ -1257,55 +1393,70 @@ function srslylawlUI.CreateConfigWindow()
                 SetPlayerPowerBarOptions()
                 --should place bars again once spec/druidform changes
             else
-                local powerBarControl = CreateConfigControl(tab, unitName.." Powerbar", nil, unit)
-                local powerBarWidth = CreateCustomSlider("Width", tab, 0, 100, path.."power.width", 1, 0, function()
+                local powerBarControl = CreateConfigControl(tab, unitName .. " Powerbar", nil, unit)
+                local powerBarWidth = CreateCustomSlider("Width", tab, 0, 100, path .. "power.width", 1, 0, function()
                     srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
                 end)
-                local powerBarText = CreateSettingsCheckButton("Show Text", tab, path.."power.text", function() srslylawlUI.Frame_ResetUnitButton(unitFrame.unit, unit) end)
-                local position = CreateCustomDropDown("Position", 200, tab, path.."power.position", {"LEFT", "RIGHT"}, function()
-                        srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame) end)
+                local powerBarText = CreateSettingsCheckButton("Show Text", tab, path .. "power.text",
+                    function() srslylawlUI.Frame_ResetUnitButton(unitFrame.unit, unit) end)
+                local position = CreateCustomDropDown("Position", 200, tab, path .. "power.position", { "LEFT", "RIGHT" }
+                    , function()
+                    srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
+                end)
                 powerBarControl:Add(powerBarWidth, powerBarText, position)
                 powerBarControl:ChainToControl(anchor)
                 if unit == "targettarget" then
                     anchor = powerBarControl
                 elseif unit == "target" or unit == "focus" then
-                    local castBarControl = CreateConfigControl(tab, unitName.." CastBar", nil, unit)
-                    local castBarEnabled = CreateSettingsCheckButton("Disable", tab, path.."cast.disabled", function()
-                        unitFrame:ReRegisterAll()
-                    end, true)
-                    local castBarHeight = CreateCustomSlider("Height", tab, 0, 100, path.."cast.height", 1, 0, function()
-                        unitFrame:ReRegisterAll()
-                    end)
-                    local castBarPriority = CreateCustomSlider("Order", tab, 0, 10, path.."cast.priority", 1, 0, function()
-                        unitFrame:ReRegisterAll()
-                    end)
-                    local castReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."cast.reversed", function() unitFrame:ReRegisterAll() end, true)
+                    local castBarControl = CreateConfigControl(tab, unitName .. " CastBar", nil, unit)
+                    local castBarEnabled = CreateSettingsCheckButton("Disable", tab, path .. "cast.disabled",
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end, true)
+                    local castBarHeight = CreateCustomSlider("Height", tab, 0, 100, path .. "cast.height", 1, 0,
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                    local castBarPriority = CreateCustomSlider("Order", tab, 0, 10, path .. "cast.priority", 1, 0,
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                    local castReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab,
+                        path .. "cast.reversed", function() unitFrame:ReRegisterAll() end, true)
                     castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority, castReverseFill)
                     castBarControl:ChainToControl(powerBarControl)
-                    local ccbarControl = CreateConfigControl(tab, unitName.." CrowdControl", nil, unit)
-                    local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, path.."ccbar.disabled", function()
-                        unitFrame:ReRegisterAll()
-                    end, true)
-                    local ccbarHeight = CreateCustomSlider("Height", tab, 0, 100, path.."ccbar.height", 1, 0, function()
-                        unitFrame:ReRegisterAll()
-                    end)
-                    local ccbarPriority = CreateCustomSlider("Order", tab, 0, 10, path.."ccbar.priority", 1, 0, function()
-                        unitFrame:ReRegisterAll()
-                    end)
-                    local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path.."ccbar.reversed", function() unitFrame:ReRegisterAll() end, true)
+                    local ccbarControl = CreateConfigControl(tab, unitName .. " CrowdControl", nil, unit)
+                    local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, path .. "ccbar.disabled",
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end, true)
+                    local ccbarHeight = CreateCustomSlider("Height", tab, 0, 100, path .. "ccbar.height", 1, 0,
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                    local ccbarPriority = CreateCustomSlider("Order", tab, 0, 10, path .. "ccbar.priority", 1, 0,
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                    local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab,
+                        path .. "ccbar.reversed", function() unitFrame:ReRegisterAll() end, true)
                     ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority, ccBarReverseFill)
                     ccbarControl:ChainToControl(castBarControl)
-                    local portraitControl = CreateConfigControl(tab, unitName.." Portrait", nil, unit)
-                    local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path.."portrait.enabled", function() unitFrame:TogglePortrait() end)
-                    local portraitPosition = CreateCustomDropDown("Position", 250, tab, path.."portrait.position", {"LEFT", "RIGHT"}, function() unitFrame:TogglePortrait() end)
-                    local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, path.."portrait.anchor", {"Frame", "Powerbar"}, function() unitFrame:TogglePortrait() end)
+                    local portraitControl = CreateConfigControl(tab, unitName .. " Portrait", nil, unit)
+                    local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "portrait.enabled",
+                        function() unitFrame:TogglePortrait() end)
+                    local portraitPosition = CreateCustomDropDown("Position", 250, tab, path .. "portrait.position",
+                        { "LEFT", "RIGHT" }, function() unitFrame:TogglePortrait() end)
+                    local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, path .. "portrait.anchor",
+                        { "Frame", "Powerbar" }, function() unitFrame:TogglePortrait() end)
                     portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
                     portraitControl:ChainToControl(ccbarControl)
 
-                    local anchorT = unit == "target" and {"TargetFrame", "TargetFramePortrait"} or {"FocusFrame", "FocusFramePortrait"}
+                    local anchorT = unit == "target" and { "TargetFrame", "TargetFramePortrait" } or
+                        { "FocusFrame", "FocusFramePortrait" }
 
-                    local unitLevelControl = CreateConfigControl(tab, unitName.." Level", nil, unit)
-                    local elements = CreateAnchoringPanel(tab, path.."unitLevel.position", unitFrame.unitLevel, anchorT)
+                    local unitLevelControl = CreateConfigControl(tab, unitName .. " Level", nil, unit)
+                    local elements = CreateAnchoringPanel(tab, path .. "unitLevel.position", unitFrame.unitLevel, anchorT)
                     unitLevelControl:Add(unpack(elements))
                     unitLevelControl:ChainToControl(portraitControl)
                     anchor = unitLevelControl
@@ -1320,6 +1471,7 @@ function srslylawlUI.CreateConfigWindow()
 
         tab:SetHeight(h)
     end
+
     local function Tab_OnClick(self)
         local parent = self:GetParent()
         PanelTemplates_SetTab(parent, self:GetID())
@@ -1331,6 +1483,7 @@ function srslylawlUI.CreateConfigWindow()
             end
         end
     end
+
     local function SetTabs(frame, ...)
         local numTabs = select("#", ...)
         frame.numTabs = numTabs
@@ -1368,29 +1521,32 @@ function srslylawlUI.CreateConfigWindow()
 
         return unpack(contents)
     end
+
     local function GenerateSpellList(spellListKey, filter, auraType)
         local function startsWith(str, start)
             str = string.lower(str)
             start = string.lower(start)
             return str:sub(1, #start) == start
         end
+
         local function contains(str, pattern)
             str = string.lower(str)
             pattern = string.lower(pattern)
             return string.match(str, pattern)
         end
+
         local filter = (filter ~= nil and filter) or ""
 
         spellList = srslylawlUI_Saved[auraType][spellListKey]
 
-        
-        if spellList == nil then error("spelllist nil "..spellListKey.. " "..auraType) end
+
+        if spellList == nil then error("spelllist nil " .. spellListKey .. " " .. auraType) end
         -- sort list
         local sortedSpellList = {}
         local exactMatch = nil
         for spellId, _ in pairs(spellList) do
             local name, _, icon = GetSpellInfo(spellId)
-            local spell = {name = name, spellId = spellId, icon = icon}
+            local spell = { name = name, spellId = spellId, icon = icon }
             if tostring(spellId) == tostring(filter) then
                 exactMatch = spell
             elseif startsWith(name, filter) or startsWith(spellId, filter) or contains(name, filter) then
@@ -1406,15 +1562,16 @@ function srslylawlUI.CreateConfigWindow()
 
         srslylawlUI.sortedSpellLists[auraType][spellListKey] = sortedSpellList
     end
+
     local function OpenSpellAttributePanel(parentTab, spellId)
         --auraType "buffs" or "debuffs"
         local function SetEnableButtons(attributePanel, auraType, checked)
             if auraType == "buffs" then
-                    attributePanel.isDefensive:SetEnabled(not checked)
-                    attributePanel.DefensiveAmount:SetEnabled(not attributePanel.AutoDetectDefensiveAmount:GetChecked())
-                    attributePanel.isAbsorb:SetEnabled(not checked)
-                    attributePanel.DefensiveAmount:SetShown(attributePanel.isDefensive:GetChecked())
-                    attributePanel.AutoDetectDefensiveAmount:SetShown(attributePanel.isDefensive:GetChecked())
+                attributePanel.isDefensive:SetEnabled(not checked)
+                attributePanel.DefensiveAmount:SetEnabled(not attributePanel.AutoDetectDefensiveAmount:GetChecked())
+                attributePanel.isAbsorb:SetEnabled(not checked)
+                attributePanel.DefensiveAmount:SetShown(attributePanel.isDefensive:GetChecked())
+                attributePanel.AutoDetectDefensiveAmount:SetShown(attributePanel.isDefensive:GetChecked())
             elseif auraType == "debuffs" then
                 if (checked) then
                     UIDropDownMenu_DisableDropDown(attributePanel.CCType)
@@ -1423,16 +1580,17 @@ function srslylawlUI.CreateConfigWindow()
                 end
             end
         end
+
         local function CreatePanel(parentTab, auraType)
-            local attributePanel = CreateFrame("Frame","$parent_AttributePanel",parentTab, "BackdropTemplate")
+            local attributePanel = CreateFrame("Frame", "$parent_AttributePanel", parentTab, "BackdropTemplate")
             parentTab:GetParent().AttributePanel = attributePanel --make the attribute panel unique to the auratype buff
             attributePanel:SetBackdrop(
                 {
                     bgFile = "Interface/Tooltips/UI-Tooltip-Background",
                     edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
                     edgeSize = 10,
-                    insets = {left = 4, right = 4, top = 4, bottom = 4}
-            })
+                    insets = { left = 4, right = 4, top = 4, bottom = 4 }
+                })
             attributePanel:SetBackdropColor(1, 1, 1, .4)
 
             local function ButtonCheckFunction(auraType, category, attribute)
@@ -1474,14 +1632,15 @@ function srslylawlUI.CreateConfigWindow()
             attributePanel.SpellIcon = attributePanel.SpellIconFrame:CreateTexture("$parent_SpellIcon")
             attributePanel.SpellIcon:SetAllPoints(true)
 
-            
-            attributePanel.SpellName = attributePanel:CreateFontString("$parent_SpellName", "OVERLAY", "GameFontGreenLarge")
+
+            attributePanel.SpellName = attributePanel:CreateFontString("$parent_SpellName", "OVERLAY",
+                "GameFontGreenLarge")
             attributePanel.SpellName:SetPoint("LEFT", attributePanel.SpellIcon, "RIGHT", 15, 0)
-            
+
             attributePanel.isWhitelisted = CreateCheckButton("Whitelisted", attributePanel)
             attributePanel.isWhitelisted:SetScript("OnClick", ButtonCheckFunction(auraType, "whiteList", "isWhitelisted"))
             attributePanel.isWhitelisted:SetPoint("TOPLEFT", attributePanel.SpellIcon, "BOTTOMLEFT", 5, -5)
-            
+
             attributePanel.isBlacklisted = CreateCheckButton("Blacklisted", attributePanel)
             attributePanel.isBlacklisted:SetScript("OnClick", ButtonCheckFunction(auraType, "blackList", "isBlacklisted"))
             attributePanel.isBlacklisted:SetPoint("TOPLEFT", attributePanel.isWhitelisted, "BOTTOMLEFT")
@@ -1489,7 +1648,8 @@ function srslylawlUI.CreateConfigWindow()
             attributePanel.AutoDetect = CreateCheckButton("Auto-Detect settings", attributePanel)
             attributePanel.AutoDetect:SetPoint("TOPLEFT", attributePanel.isBlacklisted, "BOTTOMLEFT")
 
-            AddTooltip(attributePanel.AutoDetect, "Automatically detect if spell has damage reduction or absorb, based on spell tooltip.\nThis will automatically detect if, for example, a rogue has skilled his feint.\nDisable this if auto settings aren't accurate for this spell, recommended for non-english language clients")
+            AddTooltip(attributePanel.AutoDetect,
+                "Automatically detect if spell has damage reduction or absorb, based on spell tooltip.\nThis will automatically detect if, for example, a rogue has skilled his feint.\nDisable this if auto settings aren't accurate for this spell, recommended for non-english language clients")
             attributePanel.AutoDetect:SetScript("OnClick", function(self)
                 local id = self.bounds:GetParent():GetAttribute("spellId")
                 local checked = self:GetChecked()
@@ -1500,57 +1660,69 @@ function srslylawlUI.CreateConfigWindow()
             end)
 
             attributePanel.LastParsedText = CreateFrame("Frame", "$parent_LastParsedText", attributePanel)
-            attributePanel.LastParsedText.title = attributePanel.LastParsedText:CreateFontString("$parent_Title", "OVERLAY", "GameFontNormal")
+            attributePanel.LastParsedText.title = attributePanel.LastParsedText:CreateFontString("$parent_Title",
+                "OVERLAY", "GameFontNormal")
             attributePanel.LastParsedText.title:SetText("<last seen tooltip>")
-            
+
             attributePanel.LastParsedText:SetPoint("TOPRIGHT", attributePanel, "TOPRIGHT")
-            attributePanel.LastParsedText:SetPoint("BOTTOMLEFT", attributePanel, "TOPRIGHT", -attributePanel.LastParsedText.title:GetStringWidth()-5, -attributePanel.LastParsedText.title:GetStringHeight()-5)
+            attributePanel.LastParsedText:SetPoint("BOTTOMLEFT", attributePanel, "TOPRIGHT",
+                -attributePanel.LastParsedText.title:GetStringWidth() - 5,
+                -attributePanel.LastParsedText.title:GetStringHeight() - 5)
             attributePanel.LastParsedText.title:ClearAllPoints(true)
             attributePanel.LastParsedText.title:SetPoint("CENTER")
 
             if auraType == "buffs" then
                 attributePanel.isDefensive = CreateCheckButton("is Defensive effect", attributePanel)
                 attributePanel.isDefensive:SetPoint("TOPLEFT", attributePanel.AutoDetect, "BOTTOMRIGHT", -5, 0)
-                attributePanel.isDefensive:SetScript("OnClick", ButtonCheckFunction(auraType, "defensives", "isDefensive"))
-                AddTooltip(attributePanel.isDefensive, "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations")
+                attributePanel.isDefensive:SetScript("OnClick",
+                    ButtonCheckFunction(auraType, "defensives", "isDefensive"))
+                AddTooltip(attributePanel.isDefensive,
+                    "Does this buff provide % damage reduction?\nDisabling this will stop the effect from being used in effective health calculations")
 
                 attributePanel.DefensiveAmount = CreateCustomEditBox(attributePanel, "Reduction Amount")
                 attributePanel.DefensiveAmount:SetNumeric(true)
                 attributePanel.DefensiveAmount.bounds:SetPoint("LEFT", attributePanel.isDefensive.text, "RIGHT")
-                attributePanel.DefensiveAmount:SetScript("OnEnterPressed", function (self)
-                        local amount = self:GetNumber();
-                        local id = self.bounds:GetParent():GetAttribute("spellId")
-                        local old = srslylawlUI_Saved.buffs.known[id].reductionAmount
-                        srslylawlUI_Saved.buffs.known[id].reductionAmount = amount
-                        srslylawlUI_Saved.buffs.defensives[id] = srslylawlUI_Saved.buffs.known[id]
+                attributePanel.DefensiveAmount:SetScript("OnEnterPressed", function(self)
+                    local amount = self:GetNumber();
+                    local id = self.bounds:GetParent():GetAttribute("spellId")
+                    local old = srslylawlUI_Saved.buffs.known[id].reductionAmount
+                    srslylawlUI_Saved.buffs.known[id].reductionAmount = amount
+                    srslylawlUI_Saved.buffs.defensives[id] = srslylawlUI_Saved.buffs.known[id]
 
-                        srslylawlUI_Saved.buffs.known[id].reductionAmount = amount
-                        srslylawlUI_Saved.buffs.defensives[id] = srslylawlUI_Saved.buffs.known[id]
+                    srslylawlUI_Saved.buffs.known[id].reductionAmount = amount
+                    srslylawlUI_Saved.buffs.defensives[id] = srslylawlUI_Saved.buffs.known[id]
 
-                        srslylawlUI.Log("Damage reduction amount for spell " .. GetSpellInfo(id) .. " set from " .. old .. "% to " .. amount .. "%!")
-                    end)
-                AddTooltip(attributePanel.DefensiveAmount, "Set custom damage reduction effect (per stack) in % and confirm with [ENTER]-Key.\n(For example: Enter 15 for 15% damage reduction)\n\nSetting this to 100 will cause this spell to be treated as an immunity")
+                    srslylawlUI.Log("Damage reduction amount for spell " ..
+                        GetSpellInfo(id) .. " set from " .. old .. "% to " .. amount .. "%!")
+                end)
+                AddTooltip(attributePanel.DefensiveAmount,
+                    "Set custom damage reduction effect (per stack) in % and confirm with [ENTER]-Key.\n(For example: Enter 15 for 15% damage reduction)\n\nSetting this to 100 will cause this spell to be treated as an immunity")
 
                 attributePanel.AutoDetectDefensiveAmount = CreateCheckButton("Auto-Detect amount", attributePanel)
-                attributePanel.AutoDetectDefensiveAmount.bounds:SetPoint("LEFT", attributePanel.DefensiveAmount.bounds, "RIGHT")
+                attributePanel.AutoDetectDefensiveAmount.bounds:SetPoint("LEFT", attributePanel.DefensiveAmount.bounds,
+                    "RIGHT")
                 attributePanel.AutoDetectDefensiveAmount:SetScript("OnClick", function(self)
                     local id = self.bounds:GetParent():GetAttribute("spellId")
                     local checked = self:GetChecked()
                     srslylawlUI_Saved[auraType].known[id].autoDetectAmount = checked
                     SetEnableButtons(attributePanel, auraType, attributePanel.AutoDetect:GetChecked())
                 end)
-                AddTooltip(attributePanel.AutoDetectDefensiveAmount, "Auto-detecting the defensive amount is recommended for most spells, however, some spells with multiple reduction values are inconsistent to parse.\nFor such spells, such as Feint or Die by the Sword, I'd recommend setting a custom value.")
+                AddTooltip(attributePanel.AutoDetectDefensiveAmount,
+                    "Auto-detecting the defensive amount is recommended for most spells, however, some spells with multiple reduction values are inconsistent to parse.\nFor such spells, such as Feint or Die by the Sword, I'd recommend setting a custom value.")
 
 
                 attributePanel.isAbsorb = CreateCheckButton("is Absorb effect", attributePanel)
                 attributePanel.isAbsorb:SetPoint("TOPLEFT", attributePanel.isDefensive, "BOTTOMLEFT")
                 attributePanel.isAbsorb:SetScript("OnClick", ButtonCheckFunction(auraType, "absorbs", "isAbsorb"))
-                AddTooltip(attributePanel.isAbsorb, "Does this buff provide damage absorption?\nDisabling this will stop the effect from being displayed as an absorb segment.\n\nNote: will cause errors if spell is not actually an absorb effect")
+                AddTooltip(attributePanel.isAbsorb,
+                    "Does this buff provide damage absorption?\nDisabling this will stop the effect from being displayed as an absorb segment.\n\nNote: will cause errors if spell is not actually an absorb effect")
                 AddTooltip(attributePanel.isWhitelisted, "Whitelisted buffs will always be displayed as buff frames")
-                AddTooltip(attributePanel.isBlacklisted, "Blacklisted buffs won't be displayed as buffs.\n\nNote: [SHIFT]-[RIGHTCLICK]ing an active buff (or debuff) will automatically blacklist it")
+                AddTooltip(attributePanel.isBlacklisted,
+                    "Blacklisted buffs won't be displayed as buffs.\n\nNote: [SHIFT]-[RIGHTCLICK]ing an active buff (or debuff) will automatically blacklist it")
             elseif auraType == "debuffs" then
                 AddTooltip(attributePanel.isWhitelisted, "Whitelisted debuffs will always be displayed")
-                AddTooltip(attributePanel.isBlacklisted, "Blacklisted debuffs won't be displayed.\n\nNote: [SHIFT]-[RIGHTCLICK]ing an active debuff (or buff) will automatically blacklist it")
+                AddTooltip(attributePanel.isBlacklisted,
+                    "Blacklisted debuffs won't be displayed.\n\nNote: [SHIFT]-[RIGHTCLICK]ing an active debuff (or buff) will automatically blacklist it")
 
                 attributePanel.CCType = CreateFrame("FRAME", "$parent_CCType", attributePanel, "UIDropDownMenuTemplate")
                 attributePanel.CCType:SetPoint("TOPLEFT", attributePanel.AutoDetect, "BOTTOMLEFT", -15, 0)
@@ -1558,7 +1730,8 @@ function srslylawlUI.CreateConfigWindow()
                 UIDropDownMenu_SetText(attributePanel.CCType, "Crowd Control Type")
             end
 
-            attributePanel.RemoveSpell = CreateFrame("Button", "$parent_RemoveSpell", attributePanel, "UIPanelButtonTemplate")
+            attributePanel.RemoveSpell = CreateFrame("Button", "$parent_RemoveSpell", attributePanel,
+                "UIPanelButtonTemplate")
             attributePanel.RemoveSpell:SetSize(200, 25)
             attributePanel.RemoveSpell:SetPoint("BOTTOMRIGHT", attributePanel, "BOTTOMRIGHT", -5, 5)
             attributePanel.RemoveSpell:SetScript("OnClick", function(self)
@@ -1586,9 +1759,9 @@ function srslylawlUI.CreateConfigWindow()
 
         attributePanel:Show()
         attributePanel:SetParent(parentTab)
-        attributePanel:SetPoint("TOPLEFT", parentTab.borderFrame,"TOPRIGHT")
-        attributePanel:SetPoint("BOTTOMRIGHT", parentTab,"BOTTOMRIGHT", -5, 5)
-        
+        attributePanel:SetPoint("TOPLEFT", parentTab.borderFrame, "TOPRIGHT")
+        attributePanel:SetPoint("BOTTOMRIGHT", parentTab, "BOTTOMRIGHT", -5, 5)
+
         if spellId == nil then
             --only adjusting parenting (switched/opened tabs)
             if not srslylawlUI_Saved[auraType].known[attributePanel:GetAttribute("spellId")] then
@@ -1598,18 +1771,23 @@ function srslylawlUI.CreateConfigWindow()
         end
 
         attributePanel:SetAttribute("spellId", spellId)
-        
+
 
         attributePanel.SpellIcon:SetTexture(select(3, GetSpellInfo(spellId)))
         AddSpellTooltip(attributePanel.SpellIconFrame, spellId)
         attributePanel.SpellName:SetText(select(1, GetSpellInfo(spellId)))
-        attributePanel.RemoveSpell:SetText("Remove Spell from "..auraType)
-        AddTooltip(attributePanel.RemoveSpell, "WARNING: this will remove the spell from every >\""..auraType.."\"< category, including \"Encountered\".\nIf you just want to change its sub-category, use the appropriate checkbox/dropdown")
+        attributePanel.RemoveSpell:SetText("Remove Spell from " .. auraType)
+        AddTooltip(attributePanel.RemoveSpell,
+            "WARNING: this will remove the spell from every >\"" ..
+            auraType ..
+            "\"< category, including \"Encountered\".\nIf you just want to change its sub-category, use the appropriate checkbox/dropdown")
 
         local isBlacklisted = srslylawlUI_Saved[auraType].blackList[spellId] ~= nil or false
         local isWhitelisted = srslylawlUI_Saved[auraType].whiteList[spellId] ~= nil or false
-        local autoDetect = srslylawlUI_Saved[auraType].known[spellId].autoDetect == nil or srslylawlUI_Saved[auraType].known[spellId].autoDetect
-        AddTooltip(attributePanel.LastParsedText, srslylawlUI_Saved[auraType].known[spellId].text or "<Aura either has no tooltip or was never encountered>")
+        local autoDetect = srslylawlUI_Saved[auraType].known[spellId].autoDetect == nil or
+            srslylawlUI_Saved[auraType].known[spellId].autoDetect
+        AddTooltip(attributePanel.LastParsedText,
+            srslylawlUI_Saved[auraType].known[spellId].text or "<Aura either has no tooltip or was never encountered>")
         attributePanel.AutoDetect:SetChecked(autoDetect)
         attributePanel.isBlacklisted:SetChecked(isBlacklisted)
         attributePanel.isWhitelisted:SetChecked(isWhitelisted)
@@ -1617,16 +1795,20 @@ function srslylawlUI.CreateConfigWindow()
             attributePanel.isDefensive:SetChecked(srslylawlUI_Saved.buffs.known[spellId].isDefensive)
             attributePanel.isAbsorb:SetChecked(srslylawlUI_Saved.buffs.known[spellId].isAbsorb)
             attributePanel.DefensiveAmount:SetNumber(srslylawlUI_Saved[auraType].known[spellId].reductionAmount or 0)
-            attributePanel.AutoDetectDefensiveAmount:SetChecked(srslylawlUI_Saved[auraType].known[spellId].autoDetectAmount ~= false)
+            attributePanel.AutoDetectDefensiveAmount:SetChecked(srslylawlUI_Saved[auraType].known[spellId].autoDetectAmount
+                ~= false)
         elseif auraType == "debuffs" then
             --dropdown cctype
             local dropDown = attributePanel.CCType
-            UIDropDownMenu_SetText(attributePanel.CCType, "Crowd Control Type: " .. srslylawlUI.Utils_CCTableTranslation(srslylawlUI_Saved[auraType].known[spellId].crowdControlType))
-            UIDropDownMenu_Initialize(dropDown, 
+            UIDropDownMenu_SetText(attributePanel.CCType,
+                "Crowd Control Type: " ..
+                srslylawlUI.Utils_CCTableTranslation(srslylawlUI_Saved[auraType].known[spellId].crowdControlType))
+            UIDropDownMenu_Initialize(dropDown,
                 function(self)
                     local info = UIDropDownMenu_CreateInfo()
-                    local checkFunc = function(self) 
-                        return self.value == srslylawlUI.Utils_CCTableTranslation(srslylawlUI_Saved[auraType].known[spellId].crowdControlType)
+                    local checkFunc = function(self)
+                        return self.value ==
+                            srslylawlUI.Utils_CCTableTranslation(srslylawlUI_Saved[auraType].known[spellId].crowdControlType)
                     end
                     info.func = self.SetValue
                     for k, v in pairs(srslylawlUI.crowdControlTable) do
@@ -1647,7 +1829,7 @@ function srslylawlUI.CreateConfigWindow()
                 UIDropDownMenu_SetText(attributePanel.CCType, "Crowd Control Type: " .. newValue)
                 newValue = srslylawlUI.Utils_CCTableTranslation(newValue)
 
-                if old ~= "none" then 
+                if old ~= "none" then
                     srslylawlUI_Saved[auraType][old][spellId] = nil
                 end
 
@@ -1660,13 +1842,14 @@ function srslylawlUI.CreateConfigWindow()
                 parentTab:Hide()
                 parentTab:Show()
             end
-            
+
         end
         SetEnableButtons(attributePanel, auraType, autoDetect)
     end
+
     local function CreateFauxScrollFrame(parent, spellList)
         --fauxscrollframe doesnt actually create a button for every item, it just creates max amount of buttons once and then updates them during scrolling
-        local function CreateButtons(parent,count, tab)
+        local function CreateButtons(parent, count, tab)
             function Button_OnClick(self)
                 local id = self:GetID()
                 --local parent = self:GetParent()
@@ -1680,12 +1863,14 @@ function srslylawlUI.CreateConfigWindow()
                 local auraType = tabcontent:GetAttribute("auraType")
                 OpenSpellAttributePanel(tabcontent, spellId)
             end
+
             local anchorParent = parent
             local iconSize = 25
             local offset = 3
             local firstButton
-            for i=1, count do
-                button = CreateFrame("CheckButton", parent:GetName() .. "ListButton"..i, anchorParent, "UIMenuButtonStretchTemplate")
+            for i = 1, count do
+                button = CreateFrame("CheckButton", parent:GetName() .. "ListButton" .. i, anchorParent,
+                    "UIMenuButtonStretchTemplate")
                 button:SetCheckedTexture(button:GetHighlightTexture())
                 button:SetScript("OnClick", Button_OnClick)
                 button:SetID(i)
@@ -1714,10 +1899,11 @@ function srslylawlUI.CreateConfigWindow()
 
             return firstButton
         end
+
         local function Faux_OnMouseWheel(self, delta)
             local old = self.ScrollBar:GetValue()
             local valueStep = self.ScrollBar:GetValueStep()
-            local newValue = old - delta*valueStep
+            local newValue = old - delta * valueStep
             local max = (self.TotalItems - self.ButtonCount) * self.ButtonHeight
             if newValue < 0 then
                 newValue = 0
@@ -1728,6 +1914,7 @@ function srslylawlUI.CreateConfigWindow()
 
             FauxScrollFrame_OnVerticalScroll(self, newValue, self.ButtonHeight, ScrollFrame_Update)
         end
+
         local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", parent, "FauxScrollFrameTemplate")
         ScrollFrame:SetClipsChildren(true)
         ScrollFrame:SetScript("OnMouseWheel", Faux_OnMouseWheel)
@@ -1736,23 +1923,25 @@ function srslylawlUI.CreateConfigWindow()
         ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 17)
         ScrollFrame.Buttons = {}
         CreateButtons(ScrollFrame, 11, parent)
-        ScrollFrame:SetScript("OnVerticalScroll", function(self, offset) FauxScrollFrame_OnVerticalScroll(self, offset, self.ButtonHeight, ScrollFrame_Update) end)
+        ScrollFrame:SetScript("OnVerticalScroll",
+            function(self, offset) FauxScrollFrame_OnVerticalScroll(self, offset, self.ButtonHeight, ScrollFrame_Update) end)
         ScrollFrame:SetScript("OnShow", function(self)
             local tab = self:GetParent():GetParent()
             local filterText = tab.FilterFrame.EditBox:GetText()
             GenerateSpellList(spellList, filterText or "", tab:GetAttribute("auraType"))
             ScrollFrame_Update(self)
             OpenSpellAttributePanel(tab)
-         end)
+        end)
         return ScrollFrame
     end
+
     local function CreateScrollFrameWithBGAndChild(parent)
         parent.borderFrame = CreateFrame("Frame", "$parent_BorderFrame", parent, "BackdropTemplate")
         parent.borderFrame:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
             edgeSize = 10,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
         })
         parent.borderFrame:SetBackdropColor(0, 1, 1, .4)
         parent.borderFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -45)
@@ -1787,7 +1976,8 @@ function srslylawlUI.CreateConfigWindow()
         parent.FilterFrame.EditBox:SetMaxLetters(20)
         parent.FilterFrame.EditBox.bounds:SetAllPoints(true)
         --Allowing to add a new spell
-        parent.AddNewSpellFrame = CreateFrame("Button", "$parent_AddNewSpell", parent.FilterFrame, "UIPanelButtonTemplate")
+        parent.AddNewSpellFrame = CreateFrame("Button", "$parent_AddNewSpell", parent.FilterFrame,
+            "UIPanelButtonTemplate")
         parent.AddNewSpellFrame:SetSize(115, 25)
         parent.AddNewSpellFrame:SetText("Add New Spell")
         parent.AddNewSpellFrame:SetPoint("LEFT", parent.FilterFrame.EditBox, "RIGHT")
@@ -1801,6 +1991,7 @@ function srslylawlUI.CreateConfigWindow()
 
         return parent.ScrollFrame, parent.ScrollFrame.child
     end
+
     local function CreateBuffTabs(knownSpells, absorbSpells, defensives, whiteList, blackList)
         local function Menu_OnShow(parentTab, list)
             return function()
@@ -1809,18 +2000,21 @@ function srslylawlUI.CreateConfigWindow()
                 --if mainButton then mainButton:Click() end
             end
         end
+
         local function CreateFrames(tab, key)
             tab:SetScript("OnShow", Menu_OnShow(tab, key))
             tab:SetAttribute("spellList", key)
             tab:SetAttribute("auraType", "buffs")
             CreateScrollFrameWithBGAndChild(tab)
         end
+
         CreateFrames(knownSpells, "known")
         CreateFrames(absorbSpells, "absorbs")
         CreateFrames(defensives, "defensives")
         CreateFrames(whiteList, "whiteList")
         CreateFrames(blackList, "blackList")
     end
+
     local function CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots)
         local function Menu_OnShow(parentTab, list)
             return function()
@@ -1829,6 +2023,7 @@ function srslylawlUI.CreateConfigWindow()
                 --if mainButton then mainButton:Click() end
             end
         end
+
         local function CreateFrames(tab, key)
             tab:SetScript("OnShow", Menu_OnShow(tab, key))
             tab:SetAttribute("spellList", key)
@@ -1836,6 +2031,7 @@ function srslylawlUI.CreateConfigWindow()
             CreateScrollFrameWithBGAndChild(tab)
             tab.borderFrame:SetBackdropColor(1, .5, .5, .4)
         end
+
         CreateFrames(knownDebuffs, "known")
         CreateFrames(whiteList, "whiteList")
         CreateFrames(blackList, "blackList")
@@ -1845,13 +2041,14 @@ function srslylawlUI.CreateConfigWindow()
         CreateFrames(silences, "silences")
         CreateFrames(roots, "roots")
     end
+
     local function SetupScrollingTabContent(tab)
         Mixin(tab, BackdropTemplateMixin)
         tab:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        edgeSize = 10,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
+            bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+            edgeSize = 10,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
         })
         tab:SetBackdropColor(0, 0, 0, .4)
         local ScrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", tab, "UIPanelScrollFrameTemplate")
@@ -1859,25 +2056,26 @@ function srslylawlUI.CreateConfigWindow()
         ScrollFrame:SetPoint("TOPLEFT", tab, "TOPLEFT", 5, -5)
         ScrollFrame:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -5, 5)
         ScrollFrame:SetScript("OnMouseWheel", function(self, delta)
-        local newValue = self:GetVerticalScroll() - (delta * 20)
-        if newValue < 0 then
-            newValue = 0
-        elseif newValue > self:GetVerticalScrollRange() then
-            newValue = self:GetVerticalScrollRange()
-        end
-        self:SetVerticalScroll(newValue)
+            local newValue = self:GetVerticalScroll() - (delta * 20)
+            if newValue < 0 then
+                newValue = 0
+            elseif newValue > self:GetVerticalScrollRange() then
+                newValue = self:GetVerticalScrollRange()
+            end
+            self:SetVerticalScroll(newValue)
         end)
         ScrollFrame.ScrollBar:ClearAllPoints()
         ScrollFrame.ScrollBar:SetPoint("TOPLEFT", ScrollFrame, "TOPRIGHT", -22, -20)
         ScrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", ScrollFrame, "BOTTOMRIGHT", -7, 20)
         ScrollFrame.child = CreateFrame("Frame", "$parent_ScrollFrameChild", ScrollFrame)
-        ScrollFrame.child:SetSize(tab:GetWidth()-30, 1600)
+        ScrollFrame.child:SetSize(tab:GetWidth() - 30, 1600)
         ScrollFrame:SetScrollChild(ScrollFrame.child)
 
         return ScrollFrame.child
     end
 
-    srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "UIPanelDialogTemplate")
+    srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "SettingsFrameTemplate")
+
     local cFrame = srslylawlUI_ConfigFrame
     local cFrameSizeX = 750
     local cFrameSizeY = 500
@@ -1892,11 +2090,13 @@ function srslylawlUI.CreateConfigWindow()
         cFrame.fakeFramesToggled = self:GetChecked()
     end)
 
+
+
     -- Main Config Frame
     cFrame.name = "srslylawlUI"
     cFrame:SetSize(cFrameSizeX, cFrameSizeY)
     cFrame:SetPoint("CENTER")
-    cFrame.Title:SetText("srslylawlUI Configuration")
+    cFrame.NineSlice.Text:SetText("srslylawlUI Configuration")
     srslylawlUI.Frame_MakeFrameMoveable(cFrame)
     cFrame:SetScript("OnHide", function() ToggleFakeFrames(false) end)
     cFrame:SetFrameLevel(20)
@@ -1905,7 +2105,8 @@ function srslylawlUI.CreateConfigWindow()
 
     CreateSaveLoadButtons(cFrame)
 
-    local generalTab, playerFrames, partyFramesTab, buffsTab, debuffsTab = SetTabs(cFrame.body, "General", "Player/Target/Focus Frames", "Party Frames", "Buffs", "Debuffs")
+    local generalTab, playerFrames, partyFramesTab, buffsTab, debuffsTab = SetTabs(cFrame.body, "General",
+        "Player/Target/Focus Frames", "Party Frames", "Buffs", "Debuffs")
 
     -- Create General Tab
     Mixin(generalTab, BackdropTemplateMixin)
@@ -1913,7 +2114,7 @@ function srslylawlUI.CreateConfigWindow()
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 10,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}
+        insets = { left = 4, right = 4, top = 4, bottom = 4 }
     })
     generalTab:SetBackdropColor(0, 0, 0, .4)
     local general = SetupScrollingTabContent(generalTab)
@@ -1937,12 +2138,13 @@ function srslylawlUI.CreateConfigWindow()
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 10,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}})
+        insets = { left = 4, right = 4, top = 4, bottom = 4 }
+    })
     buffsTab:SetBackdropColor(0, 0, 0, .4)
 
     -- Buffs Tab buttons
     local knownBuffs, absorbs, defensives, whiteList, blackList =
-        SetTabs(buffsTab, "Encountered", "Absorbs", "Defensives", "Whitelist", "Blacklist")
+    SetTabs(buffsTab, "Encountered", "Absorbs", "Defensives", "Whitelist", "Blacklist")
     AddTooltip(knownBuffs.tabButton, "List of all encountered buffs")
     AddTooltip(absorbs.tabButton, "Buffs with absorb effects, will be shown as segments")
     AddTooltip(defensives.tabButton, "Buffs with damage reduction effects, will increase your effective health")
@@ -1961,10 +2163,12 @@ function srslylawlUI.CreateConfigWindow()
         bgFile = "Interface/Tooltips/UI-Tooltip-Background",
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 10,
-        insets = {left = 4, right = 4, top = 4, bottom = 4}})
+        insets = { left = 4, right = 4, top = 4, bottom = 4 }
+    })
     debuffsTab:SetBackdropColor(0, 0, 0, .4)
-    
-    local knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots = SetTabs(debuffsTab, "Encountered", "Whitelist", "Blacklist", "Stuns", "Incapacitates", "Disorients", "Silences", "Roots")
+
+    local knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots = SetTabs(debuffsTab,
+        "Encountered", "Whitelist", "Blacklist", "Stuns", "Incapacitates", "Disorients", "Silences", "Roots")
     CreateDebuffTabs(knownDebuffs, whiteList, blackList, stuns, incaps, disorients, silences, roots)
     AddTooltip(knownDebuffs.tabButton, "List of all encountered debuffs")
     AddTooltip(whiteList.tabButton, "Whitelisted debuffs will always be displayed")

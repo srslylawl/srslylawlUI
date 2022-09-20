@@ -40,7 +40,7 @@ http://wowprogramming.com/FrameXML/UI.xsd">
 				<HighlightTexture name="$parent_Highlight" file="Interface\AddOns\srslylawlUI\media\healthBarHighlight" alphaMode="ADD"/>
 			</Button>
 			<!-- PET -->
-			<Button name="$parent_Pet" parentKey="pet" inherits="SecureHandlerShowHideTemplate,SecureUnitButtonTemplate" registerForClicks="AnyUp" emableMouse="true">
+			<Button name="$parent_Pet" parentKey="pet" inherits="SecureHandlerShowHideTemplate,SecureUnitButtonTemplate" registerForClicks="AnyUp" enableMouse="true">
 				<Size x="15" y="35"/>
 				<Anchors>
 					<Anchor relativePoint="TOPRIGHT">
