@@ -2094,7 +2094,7 @@ function srslylawlUI.CreateConfigWindow()
 
     local lockFrames = CreateCheckButton("Preview settings and make frames moveable", cFrame)
     cFrame.lockFramesButton = lockFrames
-    lockFrames:SetPoint("TOPLEFT", cFrame, "TOPLEFT", 10, -20)
+    lockFrames:SetPoint("TOPLEFT", cFrame, "TOPLEFT", 10, -25)
     lockFrames:SetScript("OnClick", function(self)
         ToggleFakeFrames(self:GetChecked())
         cFrame.fakeFramesToggled = self:GetChecked()
