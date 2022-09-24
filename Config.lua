@@ -1474,12 +1474,18 @@ function srslylawlUI.CreateConfigWindow()
 
     local function Tab_OnClick(self)
         local parent = self:GetParent()
-        PanelTemplates_SetTab(parent, self:GetID())
+        parent.selectedTab = self:GetID()
+        -- PanelTemplates_SetTab(parent, self:GetID())
+        self:SetSelected(true)
+        self:OnSelected(true)
         self.content:Show()
 
         for k, tab in ipairs(parent.Tabs) do
             if tab:GetID() ~= parent.selectedTab then
-                tab.content:Hide()
+                if tab.selected then
+                    tab:SetSelected(false)
+                    tab.content:Hide()
+                end
             end
         end
     end
@@ -1492,16 +1498,17 @@ function srslylawlUI.CreateConfigWindow()
         local contents = {}
         -- local name = frame:GetName()
         local tab
-
         for i = 1, numTabs do
             local n = select(i, ...)
-            tab = CreateFrame("Button", "$parent_" .. n, frame, "OptionsFrameTabButtonTemplate")
+            tab = CreateFrame("Button", "$parent_Tab" .. n, frame, "MinimalTabTemplate")
+
+            -- frame.Tabs:AddButton(tab)
             tab:SetID(i)
-            tab:SetText(n)
+            tab.Text:SetText(n)
             tab:SetScript("OnClick", Tab_OnClick)
 
-            local width = tab:GetWidth()
-            PanelTemplates_TabResize(tab, -10, nil, width)
+            -- local width = tab:GetWidth()
+            PanelTemplates_TabResize(tab, 10, nil, width)
             tab.content = CreateFrame("Frame", "$parent_" .. n .. "Content", frame)
             tab.content:SetAllPoints()
             tab.content:Hide()
@@ -1511,11 +1518,14 @@ function srslylawlUI.CreateConfigWindow()
             table.insert(contents, tab.content)
 
             if i == 1 then
-                tab:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", -5, 0)
+                tab:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", 5, -1)
             else
-                tab:SetPoint("BOTTOMLEFT", frame.Tabs[i - 1], "BOTTOMRIGHT", -10, 0)
+                tab:SetPoint("BOTTOMLEFT", frame.Tabs[i - 1], "BOTTOMRIGHT", 5, 0)
             end
         end
+
+        -- frame.Tabs:SelectAtIndex(1);
+
 
         Tab_OnClick(frame.Tabs[1])
 
@@ -2084,7 +2094,7 @@ function srslylawlUI.CreateConfigWindow()
 
     local lockFrames = CreateCheckButton("Preview settings and make frames moveable", cFrame)
     cFrame.lockFramesButton = lockFrames
-    lockFrames:SetPoint("TOPLEFT", cFrame, "TOPLEFT", 10, -25)
+    lockFrames:SetPoint("TOPLEFT", cFrame, "TOPLEFT", 10, -20)
     lockFrames:SetScript("OnClick", function(self)
         ToggleFakeFrames(self:GetChecked())
         cFrame.fakeFramesToggled = self:GetChecked()

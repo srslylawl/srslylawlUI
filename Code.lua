@@ -2032,9 +2032,10 @@ local function Initialize()
         if not showBoss then
             for i = 1, MAX_BOSS_FRAMES do
                 local name = "Boss" .. i .. "TargetFrame"
-                Hide(_G[name])
-                Hide(_G[name .. "HealthBar"])
-                Hide(_G[name .. "ManaBar"])
+                local frame = _G[name]
+
+                if frame then Hide(frame)
+                else srslylawlUI.Log("Error: Unable to hide Blizzard Frame " .. name .. ", as it does not exist.") end
             end
         end
 
