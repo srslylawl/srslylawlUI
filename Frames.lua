@@ -1780,15 +1780,9 @@ function srslylawlUI.Frame_Main_ResetDimensions_ALL()
 end
 
 function srslylawlUI.Frame_ResetCCDurBar(button)
-    local unit, unitsType = button:GetAttribute("unit"), button:GetAttribute("unitsType")
-    local h = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
-    if button:GetAttribute("unit") == "target" then
-
-
-    else
-
-
-    end
+    --is only called for party as the mainunits one gets managed by barhandler
+    -- local unit, unitsType = button:GetAttribute("unit"), button:GetAttribute("unitsType")
+    -- local h = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
     local h = srslylawlUI.GetSetting("party.hp.height")
     local h2 = h * srslylawlUI.GetSetting("party.ccbar.heightPercent")
     local w = srslylawlUI.GetSetting("party.ccbar.width")

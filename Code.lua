@@ -957,37 +957,39 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
 
         --See if its already being displayed
         if not exists or differentSpell or differentExpTime or differentIndex then
+            -- expirationTime can for some reason be different for the same spell now in 10.0
+
             --not being displayed
             unitbutton.CCDurBar.spellData = CCToDisplay
             unitbutton.CCDurBar.icon:SetTexture(CCToDisplay.icon)
             unitbutton.CCDurBar.statusBar:SetStatusBarColor(color.r, color.g, color.b)
             local timer, duration, expirationTime, remaining = 0, 0, 0, 0
             local updateInterval = 0.02
-            remaining = expirationTime - GetTime()
-            unitbutton.CCDurBar.statusBar:SetValue(1)
-            local timerstring = tostring(remaining)
-            timerstring = timerstring:match("%d+%p?%d")
-            unitbutton.CCDurBar.timer:SetText(timerstring)
+            local timerstring = ""
 
-            unitbutton.CCDurBar:SetScript("OnUpdate",
-                function(self, elapsed)
-                    timer = timer + elapsed
-                    _, _, _, _, duration, expirationTime = UnitAura(unit, self.spellData.index, "HARMFUL")
-                    if expirationTime == nil then return end
-                    if timer >= updateInterval then
-                        if duration == 0 then
-                            self.statusBar:SetValue(1)
-                            self.timer:SetText("")
-                        else
-                            remaining = expirationTime - GetTime()
-                            self.statusBar:SetValue(remaining / duration)
-                            timerstring = tostring(remaining)
-                            timerstring = timerstring:match("%d+%p?%d")
-                            self.timer:SetText(timerstring)
-                        end
-                        timer = timer - updateInterval
+            local function updateBar(self, elapsed)
+                timer = timer + elapsed
+                _, _, _, _, duration, expirationTime = UnitAura(unit, self.spellData.index, "HARMFUL")
+                if expirationTime == nil then return end
+                if timer >= updateInterval then
+                    if duration == 0 then
+                        self.statusBar:SetValue(1)
+                        self.timer:SetText("")
+                    else
+                        remaining = expirationTime - GetTime()
+                        local fill = remaining / duration
+                        self.statusBar:SetValue(fill)
+                        timerstring = tostring(remaining)
+                        timerstring = timerstring:match("%d+%p?%d")
+                        self.timer:SetText(timerstring)
                     end
-                end)
+                    timer = timer - updateInterval
+                end
+            end
+
+            unitbutton.CCDurBar:SetScript("OnUpdate", updateBar)
+            --call update once to instantly fill in
+            updateBar(unitbutton.CCDurBar, updateInterval)
         else
             --just update data
             unitbutton.CCDurBar.spellData = CCToDisplay
