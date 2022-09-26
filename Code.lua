@@ -964,7 +964,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             local timer, duration, expirationTime, remaining = 0, 0, 0, 0
             local updateInterval = 0.02
             remaining = expirationTime - GetTime()
-            unitbutton.CCDurBar.statusBar:SetValue(remaining / duration)
+            unitbutton.CCDurBar.statusBar:SetValue(1)
             local timerstring = tostring(remaining)
             timerstring = timerstring:match("%d+%p?%d")
             unitbutton.CCDurBar.timer:SetText(timerstring)
@@ -1745,6 +1745,7 @@ function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
         local width = srslylawlUI.Utils_PixelFromScreenToCode(hpBar:GetWidth()) --need to convert here since we will later reapply the pixel scaling
         local height = srslylawlUI.Utils_PixelFromScreenToCode(hpBar:GetHeight())
         local playerHealthMax = UnitHealthMax(unit)
+        playerHealthMax = playerHealthMax == 0 and 1 or playerHealthMax
         local playerCurrentHP = UnitHealth(unit)
         local pixelPerHp = width / playerHealthMax
         local playerMissingHP = playerHealthMax - playerCurrentHP
