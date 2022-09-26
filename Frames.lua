@@ -1,5 +1,5 @@
 function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
-    local frameName = "srslylawlUI_"..unit.."Aura"
+    local frameName = "srslylawlUI_" .. unit .. "Aura"
     local unitsType = buttonFrame:GetAttribute("unitsType")
     local maxBuffs = srslylawlUI.GetSettingByUnit("buffs.maxBuffs", unitsType, unit)
     if unitsType == "fauxUnits" or unitsType == "mainFauxUnits" then maxBuffs = 40 end
@@ -23,15 +23,15 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
             -- end)
             --shift-Right click blacklists spell
             f:SetScript("OnClick", function(self, button, down)
-            local id = self:GetID()
-            local unit = self:GetAttribute("unit")
-            if button == "RightButton" and IsShiftKeyDown() then
-                GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
-                local spellID = select(10, UnitAura(unit, id, "HELPFUL"))
-                srslylawlUI.Auras_BlacklistSpell(spellID, "buffs")
-            elseif button == "RightButton" and unit == "player" and not InCombatLockdown() then
-                CancelUnitBuff(unit, id, "HELPFUL")
-            end
+                local id = self:GetID()
+                local unit = self:GetAttribute("unit")
+                if button == "RightButton" and IsShiftKeyDown() then
+                    GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                    local spellID = select(10, UnitAura(unit, id, "HELPFUL"))
+                    srslylawlUI.Auras_BlacklistSpell(spellID, "buffs")
+                elseif button == "RightButton" and unit == "player" and not InCombatLockdown() then
+                    CancelUnitBuff(unit, id, "HELPFUL")
+                end
             end)
             --template creates a border thats not pixel perfect (yikes)
             f.border = f:CreateTexture("$parent_Border", "OVERLAY")
@@ -43,20 +43,21 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "TOPLEFT", f, "TOPLEFT", -1, 1)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.cooldown:SetSwipeTexture(swipeTexture)
-            f.count:SetFont("Fonts\\FRIZQT__.TTF", size/2, "OUTLINE")
+            f.count:SetFont("Fonts\\FRIZQT__.TTF", size / 2, "OUTLINE")
             f.count:SetPoint("BOTTOMRIGHT")
             srslylawlUI[unitsType][unit].buffFrames[i] = f
             f:Hide()
         end
     end
-    for i=maxBuffs, 40 do
+    for i = maxBuffs, 40 do
         if srslylawlUI[unitsType][unit].buffFrames[i] then
-                srslylawlUI[unitsType][unit].buffFrames[i]:Hide()
+            srslylawlUI[unitsType][unit].buffFrames[i]:Hide()
         end
     end
 end
+
 function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
-    local frameName = "srslylawlUI_"..unit.."Debuff"
+    local frameName = "srslylawlUI_" .. unit .. "Debuff"
     local unitsType = buttonFrame:GetAttribute("unitsType")
     local maxBuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
     if unitsType == "fauxUnits" or unitsType == "mainFauxUnits" then maxBuffs = 40 end
@@ -69,16 +70,16 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
             f:SetAttribute("unit", unit)
             f:SetScript("OnLoad", nil)
             f:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
-            GameTooltip:SetUnitDebuff(self:GetAttribute("unit"), self:GetID())
+                GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                GameTooltip:SetUnitDebuff(self:GetAttribute("unit"), self:GetID())
             end)
             f:SetScript("OnClick", function(self, button, down)
-            if button == "RightButton" and IsShiftKeyDown() then
-                GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
-                local id = self:GetID()
-                local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HARMFUL"))
-                srslylawlUI.Auras_BlacklistSpell(spellID, "debuffs")
-            end
+                if button == "RightButton" and IsShiftKeyDown() then
+                    GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                    local id = self:GetID()
+                    local spellID = select(10, UnitAura(self:GetAttribute("unit"), id, "HARMFUL"))
+                    srslylawlUI.Auras_BlacklistSpell(spellID, "debuffs")
+                end
             end)
             f:SetScript("OnUpdate", nil)
             -- f:SetScript("OnUpdate", function(self)
@@ -97,24 +98,25 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "TOPLEFT", f, "TOPLEFT", -1, 1)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.cooldown:SetSwipeTexture(swipeTexture)
-            f.count:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(size/2), "OUTLINE")
+            f.count:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(size / 2), "OUTLINE")
             f.count:SetPoint("BOTTOMRIGHT")
 
             srslylawlUI[unitsType][unit].debuffFrames[i] = f
             f:Hide()
         end
     end
-    for i=maxBuffs, 40 do
+    for i = maxBuffs, 40 do
         if srslylawlUI[unitsType][unit].debuffFrames[i] then
             srslylawlUI[unitsType][unit].debuffFrames[i]:Hide()
         end
     end
 end
+
 local function CreateCustomFrames(buttonFrame, unit)
     local unitsType = buttonFrame:GetAttribute("unitsType")
     local function CreateAbsorbFrame(parent, i, parentTable, unit)
         local isOverlapFrame = parentTable == srslylawlUI[unitsType][unit].absorbFramesOverlap
-        local n = "srslylawlUI_"..unit .. (isOverlapFrame and "AbsorbFrameOverlap" or "AbsorbFrame") .. i
+        local n = "srslylawlUI_" .. unit .. (isOverlapFrame and "AbsorbFrameOverlap" or "AbsorbFrame") .. i
         local f = CreateFrame("Frame", n, parent)
         f.texture = f:CreateTexture("$parent_texture", "ARTWORK")
         f.texture:SetAllPoints()
@@ -144,19 +146,20 @@ local function CreateCustomFrames(buttonFrame, unit)
         f["cooldown"]:Show()
         f:SetAttribute("unit", unit)
         f:SetScript("OnEnter", function(self)
-        local index = self:GetAttribute("buffIndex")
-        if index then
-            GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
-            GameTooltip:SetUnitBuff(self:GetAttribute("unit"), index)
-        end
+            local index = self:GetAttribute("buffIndex")
+            if index then
+                GameTooltip:SetOwner(f, "ANCHOR_RIGHT", 0, 0)
+                GameTooltip:SetUnitBuff(self:GetAttribute("unit"), index)
+            end
         end)
         f:SetScript("OnLeave", function(self)
-        if GameTooltip:IsOwned(f) then GameTooltip:Hide() end
+            if GameTooltip:IsOwned(f) then GameTooltip:Hide() end
         end)
-        
+
         parentTable[i] = f
         parentTable[i].wasHealthPrediction = false
     end
+
     local function CreateEffectiveHealthFrame(buttonFrame, unit, i)
         local parentFrame = buttonFrame.unit.healthBar
         local n = "srslylawlUI" .. unit .. "EffectiveHealthFrame" .. i
@@ -201,10 +204,10 @@ local function CreateCustomFrames(buttonFrame, unit)
         f.texture.bg:SetAllPoints()
         f.texture.bg:SetVertexColor(1, 1, 1, .5)
         f.texture.bg:SetBlendMode("MOD")
-        
-        
+
+
         local class = UnitClassBase(unit)
-        local color = {GetClassColor(class)}
+        local color = { GetClassColor(class) }
         color[4] = 0.7
         f.texture:SetVertexColor(unpack(color))
         f:Hide()
@@ -213,6 +216,7 @@ local function CreateCustomFrames(buttonFrame, unit)
         srslylawlUI[unitsType][unit]["effectiveHealthFrames"][i] = f
         f.offset = 0
     end
+
     --create absorb frames
     for i = 1, srslylawlUI.GetSetting("party.maxAbsorbFrames") do
         local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or srslylawlUI[unitsType][unit].absorbFrames[i - 1]
@@ -220,14 +224,16 @@ local function CreateCustomFrames(buttonFrame, unit)
     end
     --overlap frames (absorb/incoming heal that exceeds maximum health)
     for i = 1, srslylawlUI.GetSetting("party.maxAbsorbFrames") do
-        local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or srslylawlUI[unitsType][unit].absorbFramesOverlap[i - 1]
+        local parentFrame = (i == 1 and buttonFrame.unit.healthBar) or
+            srslylawlUI[unitsType][unit].absorbFramesOverlap[i - 1]
         CreateAbsorbFrame(parentFrame, i, srslylawlUI[unitsType][unit].absorbFramesOverlap, unit)
     end
     --effective health frame (sums up active defensive spells)
     CreateEffectiveHealthFrame(buttonFrame, unit, 1)
 end
+
 function srslylawlUI.CreateCustomFontString(frame, name, fontSize, template, mod)
-    local fString = frame:CreateFontString(frame:GetName()..name, "ARTWORK", template or "GameFontHighlight")
+    local fString = frame:CreateFontString(frame:GetName() .. name, "ARTWORK", template or "GameFontHighlight")
 
     function fString:ChangeFontSize(size)
         if self.fontSize == size then return end
@@ -242,7 +248,7 @@ function srslylawlUI.CreateCustomFontString(frame, name, fontSize, template, mod
 
     function fString:ScaleToFit(w, h, baseSize)
         local factor = math.min(w, h) / baseSize
-        self:SetFont("Fonts\\FRIZQT__.TTF", (math.max(srslylawlUI.Utils_ScuffedRound(self.fontSize*factor), 1)))
+        self:SetFont("Fonts\\FRIZQT__.TTF", (math.max(srslylawlUI.Utils_ScuffedRound(self.fontSize * factor), 1)))
         self.w, self.h, self.baseSize = w, h, baseSize
 
         if self.isLimited then
@@ -255,7 +261,7 @@ function srslylawlUI.CreateCustomFontString(frame, name, fontSize, template, mod
         local wasShortened = false
         for length = #self.text, 1, -1 do
             substring = srslylawlUI.Utils_ShortenString(self.text, 1, length)
-            self:SetText(wasShortened and self.dots and substring..".." or substring)
+            self:SetText(wasShortened and self.dots and substring .. ".." or substring)
             if self:GetStringWidth() <= self.maxPixels then
                 return
             end
@@ -291,7 +297,8 @@ function srslylawlUI.FrameSetup()
         CCDurationBar.icon:SetTexture(408)
         CCDurationBar.timer:SetText("0")
         srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.icon, "BOTTOMLEFT", CCDurationBar, "BOTTOMLEFT", 0, 0)
-        srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.statusBar, "BOTTOMLEFT", CCDurationBar.icon, "BOTTOMRIGHT", 1, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.statusBar, "BOTTOMLEFT", CCDurationBar.icon, "BOTTOMRIGHT",
+            1, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.statusBar, "TOPRIGHT", CCDurationBar, "TOPRIGHT", 0, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(CCDurationBar.timer, "LEFT", CCDurationBar.statusBar, "LEFT", 1, 0)
         srslylawlUI.CreateBackground(CCDurationBar, 0)
@@ -301,7 +308,7 @@ function srslylawlUI.FrameSetup()
         function CCDurationBar:SetPoints(w, h)
             if h then
                 srslylawlUI.Utils_SetSizePixelPerfect(self, w, h)
-                h = math.min(w/2, h)
+                h = math.min(w / 2, h)
                 srslylawlUI.Utils_SetSizePixelPerfect(self.icon, h, h)
                 self.timer:ScaleToFit(w, h, 40)
             else
@@ -309,6 +316,7 @@ function srslylawlUI.FrameSetup()
                 self.timer:ScaleToFit(w, w, 40)
             end
         end
+
         function CCDurationBar:UpdateVisible()
             local timer = self.timer:GetText()
             if not timer then return end
@@ -341,9 +349,10 @@ function srslylawlUI.FrameSetup()
 
         return CCDurationBar
     end
+
     local function CreateUnitFrame(header, unit, faux, party)
-        local name = party and "$parent_"..unit or "srslylawlUI_Main_"..unit
-        local unitFrame = CreateFrame("Frame",name, header, "srslylawlUI_UnitTemplate")
+        local name = party and "$parent_" .. unit or "srslylawlUI_Main_" .. unit
+        local unitFrame = CreateFrame("Frame", name, header, "srslylawlUI_UnitTemplate")
         local unitsType = faux and "fauxUnits" or party and "partyUnits" or "mainUnits"
         unitFrame:SetAttribute("unit", unit)
         unitFrame:SetAttribute("unitsType", unitsType)
@@ -388,7 +397,8 @@ function srslylawlUI.FrameSetup()
         end
 
 
-        local height, width = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit), srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
+        local height, width = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit),
+            srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
 
         srslylawlUI.Utils_SetSizePixelPerfect(unitFrame.unit, width, height)
         srslylawlUI.Utils_SetPointPixelPerfect(unitFrame, "TOPLEFT", unitFrame.unit, "TOPLEFT", -1, 1)
@@ -400,12 +410,15 @@ function srslylawlUI.FrameSetup()
         end
         unitFrame.unit.healthBar:SetPoint(alignment, unitFrame.unit, alignment, 0, 0)
 
-        local fontSize = (party or faux) and srslylawlUI.GetSetting("party.hp.fontSize") or srslylawlUI.GetSetting("player."..unit.."Frame.hp.fontSize")
+        local fontSize = (party or faux) and srslylawlUI.GetSetting("party.hp.fontSize") or
+            srslylawlUI.GetSetting("player." .. unit .. "Frame.hp.fontSize")
         unitFrame.unit.healthBar.leftTextFrame = CreateFrame("Frame", "$parent_leftTextFrame", unitFrame.unit.healthBar)
-        unitFrame.unit.healthBar.leftText = srslylawlUI.CreateCustomFontString(unitFrame.unit.healthBar.leftTextFrame, "LeftText", fontSize, "GameFontHIGHLIGHT")
+        unitFrame.unit.healthBar.leftText = srslylawlUI.CreateCustomFontString(unitFrame.unit.healthBar.leftTextFrame,
+            "LeftText", fontSize, "GameFontHIGHLIGHT")
 
         unitFrame.unit.healthBar.rightTextFrame = CreateFrame("Frame", "$parent_rightTextFrame", unitFrame.unit.healthBar)
-        unitFrame.unit.healthBar.rightText = srslylawlUI.CreateCustomFontString(unitFrame.unit.healthBar.rightTextFrame, "rightText", fontSize, "GameFontHIGHLIGHT")
+        unitFrame.unit.healthBar.rightText = srslylawlUI.CreateCustomFontString(unitFrame.unit.healthBar.rightTextFrame,
+            "rightText", fontSize, "GameFontHIGHLIGHT")
 
         unitFrame.unit.healthBar.leftTextFrame:SetFrameLevel(9)
         unitFrame.unit.healthBar.rightTextFrame:SetFrameLevel(9)
@@ -421,27 +434,30 @@ function srslylawlUI.FrameSetup()
             if id and id >= 0 and id <= 8 then
                 if self.id == id then return end
                 self.id = id
-                self.icon:SetTexture("Interface/TARGETINGFRAME/UI-RaidTargetingIcon_"..id)
+                self.icon:SetTexture("Interface/TARGETINGFRAME/UI-RaidTargetingIcon_" .. id)
                 self.icon:Show()
             else
                 self.icon:Hide()
             end
         end
+
         function unitFrame.unit.RaidIcon:SetEnabled(enable)
             if self.enabled == enable then return end
             self.enabled = enable
             self:SetShown(enable)
         end
+
         function unitFrame.unit.RaidIcon:Resize()
             local raidIconSize = srslylawlUI.GetSettingByUnit("raidIcon.size", unitsType, unit)
             srslylawlUI.Utils_SetSizePixelPerfect(self, raidIconSize, raidIconSize)
         end
+
         function unitFrame.unit.RaidIcon:SetPoints()
             self:ClearAllPoints()
             local anchors = srslylawlUI.GetSettingByUnit("raidIcon.position", unitsType, unit)
             srslylawlUI.Utils_SetPointPixelPerfect(self, unpack(anchors))
         end
-        
+
         unitFrame.unit.RaidIcon:Resize()
         unitFrame.unit.RaidIcon:SetPoints()
         unitFrame.unit.RaidIcon.icon = unitFrame.unit.RaidIcon:CreateTexture("$parent_Icon", "OVERLAY")
@@ -466,15 +482,17 @@ function srslylawlUI.FrameSetup()
         if party then
             header[unit] = unitFrame
         end
-        if (unitsType == "mainUnits" and unit == "target" or unit == "focus") or unitsType == "partyUnits" or unitsType == "fauxUnits" then
+        if (unitsType == "mainUnits" and unit == "target" or unit == "focus") or unitsType == "partyUnits" or
+            unitsType == "fauxUnits" then
             local ccBar = CreateCCBar(unitFrame)
             ccBar:SetReverseFill(srslylawlUI.GetSettingByUnit("ccbar.reversed", unitsType, unit))
         end
-        
+
         return unitFrame
     end
+
     local header = CreateFrame("Frame", "srslylawlUI_PartyHeader", nil)
-    header:SetSize(srslylawlUI.GetSetting("party.hp.width"), srslylawlUI.GetSetting("party.hp.height")*5)
+    header:SetSize(srslylawlUI.GetSetting("party.hp.width"), srslylawlUI.GetSetting("party.hp.height") * 5)
     srslylawlUI.Frame_AnchorFromSettings(header, "party.header.position")
     header:Show()
     --Create Unit Frames
@@ -552,9 +570,10 @@ function srslylawlUI.FrameSetup()
         if unit == "targettarget" then
             local oldSetPoint = frame.unit.SetPoint
             function frame.unit:SetPoint(...)
-                local points = {...}
+                local points = { ... }
                 local fAnchor = points[2]
-                if fAnchor == srslylawlUI.TranslateFrameAnchor("TargetFramePortrait") and not srslylawlUI.GetSetting("player.targetFrame.portrait.enabled")
+                if fAnchor == srslylawlUI.TranslateFrameAnchor("TargetFramePortrait") and
+                    not srslylawlUI.GetSetting("player.targetFrame.portrait.enabled")
                 then
                     points[2] = srslylawlUI.TranslateFrameAnchor("TargetFrame")
                     srslylawlUI.ChangeSetting("player.targettargetFrame.position.2", "TargetFrame")
@@ -562,7 +581,7 @@ function srslylawlUI.FrameSetup()
                 oldSetPoint(self, unpack(points))
             end
         end
-        srslylawlUI.Frame_AnchorFromSettings(frame.unit, "player."..unit.."Frame.position")
+        srslylawlUI.Frame_AnchorFromSettings(frame.unit, "player." .. unit .. "Frame.position")
         srslylawlUI.Frame_InitialMainUnitConfig(frame)
     end
     srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
@@ -583,20 +602,23 @@ function srslylawlUI.SetupUnitFrame(buttonFrame, unit)
     buttonFrame.unit.powerBar:ClearAllPoints()
     local leftXoffset = unit == "targettarget" and 2 or 12
 
-    srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText,"BOTTOMLEFT", buttonFrame.unit.healthBar, "BOTTOMLEFT", leftXoffset, 2)
-    srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.rightText, "BOTTOMRIGHT", buttonFrame.unit.healthBar, "BOTTOMRIGHT", -2, 2)
+    srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.leftText, "BOTTOMLEFT", buttonFrame.unit.healthBar
+        , "BOTTOMLEFT", leftXoffset, 2)
+    srslylawlUI.Utils_SetPointPixelPerfect(buttonFrame.unit.healthBar.rightText, "BOTTOMRIGHT",
+        buttonFrame.unit.healthBar, "BOTTOMRIGHT", -2, 2)
 end
+
 function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
     srslylawlUI.SetupUnitFrame(buttonFrame)
     local unit = buttonFrame:GetAttribute("unit")
 
     if not faux then
-        srslylawlUI.RegisterEvents(buttonFrame)   
+        srslylawlUI.RegisterEvents(buttonFrame)
         buttonFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 
         buttonFrame.pet:SetScript("OnShow", function(self)
             local unit = self:GetParent():GetAttribute("unit")
-            srslylawlUI.Frame_ResetPetButton(self, unit.."pet")
+            srslylawlUI.Frame_ResetPetButton(self, unit .. "pet")
         end)
         buttonFrame.unit:SetScript("OnEnter", function(self)
             local unit = self:GetParent():GetAttribute("unit")
@@ -606,7 +628,7 @@ function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
         buttonFrame.pet:SetScript("OnEnter", function(self)
             local unit = self:GetParent():GetAttribute("unit")
             GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
-            GameTooltip:SetUnit(unit.."pet")
+            GameTooltip:SetUnit(unit .. "pet")
         end)
         buttonFrame.TimeSinceLastUpdate = 0
         buttonFrame.wasInRange = true
@@ -642,6 +664,7 @@ function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
     srslylawlUI.Frame_ResetCCDurBar(buttonFrame)
     srslylawlUI.Frame_SetupPortrait(buttonFrame)
 end
+
 function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     local unit = buttonFrame:GetAttribute("unit")
     srslylawlUI.SetupUnitFrame(buttonFrame, unit)
@@ -668,7 +691,7 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
         RegisterUnitWatch(buttonFrame.pet)
         buttonFrame.pet:SetScript("OnShow", function(self)
             local unit = self:GetParent():GetAttribute("unit")
-            srslylawlUI.Frame_ResetPetButton(self, unit.."pet")
+            srslylawlUI.Frame_ResetPetButton(self, unit .. "pet")
         end)
         buttonFrame.unit:SetScript("OnEnter", function(self)
             local unit = self:GetParent():GetAttribute("unit")
@@ -678,7 +701,7 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
         buttonFrame.pet:SetScript("OnEnter", function(self)
             local unit = self:GetParent():GetAttribute("unit")
             GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
-            GameTooltip:SetUnit(unit.."pet")
+            GameTooltip:SetUnit(unit .. "pet")
         end)
         buttonFrame:RegisterEvent("PLAYER_DEAD")
         buttonFrame:RegisterEvent("PLAYER_UNGHOST")
@@ -734,15 +757,19 @@ function srslylawlUI.Frame_SetupPortrait(frame)
 
             function frame.portrait:ResetPosition()
                 local height = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
-                local anchor = srslylawlUI.GetSettingByUnit("portrait.anchor", unitsType, unit) == "Frame" and frame.unit or frame.unit.powerBar
+                local anchor = srslylawlUI.GetSettingByUnit("portrait.anchor", unitsType, unit) == "Frame" and frame.unit
+                    or frame.unit.powerBar
                 local position = srslylawlUI.GetSettingByUnit("portrait.position", unitsType, unit)
                 frame.portrait:ClearAllPoints()
                 if position == "LEFT" then
                     srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "TOPRIGHT", anchor, "TOPLEFT", -1, 0)
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMLEFT", anchor, "BOTTOMLEFT", -(height+1), 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMLEFT", anchor, "BOTTOMLEFT",
+                        -(height + 1), 0)
                 elseif position == "RIGHT" then
                     srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "TOPLEFT", anchor, "TOPRIGHT", 1, 0)
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMRIGHT", anchor, "BOTTOMRIGHT", height+1, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame.portrait, "BOTTOMRIGHT", anchor, "BOTTOMRIGHT",
+                        height +
+                        1, 0)
                 end
             end
 
@@ -750,32 +777,34 @@ function srslylawlUI.Frame_SetupPortrait(frame)
             function frame.portrait:ModelUpdate()
                 --order seems very important here
                 if not UnitIsVisible(unit) or not UnitIsConnected(unit) then
-	                self:SetModelScale(5.5)
-	                self:SetPosition(2, 0, .9)
+                    self:SetModelScale(5.5)
+                    self:SetPosition(2, 0, .9)
                     self:SetPortraitZoom(5)
                     self:ClearModel()
-	                self:SetModel("Interface\\Buttons\\talktomequestionmark.m2")
+                    self:SetModel("Interface\\Buttons\\talktomequestionmark.m2")
                 else
-		            self:SetPortraitZoom(1)
-		            self:SetPosition(0, 0, 0)
+                    self:SetPortraitZoom(1)
+                    self:SetPosition(0, 0, 0)
                     self:ClearModel()
-		            self:SetUnit(unit)
+                    self:SetUnit(unit)
                 end
             end
+
             function frame.portrait:PortraitUpdate()
                 local guid = UnitGUID(unit)
-	        	if self.guid ~= guid then
+                if self.guid ~= guid then
                     self.guid = guid
-	        		self:ModelUpdate()
-	        	end
+                    self:ModelUpdate()
+                end
             end
+
             --portrait seems to be very sensitive to order of execution, needs it as onshow or else it wont update properly
             frame.portrait:SetScript("OnShow", function(self) self:ModelUpdate() end)
         end
 
         if enabled then
             frame:RegisterEvent("UNIT_PORTRAIT_UPDATE", unit)
-	        frame:RegisterEvent("UNIT_MODEL_CHANGED", unit)
+            frame:RegisterEvent("UNIT_MODEL_CHANGED", unit)
             frame.portrait:ResetPosition()
             frame.portrait:Show()
             if frame.factionIcon then
@@ -783,7 +812,7 @@ function srslylawlUI.Frame_SetupPortrait(frame)
             end
         elseif not enabled then
             frame:UnregisterEvent("UNIT_PORTRAIT_UPDATE")
-	        frame:UnregisterEvent("UNIT_MODEL_CHANGED")
+            frame:UnregisterEvent("UNIT_MODEL_CHANGED")
             if frame.portrait then
                 frame.portrait:Hide()
             end
@@ -802,7 +831,7 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
     frame:RegisterBar(frame.unit.CCDurBar)
 
     frame.unitLevel = CreateFrame("Frame", "$parent_UnitLevel", frame.unit)
-    frame.unitLevel:SetFrameLevel(frame.unit:GetFrameLevel()+1)
+    frame.unitLevel:SetFrameLevel(frame.unit:GetFrameLevel() + 1)
     frame.unitLevel.text = srslylawlUI.CreateCustomFontString(frame.unit, "Level", 6, nil, "OUTLINE")
     frame.unitLevel.text:SetPoint("CENTER", frame.unitLevel)
     srslylawlUI.Utils_SetSizePixelPerfect(frame.unitLevel, 20, 20)
@@ -810,18 +839,19 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
 
     local oldSetPoint = frame.unitLevel.SetPoint
     function frame.unitLevel:SetPoint(...)
-        local points = {...}
+        local points = { ... }
         local fAnchor = points[2]
-        local unitCaps = unit:sub(1,1):upper()..unit:sub(2)
-        if fAnchor == srslylawlUI.TranslateFrameAnchor(unitCaps.."FramePortrait") and not srslylawlUI.GetSetting("player."..unit.."Frame.portrait.enabled") then
-            points[2] = srslylawlUI.TranslateFrameAnchor(unitCaps.."Frame")
-            srslylawlUI.ChangeSetting("player."..unit.."Frame.unitLevel.position.2", unitCaps.."Frame")
+        local unitCaps = unit:sub(1, 1):upper() .. unit:sub(2)
+        if fAnchor == srslylawlUI.TranslateFrameAnchor(unitCaps .. "FramePortrait") and
+            not srslylawlUI.GetSetting("player." .. unit .. "Frame.portrait.enabled") then
+            points[2] = srslylawlUI.TranslateFrameAnchor(unitCaps .. "Frame")
+            srslylawlUI.ChangeSetting("player." .. unit .. "Frame.unitLevel.position.2", unitCaps .. "Frame")
         end
         oldSetPoint(self, unpack(points))
     end
 
     frame.factionIcon = CreateFrame("Frame", "$parent_FactionIcon", frame.unit)
-    frame.factionIcon:SetFrameLevel(frame.unit:GetFrameLevel()+1)
+    frame.factionIcon:SetFrameLevel(frame.unit:GetFrameLevel() + 1)
     frame.factionIcon.icon = frame.factionIcon:CreateTexture("$parent_FactionIcon", "OVERLAY")
     srslylawlUI.Utils_SetSizePixelPerfect(frame.factionIcon, 20, 20)
     srslylawlUI.Utils_SetSizePixelPerfect(frame.factionIcon.icon, 20, 20)
@@ -835,13 +865,15 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
 
     function frame:ResetUnitLevelIcon()
         unit = self:GetAttribute("unit")
-        srslylawlUI.Frame_AnchorFromSettings(self.unitLevel, "player."..unit.."Frame.unitLevel.position")
+        srslylawlUI.Frame_AnchorFromSettings(self.unitLevel, "player." .. unit .. "Frame.unitLevel.position")
     end
+
     local oldSetSize = frame.SetSize
     function frame:SetSize(x, y)
         oldSetSize(frame, x, y)
         self:TogglePortrait()
     end
+
     function frame:UpdateUnitLevel()
         local unitLevel = UnitLevel(unit)
 
@@ -851,13 +883,14 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
             self.unitLevel.text:SetText(unitLevel)
         end
     end
+
     function frame:UpdateUnitFaction()
         local ffa = UnitIsPVPFreeForAll(unit)
 
         if ffa then
             if self.faction ~= "FFA" then
-                    self.factionIcon.icon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-FFA")
-                    self.factionIcon.icon:Show()
+                self.factionIcon.icon:SetTexture("Interface/TARGETINGFRAME/UI-PVP-FFA")
+                self.factionIcon.icon:Show()
                 self.faction = "FFA"
             end
         else
@@ -882,149 +915,167 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
             end
         end
     end
+
     frame:TogglePortrait()
     frame:ResetUnitLevelIcon()
     frame:UpdateUnitLevel()
 end
+
 function srslylawlUI.CreateCastBar(parent, unit)
     local cBar = CreateFrame("Frame", "$parent_CastBar", parent)
     local unitsType = parent:GetAttribute("unitsType")
     srslylawlUI.CreateBackground(cBar, 1)
     local function CastOnUpdate(self, elapsed)
-	    local time = GetTime()
-        
-	    self.elapsed = self.isChannelled and self.elapsed - (time - self.lastUpdate) or self.elapsed + (time - self.lastUpdate)
-	    self.lastUpdate = time
-        
+        local time = GetTime()
+
+        self.elapsed = self.isChannelled and self.elapsed - (time - self.lastUpdate) or
+            self.elapsed + (time - self.lastUpdate)
+        self.lastUpdate = time
+
         if self.elapsed <= 0 then
             self.elapsed = 0
         end
-	    self.StatusBar:SetValue(self.elapsed)
+        self.StatusBar:SetValue(self.elapsed)
 
         if self.isChannelled then
-	    	if self.elapsed <= 0 then
-	    		self.StatusBar.Timer:SetText("0.0")
+            if self.elapsed <= 0 then
+                self.StatusBar.Timer:SetText("0.0")
                 self.StatusBar:SetValue(0)
                 self.spellName = nil
                 self.castID = nil
                 self:FadeOut()
             elseif self.pushback == 0 then
                 -- no pushback
-	    		self.StatusBar.Timer:SetFormattedText("%.1f", self.elapsed)
-	    	else
+                self.StatusBar.Timer:SetFormattedText("%.1f", self.elapsed)
+            else
                 -- has pushback, display it
-                self.StatusBar.Timer:SetText("|cffff0000".."+"..srslylawlUI.Utils_DecimalRound(self.pushback, 1).."|r".." "..srslylawlUI.Utils_DecimalRound(self.elapsed, 1))
-	    	end
+                self.StatusBar.Timer:SetText("|cffff0000" ..
+                    "+" ..
+                    srslylawlUI.Utils_DecimalRound(self.pushback, 1) ..
+                    "|r" .. " " .. srslylawlUI.Utils_DecimalRound(self.elapsed, 1))
+            end
         else
-	    	local timeLeft = self.endSeconds - self.elapsed
-	    	if timeLeft <= 0 then
-	    		self.StatusBar.Timer:SetText("0.0")
+            local timeLeft = self.endSeconds - self.elapsed
+            if timeLeft <= 0 then
+                self.StatusBar.Timer:SetText("0.0")
                 self.StatusBar:SetValue(self.endSeconds)
             elseif self.pushback == 0 then
                 -- no pushback
-	    		self.StatusBar.Timer:SetFormattedText("%.1f", timeLeft, 1)
-	    	else
+                self.StatusBar.Timer:SetFormattedText("%.1f", timeLeft, 1)
+            else
                 -- has pushback, display pushback
-	    		self.StatusBar.Timer:SetText("|cffff0000".."+"..srslylawlUI.Utils_DecimalRound(self.pushback, 1).."|r".." "..srslylawlUI.Utils_DecimalRound(timeLeft, 1))
-	    	end
-            
+                self.StatusBar.Timer:SetText("|cffff0000" ..
+                    "+" ..
+                    srslylawlUI.Utils_DecimalRound(self.pushback, 1) ..
+                    "|r" .. " " .. srslylawlUI.Utils_DecimalRound(timeLeft, 1))
+            end
+
             if self.elapsed >= self.endSeconds then
                 self.spellName = nil
                 self.castID = nil
                 self:FadeOut()
             end
-	    end
+        end
     end
+
     function cBar:UpdateCast()
         if self.disabled then return end
-	    local spell, displayName, icon, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(self.unit)
-	    local isChannelled
-	    if not spell then
-	    	spell, displayName, icon, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo(self.unit)
-	    	isChannelled = true
-	    end
-	    if not spell then
+        local spell, displayName, icon, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(self
+            .unit)
+        local isChannelled
+        if not spell then
+            spell, displayName, icon, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo(self
+                .unit)
+            isChannelled = true
+        end
+        if not spell then
             return
         end
 
-	    self.Icon:SetTexture(icon)
-	    self.Icon:Show()
+        self.Icon:SetTexture(icon)
+        self.Icon:Show()
 
-	    self.isChannelled = isChannelled
-	    self.startTime = startTime / 1000
-	    self.endTime = endTime / 1000
-	    self.endSeconds = self.endTime - self.startTime
-	    self.elapsed = self.isChannelled and self.endSeconds or 0
-	    self.spellName = spell
-	    self.spellID = spellID
-	    self.castID = isChannelled and spellID or castID
-	    self.pushback = 0
-	    self.lastUpdate = self.startTime
+        self.isChannelled = isChannelled
+        self.startTime = startTime / 1000
+        self.endTime = endTime / 1000
+        self.endSeconds = self.endTime - self.startTime
+        self.elapsed = self.isChannelled and self.endSeconds or 0
+        self.spellName = spell
+        self.spellID = spellID
+        self.castID = isChannelled and spellID or castID
+        self.pushback = 0
+        self.lastUpdate = self.startTime
 
-	    self.StatusBar:SetMinMaxValues(0, self.endSeconds)
-	    self.StatusBar:SetValue(self.elapsed)
-	    self.StatusBar:Show()
+        self.StatusBar:SetMinMaxValues(0, self.endSeconds)
+        self.StatusBar:SetValue(self.elapsed)
+        self.StatusBar:Show()
         self:SetAlpha(1)
         --trigger hook functions, such as bar ordering
         self:GetScript("OnShow")(self)
-        self.StatusBar.SpellName:SetLimitedText(self.StatusBar:GetWidth()*0.8, spell, true)
+        self.StatusBar.SpellName:SetLimitedText(self.StatusBar:GetWidth() * 0.8, spell, true)
 
-        
+
         self:SetScript("OnUpdate", CastOnUpdate)
-    
-	    if notInterruptible then
-	    	self:ChangeBarColor("uninterruptible")
+
+        if notInterruptible then
+            self:ChangeBarColor("uninterruptible")
         elseif self.isChannelled then
             self:ChangeBarColor("channel")
-	    else
+        else
             self:ChangeBarColor("cast")
-	    end
+        end
     end
+
     function cBar:StopCast(event, unit, castID, spellID)
-	    if event == "UNIT_SPELLCAST_CHANNEL_STOP" and not castID then
+        if event == "UNIT_SPELLCAST_CHANNEL_STOP" and not castID then
             castID = spellID
         end
-	    if self.castID ~= castID or (event == "UNIT_SPELLCAST_FAILED" and self.isChannelled) or not self.castID then
+        if self.castID ~= castID or (event == "UNIT_SPELLCAST_FAILED" and self.isChannelled) or not self.castID then
             return
         end
 
         self.StatusBar:SetMinMaxValues(0, 1)
         self.StatusBar:SetValue(self.isChannelled and 0 or 1)
-	    self.spellName = nil
-	    self.spellID = nil
-	    self.castID = nil
-	    self:FadeOut()
+        self.spellName = nil
+        self.spellID = nil
+        self.castID = nil
+        self:FadeOut()
     end
+
     function cBar:UpdateDelay()
-	    local spell, displayName, icon, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(self.unit)
-	    if not spell then
-	    	spell, displayName, icon, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo(self.unit)
-	    end
+        local spell, displayName, icon, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(self
+            .unit)
+        if not spell then
+            spell, displayName, icon, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo(self
+                .unit)
+        end
         if not spell then return end
-	    startTime = startTime / 1000
-	    endTime = endTime / 1000
+        startTime = startTime / 1000
+        endTime = endTime / 1000
 
 
-	    local delay = startTime - self.startTime
-	    if not self.isChannelled then
-	    	self.endSeconds = self.endSeconds + delay
-	    	self.StatusBar:SetMinMaxValues(0, self.endSeconds)
-	    else
-	    	self.elapsed = self.elapsed + delay
-	    end
+        local delay = startTime - self.startTime
+        if not self.isChannelled then
+            self.endSeconds = self.endSeconds + delay
+            self.StatusBar:SetMinMaxValues(0, self.endSeconds)
+        else
+            self.elapsed = self.elapsed + delay
+        end
 
         if abs(delay) > 0.01 then
-	        self.pushback = self.pushback + delay
+            self.pushback = self.pushback + delay
         end
-	    self.lastUpdate = GetTime()
-	    self.startTime = startTime
-	    self.endTime = endTime
+        self.lastUpdate = GetTime()
+        self.startTime = startTime
+        self.endTime = endTime
     end
+
     function cBar:CastSucceeded(event, unit, castID, spellID)
-	    if not self.isChannelled and self.castID == castID then
-	    	self:ChangeBarColor("success")
-	    end
+        if not self.isChannelled and self.castID == castID then
+            self:ChangeBarColor("success")
+        end
     end
+
     function cBar:FadeOut()
         if self:GetAlpha() <= 0.01 then return end
         local fadeTime = .5
@@ -1039,7 +1090,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
 
             self.fadeTimer = self.fadeTimer > 0 and self.fadeTimer or 0
 
-            self:SetAlpha(self.fadeTimer/fadeTime)
+            self:SetAlpha(self.fadeTimer / fadeTime)
 
             if self.fadeTimer == 0 then
                 self:SetScript("OnUpdate", nil)
@@ -1052,26 +1103,28 @@ function srslylawlUI.CreateCastBar(parent, unit)
             self.fadeTimer = self.fadeTimer - tick
         end)
     end
+
     function cBar:ChangeBarColor(type)
-        local color = {1, 1, 1, 1}
+        local color = { 1, 1, 1, 1 }
         -- local bgColor = {0, 0, 0, .4}
         if type == "channel" then
-            color = {0.160, 0.411, 1, 1}
+            color = { 0.160, 0.411, 1, 1 }
         elseif type == "cast" then
             -- color = {0.862, 0.549, 0.196, 1}
-            color = {0.862, 0.713, 0.196, 1}
+            color = { 0.862, 0.713, 0.196, 1 }
         elseif type == "uninterruptible" then
-            color = {0.8, 0, 0.741, 1}
+            color = { 0.8, 0, 0.741, 1 }
         elseif type == "success" then
-            color = {0.364, 1, 0.160, 1}
+            color = { 0.364, 1, 0.160, 1 }
         elseif type == "failed" then
-            color = {0.980, 0.152, 0, 1}
+            color = { 0.980, 0.152, 0, 1 }
             -- bgColor = color
         end
         self.StatusBar:SetStatusBarColor(unpack(color))
         -- bgColor[4] = .4
         -- self:SetBackdropColor(unpack(bgColor))
     end
+
     function cBar:CastInterrupted(event, unit, castID, spellID)
         if not self.castID then
             return
@@ -1080,9 +1133,10 @@ function srslylawlUI.CreateCastBar(parent, unit)
         self.StatusBar.SpellName:SetText("Interrupted")
 
         self.castID = nil
-	    self.spellID = nil
+        self.spellID = nil
         self:FadeOut()
     end
+
     function cBar:Interruptible()
         if self.isChannelled then
             self:ChangeBarColor("channel")
@@ -1090,17 +1144,18 @@ function srslylawlUI.CreateCastBar(parent, unit)
             self:ChangeBarColor("cast")
         end
     end
+
     function cBar:UpdateVisible()
         -- if self.isChannelled then
-	    -- 	if self.elapsed and self.elapsed <= 0 then
-	    -- 		self.StatusBar.Timer:SetText("0.0")
+        -- 	if self.elapsed and self.elapsed <= 0 then
+        -- 		self.StatusBar.Timer:SetText("0.0")
         --         self.StatusBar:SetValue(0)
         --         self.spellName = nil
         --         self.castID = nil
         --         self:FadeOut()
         --     end
         -- elseif self.endSeconds and self.elapsed then
-	    -- 	if self.elapsed >= self.endSeconds then
+        -- 	if self.elapsed >= self.endSeconds then
         --         self.spellName = nil
         --         self.castID = nil
         --         self:FadeOut()
@@ -1144,16 +1199,16 @@ function srslylawlUI.CreateCastBar(parent, unit)
 
     cBar.unit = unit
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_START", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", unit)
-	cBar:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", unit)
 
     cBar.name = "CastBar"
     cBar.StatusBar = CreateFrame("StatusBar", "$parent_StatusBar", cBar)
@@ -1176,20 +1231,20 @@ function srslylawlUI.CreateCastBar(parent, unit)
     cBar:SetScript("OnShow", function(self)
         if UnitCastingInfo(self.unit) or UnitChannelInfo(self.unit) then
             if self:GetAlpha() < 0.9 then
-		        self:UpdateCast()
+                self:UpdateCast()
             end
-	    else
+        else
             self.castID = nil
-	        self.spellID = nil
+            self.spellID = nil
             self.StatusBar:Hide()
             self.Icon:Hide()
             self:SetAlpha(0)
-	    end
+        end
     end)
 
     cBar:SetScript("OnHide", function(self)
         self.castID = nil
-	    self.spellID = nil
+        self.spellID = nil
         self.StatusBar:Hide()
         self.Icon:Hide()
         self:SetAlpha(0)
@@ -1197,31 +1252,33 @@ function srslylawlUI.CreateCastBar(parent, unit)
 
     cBar:SetScript("OnEvent", function(self, event, arg1, arg2, arg3)
         if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START" then
-        -- starting cast
+            -- starting cast
             self:UpdateCast()
-        elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "UNIT_SPELLCAST_FAILED" then
-        -- stopping cast
+        elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or
+            event == "UNIT_SPELLCAST_FAILED" then
+            -- stopping cast
             self:StopCast(event, arg1, arg2, arg3)
         elseif event == "UNIT_SPELLCAST_DELAYED" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE" then
-        -- cast delayed
+            -- cast delayed
             self:UpdateDelay()
         elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-        -- cast successful
+            -- cast successful
             self:CastSucceeded(event, arg1, arg2, arg3)
         elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-        -- cast interrupted
+            -- cast interrupted
             self:CastInterrupted(event, unit, castID, spellID)
         elseif event == "UNIT_SPELLCAST_INTERRUPTIBLE" then
-        -- cast can now be interrupted, change color
+            -- cast can now be interrupted, change color
             self:Interruptible()
         elseif event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE" then
-        -- cast can now now longer be interrupted, change color
+            -- cast can now now longer be interrupted, change color
             self:ChangeBarColor("uninterruptible")
         end
     end)
 
     return cBar
 end
+
 function srslylawlUI.BarHandler_Create(frame, barParent)
     frame.BarHandler = CreateFrame("Frame", "$parent_BarHandler", frame)
 
@@ -1252,7 +1309,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
 
             local path
             if specID < 102 or specID > 105 then -- not druid
-                path = "player.playerFrame.power.overrides."..specID.."."..bar.name.."."
+                path = "player.playerFrame.power.overrides." .. specID .. "." .. bar.name .. "."
             else
                 local currentStance = GetShapeshiftFormID()
                 --[[
@@ -1267,13 +1324,13 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                     Tree of Life - 2
                 ]]
                 if currentStance == nil then currentStance = 0 end
-                path = "player.playerFrame.power.overrides."..specID.."."..currentStance.."."..bar.name.."."
+                path = "player.playerFrame.power.overrides." .. specID .. "." .. currentStance .. "." .. bar.name .. "."
             end
-            priority = srslylawlUI.GetSetting(path.."priority", true) or priority
-            height = srslylawlUI.GetSetting(path.."height", true) or height
-            disabled = srslylawlUI.GetSetting(path.."disabled", true) or disabled
-            showWhenInactive = srslylawlUI.GetSetting(path.."showWhenInactive", true) or false
-            reversed = srslylawlUI.GetSetting(path.."reversed", true) or false
+            priority = srslylawlUI.GetSetting(path .. "priority", true) or priority
+            height = srslylawlUI.GetSetting(path .. "height", true) or height
+            disabled = srslylawlUI.GetSetting(path .. "disabled", true) or disabled
+            showWhenInactive = srslylawlUI.GetSetting(path .. "showWhenInactive", true) or false
+            reversed = srslylawlUI.GetSetting(path .. "reversed", true) or false
         end
         bar.disabled = disabled
         bar.isUnparented = false
@@ -1289,7 +1346,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             end
         end
 
-        table.insert(bh.bars, {bar = bar, priority = priority, height = height})
+        table.insert(bh.bars, { bar = bar, priority = priority, height = height })
 
         if not bar:GetScript("OnShow") then
             bar:SetScript("OnShow", function() self:SetPoints() end)
@@ -1303,6 +1360,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             bar:HookScript("OnHide", function() self:SetPoints() end)
         end
     end
+
     function frame:UnregisterBar(bar)
         local found
         for k, v in pairs(bh.bars) do
@@ -1318,10 +1376,11 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         bar.isUnparented = true
         self:SortBars()
     end
+
     function frame:UnregisterAll()
         local actualIndex = 1
         local removed = {}
-        for i=1,#bh.bars do
+        for i = 1, #bh.bars do
             if bh.bars[i].bar.name == "CastBar" then
                 -- Move i's kept value to actualIndex's position, if it's not already there.
                 if i ~= actualIndex then
@@ -1339,6 +1398,7 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             bar:UpdateVisible()
         end
     end
+
     function frame:SortBars()
         table.sort(bh.bars, function(a, b)
             return a.priority < b.priority
@@ -1346,22 +1406,26 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
 
         self:SetPoints()
     end
+
     function frame:SetPoints()
         local currentBar
         local lastBar
         local height
         local started = true
-        
-        for i=1, #bh.bars do
+
+        for i = 1, #bh.bars do
             currentBar = bh.bars[i].bar
             height = bh.bars[i].height or 40
-            if currentBar:IsShown() and currentBar:GetAlpha() > .9 and not currentBar.disabled and not currentBar.isUnparented then --ignore if the bar isnt visible
+            if currentBar:IsShown() and currentBar:GetAlpha() > .9 and not currentBar.disabled and
+                not currentBar.isUnparented then --ignore if the bar isnt visible
                 if not lastBar then
                     srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "TOPLEFT", bh.barParent, "BOTTOMLEFT", 0, -1)
-                    srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "BOTTOMRIGHT", bh.barParent, "BOTTOMRIGHT", 0, -1-height)
+                    srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "BOTTOMRIGHT", bh.barParent, "BOTTOMRIGHT", 0,
+                        -1 - height)
                 else
                     srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "TOPLEFT", lastBar, "BOTTOMLEFT", 0, -1)
-                    srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "BOTTOMRIGHT", lastBar, "BOTTOMRIGHT", 0, -1-height)
+                    srslylawlUI.Utils_SetPointPixelPerfect(currentBar, "BOTTOMRIGHT", lastBar, "BOTTOMRIGHT", 0,
+                        -1 - height)
                 end
                 if currentBar.SetPoints then
                     currentBar:SetPoints(height)
@@ -1373,10 +1437,11 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 currentBar.pointsSet = true
             end
         end
-        for i=1, #bh.bars do
+        for i = 1, #bh.bars do
             bh.bars[i].bar:UpdateVisible()
         end
     end
+
     function frame:SetDemoMode(active)
         if not bh.demoBars then
             bh.demoBars = {}
@@ -1394,11 +1459,12 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                 timer = timer + elapsed
                 if timer <= .1 then return end
                 local currentBar, currentDemoBar, lastBar, height, token, resourceName
-                for i=1, #bh.bars do
+                for i = 1, #bh.bars do
                     if not bh.demoBars[i] then
-                        bh.demoBars[i] = CreateFrame("StatusBar", "$parent_DemoBar"..i, parent)
+                        bh.demoBars[i] = CreateFrame("StatusBar", "$parent_DemoBar" .. i, parent)
                         bh.demoBars[i]:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
-                        bh.demoBars[i].text = srslylawlUI.CreateCustomFontString(bh.demoBars[i], "Text", srslylawlUI.GetSetting("player.playerFrame.power.fontSize"))
+                        bh.demoBars[i].text = srslylawlUI.CreateCustomFontString(bh.demoBars[i], "Text",
+                            srslylawlUI.GetSetting("player.playerFrame.power.fontSize"))
                         bh.demoBars[i].text:SetPoint("CENTER")
                     end
                     currentDemoBar = bh.demoBars[i]
@@ -1409,17 +1475,23 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
 
                     if not currentBar.bar.disabled then
                         if currentBar.bar.color then
-                            currentDemoBar:SetStatusBarColor(currentBar.bar.color.r, currentBar.bar.color.g, currentBar.bar.color.b)
+                            currentDemoBar:SetStatusBarColor(currentBar.bar.color.r, currentBar.bar.color.g,
+                                currentBar.bar.color.b)
                         else
                             currentDemoBar:SetStatusBarColor(1, 1, 1)
                         end
 
                         if not lastBar then
-                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", parent, "BOTTOMLEFT", 0, -1)
-                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, -1-height)
+                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", parent, "BOTTOMLEFT", 0,
+                                -
+                                1)
+                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", parent, "BOTTOMRIGHT",
+                                0, -1 - height)
                         else
-                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", lastBar, "BOTTOMLEFT", 0, -1)
-                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", lastBar, "BOTTOMRIGHT", 0, -1-height)
+                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "TOPLEFT", lastBar, "BOTTOMLEFT", 0,
+                                -1)
+                            srslylawlUI.Utils_SetPointPixelPerfect(currentDemoBar, "BOTTOMRIGHT", lastBar, "BOTTOMRIGHT"
+                                , 0, -1 - height)
                         end
 
                         currentDemoBar.text:SetText(currentBar.bar.name)
@@ -1428,25 +1500,27 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                         lastBar = currentDemoBar
                     end
                 end
-                for i=#bh.bars+1, #bh.demoBars do
+                for i = #bh.bars + 1, #bh.demoBars do
                     bh.demoBars[i]:Hide()
                 end
                 timer = 0
             end)
         else
-            for i=1, #bh.demoBars do
+            for i = 1, #bh.demoBars do
                 bh.demoBars[i]:Hide()
             end
             scriptHolder:SetScript("OnUpdate", nil)
         end
     end
+
     function frame:ReRegisterAll()
-        for i=1, #bh.bars do
+        for i = 1, #bh.bars do
             local b = bh.bars[i]
             frame:RegisterBar(b.bar, b.priority, b.height)
         end
     end
 end
+
 function srslylawlUI.Frame_SetCombatIcon(button)
     if srslylawlUI_ConfigFrame and srslylawlUI_ConfigFrame.fakeFramesToggled then
         button.texture:SetTexCoord(0.5, 1, 0, .5)
@@ -1460,7 +1534,8 @@ function srslylawlUI.Frame_SetCombatIcon(button)
     end
     local unit = button:GetParent():GetAttribute("unit")
     local inCombat = UnitAffectingCombat(unit)
-    local isResting = unit == "player" and IsResting() and button:GetParent():GetAttribute("unitsType") == "mainUnits" or nil
+    local isResting = unit == "player" and IsResting() and button:GetParent():GetAttribute("unitsType") == "mainUnits" or
+        nil
     if button.inCombat == inCombat and button.isResting == isResting then return end
 
     if inCombat then
@@ -1483,6 +1558,7 @@ function srslylawlUI.Frame_SetCombatIcon(button)
     button.inCombat = inCombat
     button.isResting = isResting
 end
+
 function srslylawlUI.CreateBackground(frame, customSize, opacity)
     customSize = customSize or 1
     local background = CreateFrame("Frame", "$parent_background", frame)
@@ -1497,9 +1573,10 @@ function srslylawlUI.CreateBackground(frame, customSize, opacity)
     background:SetFrameStrata("BACKGROUND")
     local frameLevel = frame:GetFrameLevel()
     frameLevel = frameLevel > 0 and frameLevel or 1
-    background:SetFrameLevel(frameLevel-1)
+    background:SetFrameLevel(frameLevel - 1)
     frame.background = background
 end
+
 function srslylawlUI_Frame_OnShow(button)
     local unit = button:GetAttribute("unit")
     if unit then
@@ -1510,6 +1587,7 @@ function srslylawlUI_Frame_OnShow(button)
         end
     end
 end
+
 function srslylawlUI_Frame_OnHide(button)
     local unit = button:GetAttribute("unit")
     local unitsType = button:GetAttribute("unitsType")
@@ -1518,6 +1596,7 @@ function srslylawlUI_Frame_OnHide(button)
     srslylawlUI[unitsType][unit].absorbFramesOverlap[1]:Hide()
     srslylawlUI[unitsType][unit].effectiveHealthFrames[1]:Hide()
 end
+
 function srslylawlUI.Frame_AnchorFromSettings(frame, path)
     local a = srslylawlUI.GetSetting(path)
     srslylawlUI.Utils_SetPointPixelPerfect(frame, a[1], srslylawlUI.TranslateFrameAnchor(a[2]), a[3], a[4], a[5])
@@ -1536,26 +1615,32 @@ function srslylawlUI.Frame_Party_ResetDimensions_ALL()
         end
     end
 end
+
 function srslylawlUI_PartyFrame_OnDragStart()
     if not srslylawlUI_PartyHeader:IsMovable() then return end
     srslylawlUI_PartyHeader:StartMoving()
     srslylawlUI_PartyHeader.isMoving = true
 end
+
 function srslylawlUI_PartyFrame_OnDragStop()
     if srslylawlUI_PartyHeader.isMoving then
         srslylawlUI_PartyHeader:StopMovingOrSizing()
         srslylawlUI_PartyHeader.isMoving = false
-        local points = {srslylawlUI_PartyHeader:GetPoint()}
-        local offsets = {srslylawlUI.Utils_PixelFromScreenToCode(points[4], points[5])}
-        srslylawlUI.ChangeSetting("party.header.position", {points[1], srslylawlUI.TranslateFrameAnchor(points[2]), points[3], unpack(offsets)})
+        local points = { srslylawlUI_PartyHeader:GetPoint() }
+        local offsets = { srslylawlUI.Utils_PixelFromScreenToCode(points[4], points[5]) }
+        srslylawlUI.ChangeSetting("party.header.position",
+            { points[1], srslylawlUI.TranslateFrameAnchor(points[2]), points[3], unpack(offsets) })
         if srslylawlUI_PartyHeader.ResetAnchoringPanel then
-            srslylawlUI_PartyHeader:ResetAnchoringPanel(unpack({points[1], srslylawlUI.TranslateFrameAnchor(points[2]), points[3], unpack(offsets)}))
+            srslylawlUI_PartyHeader:ResetAnchoringPanel(unpack({ points[1], srslylawlUI.TranslateFrameAnchor(points[2]),
+                points[3], unpack(offsets) }))
         end
     end
 end
+
 function srslylawlUI.Frame_IsHeaderVisible()
     return srslylawlUI_PartyHeader:IsVisible()
 end
+
 function srslylawlUI.Frame_UpdateVisibility()
     local function UpdateHeaderVisible(show)
         local frame = srslylawlUI_PartyHeader
@@ -1576,7 +1661,7 @@ function srslylawlUI.Frame_UpdateVisibility()
     local isInBG = C_PvP.IsBattleground()
     local isInGroup = IsInGroup() and not IsInRaid()
     local isInRaid = IsInRaid() and not C_PvP.IsArena()
-    
+
     if isInGroup then
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showParty"))
     elseif isInRaid then
@@ -1597,6 +1682,7 @@ function srslylawlUI.Frame_UpdateVisibility()
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showSolo"))
     end
 end
+
 function srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
     local reversed = srslylawlUI.GetSetting("party.hp.reversed")
     local alignment = reversed and "TOPRIGHT" or "TOPLEFT"
@@ -1619,26 +1705,28 @@ function srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
         end
 
         local parent = frame.unit.healthBar
-        for i=1, #srslylawlUI.partyUnits[unit].absorbFramesOverlap do
+        for i = 1, #srslylawlUI.partyUnits[unit].absorbFramesOverlap do
             local f = srslylawlUI.partyUnits[unit].absorbFramesOverlap[i]
             f:ClearAllPoints()
             srslylawlUI.Utils_SetPointPixelPerfect(f, oAnchor1, parent, oAnchor2, oXOffset, 0)
             parent = f
         end
         parent = frame.unit.healthBar
-        for i=1, #srslylawlUI.partyUnits[unit].absorbFrames do
+        for i = 1, #srslylawlUI.partyUnits[unit].absorbFrames do
             local f = srslylawlUI.partyUnits[unit].absorbFrames[i]
             f:ClearAllPoints()
             srslylawlUI.Utils_SetPointPixelPerfect(f, anchor1, parent, anchor2, xOffset, 0)
             parent = f
         end
         srslylawlUI.partyUnits[unit]["effectiveHealthFrames"][1]:ClearAllPoints()
-        srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI.partyUnits[unit]["effectiveHealthFrames"][1], anchor1, frame.unit.healthBar, anchor2, xOffset, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI.partyUnits[unit]["effectiveHealthFrames"][1], anchor1,
+            frame.unit.healthBar, anchor2, xOffset, 0)
     end
     srslylawlUI.Party_HandleAuras_ALL()
 end
+
 function srslylawlUI.Frame_UpdateMainHealthBarAlignment()
-    for _, unit in pairs({"player", "target"}) do
+    for _, unit in pairs({ "player", "target" }) do
         local reversed = srslylawlUI.GetSettingByUnit("hp.reversed", "mainUnits", unit)
         local oAnchor1, oAnchor2 = "TOPRIGHT", "TOPLEFT"
         local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
@@ -1655,21 +1743,22 @@ function srslylawlUI.Frame_UpdateMainHealthBarAlignment()
         end
 
         local parent = frame.unit.healthBar
-        for i=1, #srslylawlUI.mainUnits[unit].absorbFramesOverlap do
+        for i = 1, #srslylawlUI.mainUnits[unit].absorbFramesOverlap do
             local f = srslylawlUI.mainUnits[unit].absorbFramesOverlap[i]
             f:ClearAllPoints()
             srslylawlUI.Utils_SetPointPixelPerfect(f, oAnchor1, parent, oAnchor2, oXOffset, 0)
             parent = f
         end
         parent = frame.unit.healthBar
-        for i=1, #srslylawlUI.mainUnits[unit].absorbFrames do
+        for i = 1, #srslylawlUI.mainUnits[unit].absorbFrames do
             local f = srslylawlUI.mainUnits[unit].absorbFrames[i]
             f:ClearAllPoints()
             srslylawlUI.Utils_SetPointPixelPerfect(f, anchor1, parent, anchor2, xOffset, 0)
             parent = f
         end
         srslylawlUI.mainUnits[unit]["effectiveHealthFrames"][1]:ClearAllPoints()
-        srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI.mainUnits[unit]["effectiveHealthFrames"][1], anchor1, frame.unit.healthBar, anchor2, xOffset, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI.mainUnits[unit]["effectiveHealthFrames"][1], anchor1,
+            frame.unit.healthBar, anchor2, xOffset, 0)
     end
     srslylawlUI.Main_HandleAuras_ALL()
 end
@@ -1689,6 +1778,7 @@ function srslylawlUI.Frame_Main_ResetDimensions_ALL()
         end
     end
 end
+
 function srslylawlUI.Frame_ResetCCDurBar(button)
     local unit, unitsType = button:GetAttribute("unit"), button:GetAttribute("unitsType")
     local h = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
@@ -1700,26 +1790,30 @@ function srslylawlUI.Frame_ResetCCDurBar(button)
 
     end
     local h = srslylawlUI.GetSetting("party.hp.height")
-    local h2 = h*srslylawlUI.GetSetting("party.ccbar.heightPercent")
+    local h2 = h * srslylawlUI.GetSetting("party.ccbar.heightPercent")
     local w = srslylawlUI.GetSetting("party.ccbar.width")
     button.unit.CCDurBar:SetPoints(w, h2)
     button.unit.CCDurBar:SetReverseFill(srslylawlUI.GetSetting("party.ccbar.reversed"))
 end
+
 function srslylawlUI.PlayerFrame_OnDragStart(self)
     if self:IsMovable() then
         self.isMoving = true
         self:StartMoving()
     end
 end
+
 function srslylawlUI.PlayerFrame_OnDragStop(self)
     if self.isMoving then
         self:StopMovingOrSizing()
         self.isMoving = false
-        local points = {self:GetPoint()}
-        local offsets = {srslylawlUI.Utils_PixelFromScreenToCode(points[4], points[5])}
-        srslylawlUI.ChangeSetting("player."..self:GetAttribute("unit").."Frame.position", {points[1], srslylawlUI.TranslateFrameAnchor(points[2]), points[3], unpack(offsets)})
+        local points = { self:GetPoint() }
+        local offsets = { srslylawlUI.Utils_PixelFromScreenToCode(points[4], points[5]) }
+        srslylawlUI.ChangeSetting("player." .. self:GetAttribute("unit") .. "Frame.position",
+            { points[1], srslylawlUI.TranslateFrameAnchor(points[2]), points[3], unpack(offsets) })
         if self.ResetAnchoringPanel then
-            self:ResetAnchoringPanel(unpack({points[1], srslylawlUI.TranslateFrameAnchor(points[2]), points[3], unpack(offsets)}))
+            self:ResetAnchoringPanel(unpack({ points[1], srslylawlUI.TranslateFrameAnchor(points[2]), points[3],
+                unpack(offsets) }))
         end
     end
 end
@@ -1737,8 +1831,8 @@ function srslylawlUI.RegisterEvents(buttonFrame)
     buttonFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", unit)
     buttonFrame:RegisterUnitEvent("UNIT_TARGET", unit)
     buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
-    
-    
+
+
     if unit ~= "targettarget" then
         buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
         buttonFrame:RegisterUnitEvent("UNIT_CONNECTION", unit)
@@ -1755,6 +1849,7 @@ function srslylawlUI.RegisterEvents(buttonFrame)
         buttonFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     end
 end
+
 function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
     local function UpdatePowerBar(unit, unitsType, token)
         if unit == "player" and unitsType == "mainUnits" then
@@ -1763,6 +1858,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             srslylawlUI.SetPowerBarValues(self.unit, unit)
         end
     end
+
     local unit = self:GetAttribute("unit")
     local unitExists = UnitExists(unit)
     local unitsType = self:GetAttribute("unitsType")
@@ -1818,13 +1914,13 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
     elseif event == "PARTY_LEADER_CHANGED" then
         self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
     elseif event == "READY_CHECK" then
-            srslylawlUI.Frame_ReadyCheck(self, arg1 == UnitName(unit) and "ready" or "start")
+        srslylawlUI.Frame_ReadyCheck(self, arg1 == UnitName(unit) and "ready" or "start")
     elseif event == "READY_CHECK_CONFIRM" then
-            srslylawlUI.Frame_ReadyCheck(self, arg2 and "ready" or "notready")
+        srslylawlUI.Frame_ReadyCheck(self, arg2 and "ready" or "notready")
     elseif event == "READY_CHECK_FINISHED" then
-            srslylawlUI.Frame_ReadyCheck(self, "end")
+        srslylawlUI.Frame_ReadyCheck(self, "end")
     elseif event == "UNIT_TARGET" and unit == "target" or unit == "targettarget" then
-            srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
+        srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
     elseif arg1 and UnitIsUnit(unit, arg1) and arg1 ~= "nameplate1" then
         if event == "UNIT_MAXHEALTH" then
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
@@ -1851,7 +1947,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             if unit == "player" and unitsType == "mainUnits" then
                 srslylawlUI.PowerBar.UpdateMax(self, arg2)
             else
-               srslylawlUI.SetPowerBarValues(self.unit, unit)
+                srslylawlUI.SetPowerBarValues(self.unit, unit)
             end
         elseif event == "UNIT_NAME_UPDATE" then
             if unit == "target" then
@@ -1866,10 +1962,13 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
             if unitsType == "partyUnits" then
                 if UnitName(unit) ~= "Unknown" then
-                    srslylawlUI.Log(UnitName(unit) .. (UnitIsConnected(unit) and " is now online." or " is now offline."))
+                    srslylawlUI.Log(UnitName(unit) ..
+                        (UnitIsConnected(unit) and " is now online." or " is now offline."
+                        ))
                 end
             end
-        elseif event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_PREDICTION" then
+        elseif event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" or
+            event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_PREDICTION" then
             srslylawlUI.HandleAuras(self.unit, unit)
         elseif event == "UNIT_PHASE" then
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
@@ -1904,6 +2003,7 @@ function srslylawlUI.Frame_ResetUnitThreat(button, unit)
         button.healthBar.leftText:SetTextColor(1, 1, 1)
     end
 end
+
 function srslylawlUI.Frame_ResetUnitButton(button, unit)
     srslylawlUI.Frame_ResetHealthBar(button, unit)
     srslylawlUI.Frame_ResetPowerBar(button, unit)
@@ -1915,14 +2015,16 @@ function srslylawlUI.Frame_ResetUnitButton(button, unit)
         button.selected:Hide()
     end
 end
+
 function srslylawlUI.Frame_ResetName(button, unit)
     if unit == "target" or unit == "targettarget" then
         srslylawlUI.Frame_ResetHealthBar(button, unit)
         return
     end
     local name = UnitName(unit) or UNKNOWN
-    button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.45, name, true)
+    button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth() * 0.45, name, true)
 end
+
 function srslylawlUI.Frame_ResetPetButton(button, unit)
     if UnitExists(unit) then
         local health = UnitHealth(unit)
@@ -1931,22 +2033,25 @@ function srslylawlUI.Frame_ResetPetButton(button, unit)
         button.healthBar:SetValue(health)
     end
 end
+
 function srslylawlUI.Frame_ResetHealthBar(button, unit)
     local class = select(2, UnitClass(unit))
     local SBColor
     local isPlayer = UnitIsPlayer(unit)
     local health = UnitHealth(unit)
     local healthMax = UnitHealthMax(unit)
+    healthMax = healthMax == 0 and 1 or healthMax
     local healthPercent = healthMax == 0 and 100 or srslylawlUI.Utils_ScuffedRound(health / healthMax * 100)
 
     local rightText = ""
     if unit == "target" then
-        rightText = srslylawlUI.ShortenNumber(health).."/"..srslylawlUI.ShortenNumber(healthMax)
+        rightText = srslylawlUI.ShortenNumber(health) .. "/" .. srslylawlUI.ShortenNumber(healthMax)
     else
-        rightText = srslylawlUI.ShortenNumber(health).." "..healthPercent .. "%"
+        rightText = srslylawlUI.ShortenNumber(health) .. " " .. healthPercent .. "%"
     end
     if isPlayer and class then
-        SBColor = { RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b, RAID_CLASS_COLORS[class].a }
+        SBColor = { RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b,
+            RAID_CLASS_COLORS[class].a }
         local alive = not UnitIsDeadOrGhost(unit)
         local online = UnitIsConnected(unit)
         local inRange = UnitInRange(unit)
@@ -1981,21 +2086,22 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
         button.online = online
         button.wasInRange = inRange
     else --npc
-        SBColor = {UnitSelectionColor(unit, true)}
+        SBColor = { UnitSelectionColor(unit, true) }
         if not UnitPlayerControlled(unit) and UnitIsTapDenied(unit) and UnitCanAttack("player", unit) then
-            SBColor = {0.5, 0.5, 0.5, 1}
+            SBColor = { 0.5, 0.5, 0.5, 1 }
         end
     end
 
     if unit == "target" then
         local name = UnitName(unit) or UNKNOWN
-        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth()*0.45, healthPercent .. "%".." ".. name, true)
-        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.45, rightText)
+        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth() * 0.45, healthPercent .. "%" .. " " .. name
+            , true)
+        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth() * 0.45, rightText)
     elseif unit == "targettarget" then
         local name = UnitName(unit) or UNKNOWN
-        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth(), healthPercent .. "%".." ".. name, true)
+        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth(), healthPercent .. "%" .. " " .. name, true)
     else
-        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth()*0.45, rightText)
+        button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth() * 0.45, rightText)
     end
     button.healthBar:SetMinMaxValues(0, healthMax)
     button.healthBar:SetValue(health)
@@ -2005,6 +2111,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     end
     srslylawlUI.Frame_ResetUnitThreat(button, unit)
 end
+
 function srslylawlUI.Frame_ResetPowerBar(button, unit)
     local unitsType = button:GetAttribute("unitsType")
     local powerType, powerToken = UnitPowerType(unit)
@@ -2019,13 +2126,15 @@ function srslylawlUI.Frame_ResetPowerBar(button, unit)
     button.powerBar.text.enabled = srslylawlUI.GetSettingByUnit("power.text", unitsType, unit)
     srslylawlUI.SetPowerBarValues(button, unit)
 end
+
 function srslylawlUI.SetPowerBarValues(button, unit)
     local max = UnitPowerMax(unit)
+    max = max == 0 and 1 or max
     local curr = UnitPower(unit)
     button.powerBar:SetMinMaxValues(0, max)
     button.powerBar:SetValue(curr)
     if button.powerBar.text.enabled then
-        local percent = max > 0 and srslylawlUI.Utils_ScuffedRound(curr/max*100) or -1
+        local percent = max > 0 and srslylawlUI.Utils_ScuffedRound(curr / max * 100) or -1
         button.powerBar.text:SetText(percent >= 0 and percent or "")
     else
         button.powerBar.text:SetText("")
@@ -2034,10 +2143,12 @@ function srslylawlUI.SetPowerBarValues(button, unit)
         button.powerBar:SetShown(max > 0)
     end
 end
+
 function srslylawlUI.Frame_ResetDimensions(button)
     local unit = button:GetAttribute("unit")
     local unitsType = button:GetAttribute("unitsType")
-    local h, w = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit), srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
+    local h, w = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit),
+        srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
     local fontSize = srslylawlUI.GetSettingByUnit("hp.fontSize", unitsType, unit)
     local checkFrame = button.unit.healthBar
     if unitsType == "partyUnits" or unitsType == "fauxUnits" then
@@ -2068,7 +2179,7 @@ function srslylawlUI.Frame_ResetDimensions(button)
             srslylawlUI.Utils_SetSizePixelPerfect(button.unit, frameW, frameH)
         end
 
-        if unit == "player" and unitsType == "mainUnits"then
+        if unit == "player" and unitsType == "mainUnits" then
             button:SetPoints() --reparent powerbars
         end
     end
@@ -2081,6 +2192,7 @@ function srslylawlUI.Frame_ResetDimensions(button)
 
     srslylawlUI.Frame_ResetUnitButton(button.unit, button:GetAttribute("unit"))
 end
+
 function srslylawlUI.Frame_ResetDimensions_Pet(button)
     --manipulating the petframe will cause taint in combat
     if InCombatLockdown() then
@@ -2090,18 +2202,22 @@ function srslylawlUI.Frame_ResetDimensions_Pet(button)
     local unitsType = button:GetAttribute("unitsType")
     if unitsType ~= "mainUnits" then
         srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "TOPLEFT", button.unit, "TOPRIGHT", 1, 0)
-        srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMRIGHT", button.unit, "BOTTOMRIGHT", srslylawlUI.GetSetting("party.pet.width"), 0)
-        srslylawlUI.Utils_SetPointPixelPerfect(button.unit.CCDurBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", srslylawlUI.GetSetting("party.pet.width")+4, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMRIGHT", button.unit, "BOTTOMRIGHT",
+            srslylawlUI.GetSetting("party.pet.width"), 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(button.unit.CCDurBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT",
+            srslylawlUI.GetSetting("party.pet.width") + 4, 0)
     else
         local unit = button:GetAttribute("unit")
         if unit == "player" then
             button.pet:ClearAllPoints()
             srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "TOPRIGHT", button.unit, "TOPLEFT", -1, 0)
-            srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMLEFT", button.unit, "BOTTOMLEFT", -srslylawlUI.GetSetting("player."..unit.."Frame.pet.width"), 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMLEFT", button.unit, "BOTTOMLEFT",
+                -srslylawlUI.GetSetting("player." .. unit .. "Frame.pet.width"), 0)
         end
     end
 
 end
+
 function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
     local unitsType = button:GetAttribute("unitsType")
     button.unit.powerBar:ClearAllPoints()
@@ -2111,7 +2227,7 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
         baseWidth = srslylawlUI.GetDefault("party.power.width")
         width = srslylawlUI.GetSetting("party.power.width")
         srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
-        srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2 + width), 0)
     else
         local unit = button:GetAttribute("unit")
         baseWidth = srslylawlUI.GetDefaultByUnit("power.width", unitsType, unit)
@@ -2119,11 +2235,16 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
         if unit ~= "player" then
             local pos = srslylawlUI.GetSettingByUnit("power.position", unitsType, unit)
             if pos == "LEFT" then
-                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT", -1, 0)
-                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT", -(2+width), 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMRIGHT", button.unit, "BOTTOMLEFT",
+                    -
+                    1, 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPLEFT", button.unit, "TOPLEFT",
+                    -(2 + width), 0)
             else
-                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1, 0)
-                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT", (2+width), 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT", 1
+                    , 0)
+                srslylawlUI.Utils_SetPointPixelPerfect(button.unit.powerBar, "TOPRIGHT", button.unit, "TOPRIGHT",
+                    (2 + width), 0)
             end
         end
     end
@@ -2132,6 +2253,7 @@ function srslylawlUI.Frame_ResetDimensions_PowerBar(button)
         button.unit.powerBar.text:ScaleToFit(width, width, baseWidth)
     end
 end
+
 function srslylawlUI.Frame_ResetCombatIcon(unitFrame)
     local unitsType = unitFrame:GetAttribute("unitsType")
     local unit = unitFrame:GetAttribute("unit")
@@ -2155,6 +2277,7 @@ function srslylawlUI.ToggleAllFrames(bool)
             frame:SetShown(bool)
         end
     end
+
     local playerEnabled = srslylawlUI.GetSetting("player.playerFrame.enabled") and bool
     local targetEnabled = srslylawlUI.GetSetting("player.targetFrame.enabled") and bool
     local ttargetEnabled = srslylawlUI.GetSetting("player.targettargetFrame.enabled") and bool
@@ -2179,6 +2302,7 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
         else return false
         end
     end
+
     local function ReverseAnchorPointPos(str, pos)
         if pos == 1 then
             local firstPoint
@@ -2187,7 +2311,7 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
                 firstPoint = ReversePos(str:sub(1, i))
                 i = i + 1
             end
-            return firstPoint..str:sub(i)
+            return firstPoint .. str:sub(i)
         elseif pos == 2 then
             local secondPoint
             local i = string.len(str)
@@ -2196,50 +2320,53 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
                 secondPoint = ReversePos(str:sub(i, max))
                 i = i - 1
             end
-            return str:sub(1, i)..secondPoint
+            return str:sub(1, i) .. secondPoint
         else -- reverse both
             return ReverseAnchorPointPos(ReverseAnchorPointPos(str, 1), 2)
         end
     end
+
     local function ReparentOnHideShow(frame)
         frame:SetScript("OnHide", function()
-        srslylawlUI.SetAuraPointsAll(unit, unitsType)
+            srslylawlUI.SetAuraPointsAll(unit, unitsType)
         end)
         frame:SetScript("OnShow", function()
-        srslylawlUI.SetAuraPointsAll(unit, unitsType)
+            srslylawlUI.SetAuraPointsAll(unit, unitsType)
         end)
     end
+
     local unitsTable = srslylawlUI[unitsType]
     local unitFrame = unitsTable[unit].unitFrame
     local frames = auraType == "buffs" and unitsTable[unit].buffFrames or unitsTable[unit].debuffFrames
     local rowAnchor
     local path = (unitsType == "mainUnits" or unitsType == "mainFauxUnits") and "player." or "party."
     if unitsType == "mainUnits" or unitsType == "mainFauxUnits" then
-        path = path .. unit.."Frame."
+        path = path .. unit .. "Frame."
     end
 
-    local anchorMethod = srslylawlUI.GetSetting(path..auraType..".anchor")
+    local anchorMethod = srslylawlUI.GetSetting(path .. auraType .. ".anchor")
     local maxRowLength, initialAnchorPoint, initialAnchorPointRelative, anchorPoint, anchorPointRelative
     local offset = 3
     local initialXOffset, initialYOffset, xOffset, yOffset
-    local defaultSize = srslylawlUI.GetSetting(path..auraType..".size")
-    local scaledSize = defaultSize + srslylawlUI.GetSetting(path..auraType..".scaledSize")
-    local frameXOffset = srslylawlUI.GetSetting(path..auraType..".xOffset")
-    local frameYOffset = srslylawlUI.GetSetting(path..auraType..".yOffset")
+    local defaultSize = srslylawlUI.GetSetting(path .. auraType .. ".size")
+    local scaledSize = defaultSize + srslylawlUI.GetSetting(path .. auraType .. ".scaledSize")
+    local frameXOffset = srslylawlUI.GetSetting(path .. auraType .. ".xOffset")
+    local frameYOffset = srslylawlUI.GetSetting(path .. auraType .. ".yOffset")
 
-    local anchorTo = srslylawlUI.GetSetting(path..auraType..".anchoredTo")
+    local anchorTo = srslylawlUI.GetSetting(path .. auraType .. ".anchoredTo")
     if anchorTo == "Buffs" and unitsTable[unit]["buffsAnchor"] and unitsTable[unit]["buffsAnchor"]:IsShown() then
         rowAnchor = unitsTable[unit]["buffsAnchor"]
-        anchorMethod = srslylawlUI.GetSetting(path.."buffs.anchor")
+        anchorMethod = srslylawlUI.GetSetting(path .. "buffs.anchor")
     elseif anchorTo == "Debuffs" and unitsTable[unit]["debuffsAnchor"] and unitsTable[unit]["debuffsAnchor"]:IsShown() then
         rowAnchor = unitsTable[unit]["debuffsAnchor"]
-        anchorMethod = srslylawlUI.GetSetting(path.."debuffs.anchor")
+        anchorMethod = srslylawlUI.GetSetting(path .. "debuffs.anchor")
     else
         rowAnchor = unitFrame.unit
     end
 
-    if anchorMethod == "TOPLEFT" or anchorMethod == "TOPRIGHT" or anchorMethod == "BOTTOMLEFT" or anchorMethod == "BOTTOMRIGHT" then
-        maxRowLength = srslylawlUI.GetSetting(path.."hp.width")
+    if anchorMethod == "TOPLEFT" or anchorMethod == "TOPRIGHT" or anchorMethod == "BOTTOMLEFT" or
+        anchorMethod == "BOTTOMRIGHT" then
+        maxRowLength = srslylawlUI.GetSetting(path .. "hp.width")
         initialAnchorPoint = ReverseAnchorPointPos(anchorMethod, 1)
         initialAnchorPointRelative = anchorMethod
         anchorPoint = (anchorMethod == "TOPLEFT" or anchorMethod == "BOTTOMLEFT") and "LEFT" or "RIGHT"
@@ -2249,7 +2376,7 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
         xOffset = (anchorMethod == "TOPLEFT" or anchorMethod == "BOTTOMLEFT") and 1 or -1
         yOffset = 0
     else
-        maxRowLength = srslylawlUI.GetSetting(path.."hp.height")
+        maxRowLength = srslylawlUI.GetSetting(path .. "hp.height")
         if anchorMethod == "LEFTBOTTOM" then
             initialAnchorPoint = "BOTTOMRIGHT"
             initialAnchorPointRelative = "BOTTOMLEFT"
@@ -2283,15 +2410,15 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
 
 
     local currentRowLength = 0
-    if unitsTable[unit][auraType.."Anchor"] then
-        unitsTable[unit][auraType.."Anchor"]:SetScript("OnHide", nil)
+    if unitsTable[unit][auraType .. "Anchor"] then
+        unitsTable[unit][auraType .. "Anchor"]:SetScript("OnHide", nil)
     end
     local rowHasScaledFrame = false
     local lastRowHasScaledFrame = rowAnchor.rowHasScaledFrame or not rowAnchor == unitFrame.unit or false
     local rowAnchorIsScaled = rowAnchor.isScaled or not rowAnchor == unitFrame.unit or false
     local lastAnchorWasOffset = false
     local anchorFrame
-    for i=1, #frames do
+    for i = 1, #frames do
         local frame = frames[i]
         local frameSize = frame.size or defaultSize
         if frame:IsShown() and frameSize > defaultSize then
@@ -2301,20 +2428,23 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
         if i == 1 then
             frame.anchor = rowAnchor
             if not rowAnchorIsScaled and lastRowHasScaledFrame and rowAnchor.size then --if rowanchor is not scaled and their row had a scaled frame
-                local scaledOffset = (frameSize-rowAnchor.size) / 2
-                srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset)+frameXOffset+(initialXOffset*scaledOffset), (initialYOffset*offset)+frameYOffset+(initialYOffset*scaledOffset))
+                local scaledOffset = (frameSize - rowAnchor.size) / 2
+                srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative,
+                    (initialXOffset * offset) + frameXOffset + (initialXOffset * scaledOffset),
+                    (initialYOffset * offset) + frameYOffset + (initialYOffset * scaledOffset))
             else
-                srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset)+frameXOffset, (initialYOffset*offset)+frameYOffset)
+                srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative,
+                    (initialXOffset * offset) + frameXOffset, (initialYOffset * offset) + frameYOffset)
             end
             rowAnchor = frame
             if frame:IsShown() then
-                unitsTable[unit][auraType.."Anchor"] = frame
+                unitsTable[unit][auraType .. "Anchor"] = frame
                 anchorFrame = frame
                 anchorFrame.size = frameSize
                 rowAnchorIsScaled = rowHasScaledFrame
                 lastAnchorWasOffset = false
             else
-                unitsTable[unit][auraType.."Anchor"] = unitFrame.unit
+                unitsTable[unit][auraType .. "Anchor"] = unitFrame.unit
             end
             ReparentOnHideShow(frame)
             currentRowLength = frameSize
@@ -2323,15 +2453,19 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
                 --doesnt fit into row
                 frame.anchor = rowAnchor
                 if rowHasScaledFrame and not rowAnchorIsScaled and rowAnchor.size then
-                    local scaledOffset scaledOffset = (scaledSize-rowAnchor.size) / 2
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset)+(initialXOffset*scaledOffset), (initialYOffset*offset)+(initialYOffset*scaledOffset))
+                    local scaledOffset
+                    scaledOffset = (scaledSize - rowAnchor.size) / 2
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor,
+                        initialAnchorPointRelative, (initialXOffset * offset) + (initialXOffset * scaledOffset),
+                        (initialYOffset * offset) + (initialYOffset * scaledOffset))
                 else
-                    srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor, initialAnchorPointRelative, (initialXOffset*offset), (initialYOffset*offset))
+                    srslylawlUI.Utils_SetPointPixelPerfect(frame, initialAnchorPoint, rowAnchor,
+                        initialAnchorPointRelative, (initialXOffset * offset), (initialYOffset * offset))
                 end
 
                 rowAnchor = frame
                 if frame:IsShown() then
-                    unitsTable[unit][auraType.."Anchor"] = frame
+                    unitsTable[unit][auraType .. "Anchor"] = frame
                     anchorFrame = frame
                     anchorFrame.size = frameSize
                     frame.rowHasScaledFrame = rowHasScaledFrame
@@ -2341,7 +2475,8 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
                 ReparentOnHideShow(frame)
                 currentRowLength = frameSize
             else
-                srslylawlUI.Utils_SetPointPixelPerfect(frame, anchorPoint, frames[i-1], anchorPointRelative, xOffset*offset, yOffset*offset)
+                srslylawlUI.Utils_SetPointPixelPerfect(frame, anchorPoint, frames[i - 1], anchorPointRelative,
+                    xOffset * offset, yOffset * offset)
                 currentRowLength = currentRowLength + frameSize + offset
                 frame:SetScript("OnHide", nil)
                 frame:SetScript("OnShow", nil)
@@ -2350,14 +2485,19 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
         if rowHasScaledFrame and anchorFrame and not rowAnchorIsScaled and not lastAnchorWasOffset then
             lastAnchorWasOffset = true
             scaledSize = frameSize
-            local scaledOffset = (frameSize-anchorFrame.size) / 2
+            local scaledOffset = (frameSize - anchorFrame.size) / 2
             if anchorFrame.anchor.size and anchorFrame.anchor.size == anchorFrame.size then
                 scaledOffset = scaledOffset * 2
             end
             if anchorFrame == frames[1] then
-                srslylawlUI.Utils_SetPointPixelPerfect(anchorFrame, initialAnchorPoint, anchorFrame.anchor, initialAnchorPointRelative, (initialXOffset*offset)+frameXOffset+(initialXOffset*scaledOffset), (initialYOffset*offset)+frameYOffset+(initialYOffset*scaledOffset))
+                srslylawlUI.Utils_SetPointPixelPerfect(anchorFrame, initialAnchorPoint, anchorFrame.anchor,
+                    initialAnchorPointRelative,
+                    (initialXOffset * offset) + frameXOffset + (initialXOffset * scaledOffset
+                    ), (initialYOffset * offset) + frameYOffset + (initialYOffset * scaledOffset))
             else
-                srslylawlUI.Utils_SetPointPixelPerfect(anchorFrame, initialAnchorPoint, anchorFrame.anchor, initialAnchorPointRelative, (initialXOffset*offset)+(initialXOffset*scaledOffset), (initialYOffset*offset)+(initialYOffset*scaledOffset))
+                srslylawlUI.Utils_SetPointPixelPerfect(anchorFrame, initialAnchorPoint, anchorFrame.anchor,
+                    initialAnchorPointRelative, (initialXOffset * offset) + (initialXOffset * scaledOffset),
+                    (initialYOffset * offset) + (initialYOffset * scaledOffset))
             end
 
             anchorFrame.rowHasScaledFrame = true
@@ -2367,6 +2507,7 @@ function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
         srslylawlUI.Utils_SetSizePixelPerfect(frame, frameSize, frameSize)
     end
 end
+
 function srslylawlUI.SetAuraPointsAll(unit, unitsType)
     --order matters depending on what is anchored to what
     if srslylawlUI[unitsType][unit].buffsAnchor then
@@ -2390,6 +2531,7 @@ function srslylawlUI.Frame_GetFrameByUnit(unit, unitsType)
     -- returns buttonframe that matches unit attribute
     return srslylawlUI[unitsType][unit].unitFrame
 end
+
 function srslylawlUI.Frame_MakeFrameMoveable(frame)
     frame:SetScript("OnMouseDown", function(self, button)
         if button == "LeftButton" and not self.isMoving and self:IsMovable() then
@@ -2414,24 +2556,24 @@ function srslylawlUI.Frame_MakeFrameMoveable(frame)
     frame:EnableMouse(true)
 end
 
-
 function srslylawlUI.Frame_GetCustomPowerBarColor(powerToken)
     if type(powerToken) == "string" then
         powerToken = string.upper(powerToken)
     end
     local color = PowerBarColor[powerToken]
     if powerToken == "MANA" or powerToken == 0 then
-        color = {r=0.349, g=0.522, b=0.953}
+        color = { r = 0.349, g = 0.522, b = 0.953 }
     elseif powerToken == "LUNAR_POWER" or powerToken == "MAELSTROM" then
-        color = {r=0, g=0, b=1}
+        color = { r = 0, g = 0, b = 1 }
     end
-    color = color or {r=1, g=1, b=1}
+    color = color or { r = 1, g = 1, b = 1 }
     return color
 end
+
 function srslylawlUI.Frame_ResizeHealthBarScale()
     local list, highestHP, averageHP = srslylawlUI.GetPartyHealth()
 
-    if not highestHP then
+    if not highestHP or highestHp == 0 then
         return
     end
 
@@ -2452,8 +2594,6 @@ function srslylawlUI.Frame_ResizeHealthBarScale()
     srslylawlUI.Frame_Party_ResetDimensions_ALL()
 end
 
-
-
 function srslylawlUI.Frame_ReadyCheck(button, state)
     local rc = button.ReadyCheck
 
@@ -2461,11 +2601,11 @@ function srslylawlUI.Frame_ReadyCheck(button, state)
         --hide
         button.ReadyCheck:SetScript("OnUpdate", function(self, elapsed)
             local alpha = self:GetAlpha()
-            alpha = alpha - elapsed*0.1
+            alpha = alpha - elapsed * 0.1
             if alpha <= 0 then
-               self:Hide()
-               self:SetScript("OnUpdate", nil)
-               return
+                self:Hide()
+                self:SetScript("OnUpdate", nil)
+                return
             else
                 self:SetAlpha(alpha)
             end
@@ -2484,18 +2624,19 @@ function srslylawlUI.Frame_ReadyCheck(button, state)
         button.ReadyCheck:Show()
     end
 end
+
 function srslylawlUI.Frame_UpdateCombatIcon(self, elapsed)
     self.timer = (self.timer or 0) + elapsed
-	if self.timer <= .5 then return end
-	self.timer = self.timer - .5
+    if self.timer <= .5 then return end
+    self.timer = self.timer - .5
     srslylawlUI.Frame_SetCombatIcon(self)
 end
-
 
 --Sorting
 function srslylawlUI.SortAfterCombat()
     srslylawlUI_EventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 end
+
 function srslylawlUI.SortAfterLogin()
     local _, _, _, hasUnknownMember = srslylawlUI.GetPartyHealth()
     if srslylawlUI.Frame_IsHeaderVisible and not hasUnknownMember then
@@ -2506,10 +2647,12 @@ function srslylawlUI.SortAfterLogin()
         C_Timer.After(.5, function() srslylawlUI.SortAfterLogin() end)
     end
 end
+
 function srslylawlUI.SortPartyFrames()
     if not srslylawlUI.GetSetting("party.sorting.enabled") then
         local showPlayer = srslylawlUI.GetSetting("party.visibility.showPlayer")
-        if not srslylawlUI.partyFramesDefaultSortActive or (showPlayer ~= srslylawlUI.partyUnits["player"].unitFrame.unit.registered) then
+        if not srslylawlUI.partyFramesDefaultSortActive or
+            (showPlayer ~= srslylawlUI.partyUnits["player"].unitFrame.unit.registered) then
             local parent = srslylawlUI_PartyHeader
             for i, unit in ipairs(srslylawlUI.partyUnitsTable) do
                 local buttonFrame = srslylawlUI.partyUnits[unit].unitFrame.unit
@@ -2542,9 +2685,9 @@ function srslylawlUI.SortPartyFrames()
         return
     end
     local list, _, _, hasUnknownMember = srslylawlUI.GetPartyHealth()
-    
+
     if not list then return end
-    
+
     if InCombatLockdown() then
         srslylawlUI.SortAfterCombat()
         return
@@ -2595,6 +2738,7 @@ function srslylawlUI.SortPartyFrames()
     end
 
 end
+
 function srslylawlUI.UpdateEverything()
     if not InCombatLockdown() then
         srslylawlUI.SortPartyFrames()

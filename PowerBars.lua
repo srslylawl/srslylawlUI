@@ -228,7 +228,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         local buttons = self.desiredButtonCount
         local totalpadding = (buttons - 1) * self.padding
         totalSize = totalSize - totalpadding
-        local barSize = srslylawlUI.Utils_ScuffedRound(totalSize / buttons)
+        local barSize = buttons == 0 and 0 or srslylawlUI.Utils_ScuffedRound(totalSize / buttons)
         totalSize = barSize * buttons + totalpadding
         local diff = desiredSize - totalSize
         local middleFrame = ceil(self.desiredButtonCount / 2)
@@ -859,7 +859,7 @@ function srslylawlUI.PowerBar.SetupStaggerBar(bar, parent)
         end
         self.statusBar:SetValue(amount)
         self.statusBar.rightText:SetText(amount)
-        local percent = amount / self.max
+        local percent = self.max == 0 and 0 or amount / self.max
         local color = percent < STAGGER_YELLOW_TRANSITION and { 0.662, 1, 0.541 }
             or percent < STAGGER_RED_TRANSITION and { 0.945, 0.933, 0.074 }
             or { 1, 0.039, 0.141 }
