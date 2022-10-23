@@ -12,26 +12,36 @@ srslylawlUI.PowerBar.SpecBarTypeTable = {
     [250] = 1, --Blood
     [251] = 1, --Frost
     [252] = 1, --Unholy
+    [1455] = 1, --Initial DK (no spec)
     --DH
     [577] = 0, --Havoc
     [581] = 0, --Vengeance
+    [1456] = 0, --Initial DH (no spec)
     --Druid
     [102] = 3, --Balance
     [103] = 3, --Feral
     [104] = 3, --Guardian
     [105] = 3, --Restoration
+    -- [1447] = 3, --Initial Druid (no spec)
+    --Evoker
+    [1465] = 1, --Initial Evoker (no spec)
+    [1467] = 1, --Devastation
+    [1468] = 1, --Preservation
     --Hunter
     [253] = 0, --BM
     [254] = 0, --Marksmanship
     [255] = 0, --Survival
+    -- [1448] = 0, --Initial Hunter (no spec)
     --Mage
     [62] = 1, --Arcane
     [63] = 0, --Fire
     [64] = 0, --Frost
+    -- [1449] = 0, --Initial Mage (no spec)
     --Monk
     [268] = 2, --Brewmaster
     [269] = 1, --Windwalker
     [270] = 0, --Mistweaver
+
     --Paladin
     [65] = 1, --Holy
     [66] = 1, --Protection
@@ -63,9 +73,13 @@ srslylawlUI.PowerBar.SpecToPowerType = {
     [250] = "Runes", --Blood
     [251] = "Runes", --Frost
     [252] = "Runes", --Unholy
+    [1455] = "Runes", --Initial
+    --Evoker
+    [1465] = "Essence", --Initial
+    [1467] = "Essence", --Devastation
+    [1468] = "Essence", --Preservation
     --Mage
     [62] = "ArcaneCharges", --Arcane
-
     --Monk
     [268] = "Stagger", --Brewmaster
     [269] = "Chi", --Windwalker
@@ -93,6 +107,7 @@ srslylawlUI.PowerBar.EventToTokenTable = {
     RAGE = "Rage",
     FOCUS = "Focus",
     ENERGY = "Energy",
+    ESSENCE = "Essence",
     COMBO_POINTS = "ComboPoints",
     RUNES = "Runes",
     RUNIC_POWER = "RunicPower",
@@ -135,6 +150,7 @@ srslylawlUI.PowerBar.BarDefaults = {
     Runes         = { hideWhenInactive = true, inactiveState = "FULL" },
     RunicPower    = { hideWhenInactive = true, inactiveState = "EMPTY" },
     SoulShards    = { hideWhenInactive = true },
+    Essence       = { hideWhenInactive = true, inactiveState = "FULL" },
     LunarPower    = { hideWhenInactive = true, inactiveState = "EMPTY" },
     HolyPower     = { hideWhenInactive = true, inactiveState = "EMPTY" },
     Maelstrom     = { hideWhenInactive = true, inactiveState = "EMPTY" },
@@ -155,24 +171,14 @@ local function PowerBarSetVisible(self, visible)
     end
 end
 
-function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken, specID)
-    if amount < 1 then error("Param1 'Amount' must be 1 or higher") return end
-    local frame = CreateFrame("Frame", "$parent_PointResourceBar_" .. powerToken, parent)
+function srslylawlUI.CreatePointBar(parent, amount, padding, name)
+    local frame = CreateFrame("Frame", name, parent)
     frame.padding = padding
     frame.desiredButtonCount = amount
     srslylawlUI.CreateBackground(frame, 1, .8)
-    frame:SetAttribute("type", "pointBar")
-    frame.powerToken = Enum.PowerType[powerToken]
-    frame.unit = parent:GetAttribute("unit")
-    frame.name = powerToken
     frame.pointFrames = {}
-    frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
-    frame.inactiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inactiveState
-    frame.specID = specID
-    frame.reversed = false
 
-
-    local function CreatePointFrame(parent, i)
+    function frame:CreatePointFrame(parent, i)
         local pointFrame = CreateFrame("StatusBar", "$parent_PointBar" .. i, parent)
         pointFrame:SetStatusBarTexture(srslylawlUI.textures.PowerBarSprite)
         pointFrame:SetMinMaxValues(0, 1)
@@ -180,6 +186,16 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
         pointFrame.text = srslylawlUI.CreateCustomFontString(pointFrame, "$parent_point" .. i, 6, "GameTooltipTextSmall")
         pointFrame.text:SetPoint("CENTER", pointFrame, "CENTER", 0, 0)
         return pointFrame
+    end
+
+    function frame:StockPointFrames()
+        if self.desiredButtonCount > #self.pointFrames then
+            local index = #self.pointFrames
+            while self.desiredButtonCount > index do
+                index = index + 1
+                self.pointFrames[index] = self:CreatePointFrame(self, index)
+            end
+        end
     end
 
     function frame:SetColor(color)
@@ -206,17 +222,12 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     function frame:SetButtonCount(newCount)
         self.desiredButtonCount = newCount
         self:SetPoints()
-        self:SetColor(color)
+        self:SetColor()
+        if self.OnButtonCountChanged ~= nil then self:OnButtonCountChanged() end
     end
 
     function frame:SetPoints(x, y)
-        if self.desiredButtonCount > #self.pointFrames then
-            local index = #self.pointFrames
-            while self.desiredButtonCount > index do
-                self.pointFrames[index + 1] = CreatePointFrame(frame, index)
-                index = index + 1
-            end
-        end
+        frame:StockPointFrames()
 
         if not x or not y then
             x, y = srslylawlUI.Utils_PixelFromScreenToCode(self:GetWidth(), self:GetHeight())
@@ -252,7 +263,24 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
             current.text:ScaleToFit(barSize, height, 20)
         end
         srslylawlUI.Utils_SetSizePixelPerfect(self, totalSize + diff, height)
+    end
 
+    return frame
+end
+
+function srslylawlUI.PowerBar.CreatePowerPointBar(amount, parent, padding, powerToken, specID)
+    if amount < 1 then error("Param1 'Amount' must be 1 or higher") return end
+    -- local frame = CreateFrame("Frame", "$parent_PointResourceBar_" .. powerToken, parent)
+    local frame = srslylawlUI.CreatePointBar(parent, amount, padding, "$parent_PointResourceBar_" .. powerToken)
+    frame:SetAttribute("type", "pointBar")
+    frame.powerToken = Enum.PowerType[powerToken]
+    frame.unit = parent:GetAttribute("unit")
+    frame.name = powerToken
+    frame.hideWhenInactive = srslylawlUI.PowerBar.BarDefaults[powerToken].hideWhenInactive
+    frame.inactiveState = srslylawlUI.PowerBar.BarDefaults[powerToken].inactiveState
+    frame.specID = specID
+    frame.reversed = false
+    frame.OnButtonCountChanged = function(self)
         if self.powerToken == 5 then --is a runebar
             self:RuneUpdate()
         else
@@ -558,6 +586,7 @@ function srslylawlUI.PowerBar.CreatePointBar(amount, parent, padding, powerToken
     end
 
     frame:SetPoints()
+    frame:OnButtonCountChanged()
 
     return frame
 end
@@ -745,7 +774,7 @@ function srslylawlUI.PowerBar.GetBar(parent, type, token)
             parent.powerBars[token] = srslylawlUI.PowerBar.CreateResourceBar(parent, token, specID)
         elseif type == "point" then
             local maxPoints = UnitPowerMax("player", Enum.PowerType[token])
-            parent.powerBars[token] = srslylawlUI.PowerBar.CreatePointBar(maxPoints, parent, 1, token, specID)
+            parent.powerBars[token] = srslylawlUI.PowerBar.CreatePowerPointBar(maxPoints, parent, 1, token, specID)
         end
         srslylawlUI.PowerBar.SetColorByToken(parent.powerBars[token], Enum.PowerType[token])
         parent.powerBars[token]:SetAttribute("powerToken", token)
@@ -917,12 +946,6 @@ function srslylawlUI.PowerBar.UpdateMax(parent, powerToken)
     local eventToToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
     powerToken = eventToToken and eventToToken or powerToken
     srslylawlUI.PowerBar.GetBar(parent, nil, powerToken):UpdateMax()
-end
-
-function srslylawlUI.PowerBar.RuneUpdate(parent)
-    local eventToToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
-    powerToken = eventToToken and eventToToken or powerToken
-    srslylawlUI.PowerBar.GetBar(parent, nil, powerToken):RuneUpdate()
 end
 
 function srslylawlUI.GetSpecID()

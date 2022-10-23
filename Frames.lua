@@ -954,6 +954,8 @@ function srslylawlUI.CreateCastBar(parent, unit)
                     srslylawlUI.Utils_DecimalRound(self.pushback, 1) ..
                     "|r" .. " " .. srslylawlUI.Utils_DecimalRound(self.elapsed, 1))
             end
+        elseif self.isEmpower then
+            self.EmpowerBar:UpdateEmpowerBar()
         else
             local timeLeft = self.endSeconds - self.elapsed
             if timeLeft <= 0 then
@@ -978,15 +980,228 @@ function srslylawlUI.CreateCastBar(parent, unit)
         end
     end
 
+    local function CreateEmpowerBar(parent)
+        local frame = srslylawlUI.CreatePointBar(parent, 4, 1, "$parent_EmpowerBar")
+        local foreground = CreateFrame("Frame", "$parent_FontLayer", frame)
+        parent.EmpowerBar = frame
+        parent.EmpowerBar.foreground = foreground
+        frame.CastBar = parent
+
+
+        srslylawlUI.Utils_SetPointPixelPerfect(parent.EmpowerBar, "TOPLEFT", parent.StatusBar, "TOPLEFT", 0, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(parent.EmpowerBar, "BOTTOMRIGHT", parent.StatusBar, "BOTTOMRIGHT", 0, 0)
+
+        srslylawlUI.Utils_SetPointPixelPerfect(foreground, "TOPLEFT", frame, "TOPLEFT", 0, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(foreground, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+
+        frame.backgroundBar = srslylawlUI.CreatePointBar(frame, 4, 1, "$parent_backgroundBar")
+        srslylawlUI.Utils_SetPointPixelPerfect(frame.backgroundBar, "TOPLEFT", parent.EmpowerBar, "TOPLEFT", 0, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(frame.backgroundBar, "BOTTOMRIGHT", parent.EmpowerBar, "BOTTOMRIGHT", 0, 0)
+
+        local fontSize = srslylawlUI.GetSettingByUnit("cast.fontSize", unitsType, unit)
+        frame.Timer = srslylawlUI.CreateCustomFontString(foreground, "Timer", fontSize)
+        frame.SpellName = srslylawlUI.CreateCustomFontString(foreground, "SpellName", fontSize)
+        srslylawlUI.Utils_SetPointPixelPerfect(frame.SpellName, "LEFT", foreground, "LEFT", 1, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(frame.Timer, "RIGHT", foreground, "RIGHT", -1, 0)
+
+        frame.foreground:SetFrameLevel(frame:GetFrameLevel() + 3)
+
+        frame.Timer.defaultColor = { frame.Timer:GetTextColor() }
+        frame.Timer.colorIsDefault = true
+
+        function frame:GetEmpowerStageColor(stage, done)
+            local colors = {
+                [1] = { r = 0.67, g = 0.67, b = 0.67 },
+                [2] = { r = 0.87, g = 0.16, b = 0.0 },
+                [3] = { r = 0.91, g = 0.53, b = 0.0 },
+                [4] = { r = 0.98, g = 0.73, b = 0.02 },
+            }
+            local colorsDone = {
+                [1] = { r = 0.75, g = 0.75, b = 0.75 },
+                [2] = { r = 0.95, g = 0.25, b = 0.0 },
+                [3] = { r = 1, g = 0.65, b = 0.0 },
+                [4] = { r = 1, g = 0.85, b = 0.00 },
+            }
+            if stage <= 4 then
+                return done and colorsDone[stage] or colors[stage]
+            else
+                return { r = 1, g = 1, b = 1 }
+            end
+        end
+
+        function frame:SetEmpowerPoints(numStages)
+            self.desiredButtonCount = numStages
+            self.backgroundBar.desiredButtonCount = numStages
+            self:StockPointFrames()
+            self.backgroundBar:StockPointFrames()
+
+            local castBar = self.CastBar
+            local totalDuration = castBar.endSeconds * 1000
+
+            local x, y = srslylawlUI.Utils_PixelFromScreenToCode(self:GetWidth(), self:GetHeight())
+            local desiredSize = x
+            local totalSize = x
+            local height = y
+            local bCount = self.desiredButtonCount
+            local totalpadding = (bCount - 1) * self.padding
+            totalSize = totalSize - totalpadding
+            local actualSize = 0
+            if not self.barSizes then self.barSizes = {} end
+            if not self.stagePortions then self.stagePortions = {} end
+            for stage = 1, bCount do
+                local stageDuration = stage == self.totalEmpowerStages and GetUnitEmpowerHoldAtMaxTime(castBar.unit) or
+                    GetUnitEmpowerStageDuration(castBar.unit, stage - 1)
+                if stageDuration >= 0 then
+                    local stagePortion = stageDuration / totalDuration
+                    local barSize = srslylawlUI.Utils_ScuffedRound(totalSize * stagePortion)
+                    actualSize = actualSize + barSize
+                    self.barSizes[stage] = barSize
+                    self.stagePortions[stage] = stagePortion
+                end
+            end
+
+            actualSize = actualSize + totalpadding
+            local diff = desiredSize - actualSize
+            local middleFrame = ceil(self.desiredButtonCount / 2)
+            local pixelPerfectCompensation
+            for i = 1, #self.pointFrames do
+                local pf = self.pointFrames[i]
+                local pfBG = self.backgroundBar.pointFrames[i]
+                if i > self.desiredButtonCount then
+                    pf:Hide()
+                    pfBG:Hide()
+                else
+                    pf:Show()
+                    pfBG:Show()
+                end
+                if i == 1 then
+                    srslylawlUI.Utils_SetPointPixelPerfect(pf, "BOTTOMLEFT", self, "BOTTOMLEFT", 0, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(pfBG, "BOTTOMLEFT", self.backgroundBar, "BOTTOMLEFT", 0, 0)
+                else
+                    srslylawlUI.Utils_SetPointPixelPerfect(pf, "BOTTOMLEFT", self.pointFrames[i - 1], "BOTTOMRIGHT"
+
+                        , self.padding, 0)
+                    srslylawlUI.Utils_SetPointPixelPerfect(pfBG, "BOTTOMLEFT", self.backgroundBar.pointFrames[i - 1],
+                        "BOTTOMRIGHT"
+
+                        , self.padding, 0)
+
+                end
+                if i <= bCount then
+                    pixelPerfectCompensation = i == middleFrame and diff or 0
+                    local barSize = self.barSizes[i] + pixelPerfectCompensation
+                    srslylawlUI.Utils_SetSizePixelPerfect(pf, barSize, height)
+                    pf.text:ScaleToFit(barSize, height, 20)
+                    srslylawlUI.Utils_SetSizePixelPerfect(pfBG, barSize, height)
+                    pfBG.text:ScaleToFit(barSize, height, 20)
+                    pf:SetValue(0) -- clear value
+                    local col = self:GetEmpowerStageColor(i)
+                    pf:SetStatusBarColor(col.r, col.g, col.b)
+                    pfBG:SetAlpha(.35)
+                    pfBG:SetStatusBarColor(col.r, col.g, col.b)
+                end
+            end
+            -- srslylawlUI.Utils_SetSizePixelPerfect(self, totalSize + diff, height)
+        end
+
+        function frame:UpdateEmpowerBar()
+            local castBar = self.CastBar
+            local timeLeft = castBar.endSeconds - castBar.elapsed
+            local currentCastTime = castBar.elapsed
+            local bCount = self.desiredButtonCount
+            local totalDuration = castBar.endSeconds
+            local currentStage = 0
+            local maxHold = GetUnitEmpowerHoldAtMaxTime(castBar.unit) / 1000
+            local totalPlusHold = castBar.endSeconds + maxHold
+            local useDefaultTimerColor = true
+
+
+            if timeLeft <= 0 and castBar.elapsed >= totalPlusHold then
+                self.Timer:SetText("0.0")
+            elseif castBar.elapsed > castBar.endSeconds and castBar.elapsed < totalPlusHold then
+                --is in spell hold time
+                useDefaultTimerColor = false
+                self.Timer:SetFormattedText("%.1f", totalPlusHold - castBar.elapsed, 1)
+            elseif castBar.pushback == 0 then
+                -- no pushback
+                self.Timer:SetFormattedText("%.1f", timeLeft, 1)
+            else
+                -- NOTE: empower does not seem to have pushback at all currently
+                -- has pushback, display pushback
+                self.Timer:SetText("|cffff0000" ..
+                    "+" ..
+                    srslylawlUI.Utils_DecimalRound(castBar.pushback, 1) ..
+
+                    "|r" .. " " .. srslylawlUI.Utils_DecimalRound(timeLeft, 1))
+            end
+
+            if useDefaultTimerColor then
+                if not self.Timer.colorIsDefault then
+                    self.Timer:SetTextColor(unpack(self.Timer.defaultColor))
+                    self.Timer.colorIsDefault = true
+                end
+            elseif self.Timer.colorIsDefault then
+                self.Timer:SetTextColor(1, 0, 0)
+                self.Timer.colorIsDefault = false
+            end
+
+
+            if castBar.elapsed >= totalPlusHold then
+                castBar.spellName = nil
+                castBar.castID = nil
+                castBar:FadeOut()
+            end
+
+
+            --handle empower stages
+            for stage = 1, bCount do
+                local pf = self.pointFrames[stage]
+                local stageDur = self.stagePortions[stage] * castBar.endSeconds
+                local nextStage = currentStage + stageDur
+                local inProgressAlpha = .75
+                local done = false
+
+                if currentCastTime < currentStage then -- if cast is before this stage starts
+                    pf:SetValue(0)
+                    pf:SetAlpha(inProgressAlpha)
+                elseif currentCastTime >= nextStage then -- if cast is already at further stage
+                    pf:SetValue(1)
+                    pf:SetAlpha(1)
+                    done = true
+                else -- cast is at this stage
+                    -- 0 fill would be currentCastTime == currentStage
+                    -- 1 fill would be currentCastTime >= currentStage + stageDur
+                    local fill = (currentCastTime - currentStage) / stageDur
+                    pf:SetValue(fill)
+                    pf:SetAlpha(inProgressAlpha)
+                end
+                local col = self:GetEmpowerStageColor(stage, done)
+                pf:SetStatusBarColor(col.r, col.g, col.b)
+
+                currentStage = nextStage
+            end
+
+
+
+
+        end
+    end
+
     function cBar:UpdateCast()
         if self.disabled then return end
         local spell, displayName, icon, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo(self
             .unit)
-        local isChannelled
+        local isChannelled = false
+        local isEmpower = false
+        local channelOrEmpower = false
         if not spell then
-            spell, displayName, icon, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo(self
+            spell, displayName, icon, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numChargeStages = UnitChannelInfo(self
                 .unit)
-            isChannelled = true
+            isEmpower = numChargeStages > 0;
+            if not isEmpower then
+                isChannelled = true
+            end
+            channelOrEmpower = true
         end
         if not spell then
             return
@@ -996,13 +1211,14 @@ function srslylawlUI.CreateCastBar(parent, unit)
         self.Icon:Show()
 
         self.isChannelled = isChannelled
+        self.isEmpower = isEmpower
         self.startTime = startTime / 1000
         self.endTime = endTime / 1000
         self.endSeconds = self.endTime - self.startTime
         self.elapsed = self.isChannelled and self.endSeconds or 0
         self.spellName = spell
         self.spellID = spellID
-        self.castID = isChannelled and spellID or castID
+        self.castID = channelOrEmpower and spellID or castID
         self.pushback = 0
         self.lastUpdate = self.startTime
 
@@ -1012,24 +1228,34 @@ function srslylawlUI.CreateCastBar(parent, unit)
         self:SetAlpha(1)
         --trigger hook functions, such as bar ordering
         self:GetScript("OnShow")(self)
-        self.StatusBar.SpellName:SetLimitedText(self.StatusBar:GetWidth() * 0.8, spell, true)
+        local spellText = isEmpower and self.EmpowerBar.SpellName or self.StatusBar.SpellName
+        spellText:SetLimitedText(self.StatusBar:GetWidth() * 0.8, spell, true)
 
 
         self:SetScript("OnUpdate", CastOnUpdate)
 
-        if notInterruptible then
-            self:ChangeBarColor("uninterruptible")
-        elseif self.isChannelled then
-            self:ChangeBarColor("channel")
+        if self.isEmpower then
+            self.EmpowerBar:SetEmpowerPoints(numChargeStages)
+            self.StatusBar:Hide()
+            self.EmpowerBar:Show()
         else
-            self:ChangeBarColor("cast")
+            if notInterruptible then
+                self:ChangeBarColor("uninterruptible")
+            elseif self.isChannelled then
+                self:ChangeBarColor("channel")
+            else
+                self:ChangeBarColor("cast")
+            end
         end
+
+
     end
 
     function cBar:StopCast(event, unit, castID, spellID)
-        if event == "UNIT_SPELLCAST_CHANNEL_STOP" and not castID then
+        if (event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "UNIT_SPELLCAST_EMPOWER_STOP") and not castID then
             castID = spellID
         end
+
         if self.castID ~= castID or (event == "UNIT_SPELLCAST_FAILED" and self.isChannelled) or not self.castID then
             return
         end
@@ -1121,8 +1347,6 @@ function srslylawlUI.CreateCastBar(parent, unit)
             -- bgColor = color
         end
         self.StatusBar:SetStatusBarColor(unpack(color))
-        -- bgColor[4] = .4
-        -- self:SetBackdropColor(unpack(bgColor))
     end
 
     function cBar:CastInterrupted(event, unit, castID, spellID)
@@ -1146,21 +1370,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
     end
 
     function cBar:UpdateVisible()
-        -- if self.isChannelled then
-        -- 	if self.elapsed and self.elapsed <= 0 then
-        -- 		self.StatusBar.Timer:SetText("0.0")
-        --         self.StatusBar:SetValue(0)
-        --         self.spellName = nil
-        --         self.castID = nil
-        --         self:FadeOut()
-        --     end
-        -- elseif self.endSeconds and self.elapsed then
-        -- 	if self.elapsed >= self.endSeconds then
-        --         self.spellName = nil
-        --         self.castID = nil
-        --         self:FadeOut()
-        --     else
-        --         self:Show()
+        -- do nothing - called by barhandler so has to exist
     end
 
     function cBar:SetReverseFill(reverse)
@@ -1207,6 +1417,10 @@ function srslylawlUI.CreateCastBar(parent, unit)
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_START", unit)
+    cBar:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_STOP", unit)
+
+
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", unit)
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", unit)
 
@@ -1226,8 +1440,10 @@ function srslylawlUI.CreateCastBar(parent, unit)
     srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar, "BOTTOMRIGHT", cBar, "BOTTOMRIGHT", 0, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar.SpellName, "LEFT", cBar.StatusBar, "LEFT", 1, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(cBar.StatusBar.Timer, "RIGHT", cBar.StatusBar, "RIGHT", -1, 0)
-    cBar:SetAlpha(0)
+    CreateEmpowerBar(cBar)
 
+
+    cBar:SetAlpha(0)
     cBar:SetScript("OnShow", function(self)
         if UnitCastingInfo(self.unit) or UnitChannelInfo(self.unit) then
             if self:GetAlpha() < 0.9 then
@@ -1246,16 +1462,19 @@ function srslylawlUI.CreateCastBar(parent, unit)
         self.castID = nil
         self.spellID = nil
         self.StatusBar:Hide()
+        self.EmpowerBar:Hide()
         self.Icon:Hide()
         self:SetAlpha(0)
     end)
 
     cBar:SetScript("OnEvent", function(self, event, arg1, arg2, arg3)
-        if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START" then
+        if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START" or
+            event == "UNIT_SPELLCAST_EMPOWER_START" then
+
             -- starting cast
             self:UpdateCast()
         elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or
-            event == "UNIT_SPELLCAST_FAILED" then
+            event == "UNIT_SPELLCAST_EMPOWER_STOP" or event == "UNIT_SPELLCAST_FAILED" then
             -- stopping cast
             self:StopCast(event, arg1, arg2, arg3)
         elseif event == "UNIT_SPELLCAST_DELAYED" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE" then
