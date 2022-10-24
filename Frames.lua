@@ -1008,6 +1008,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
         srslylawlUI.Utils_SetPointPixelPerfect(frame.HoldPoint, "TOPLEFT", parent.EmpowerBar, "TOPLEFT", 0, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(frame.HoldPoint, "BOTTOMRIGHT", parent.EmpowerBar, "BOTTOMRIGHT", 0, 0)
         frame.HoldPoint:SetAlpha(.5)
+        frame.HoldPoint:SetValue(0)
 
         frame.foreground:SetFrameLevel(frame:GetFrameLevel() + 3)
 
