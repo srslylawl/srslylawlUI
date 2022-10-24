@@ -22,7 +22,7 @@ srslylawlUI.PowerBar.SpecBarTypeTable = {
     [103] = 3, --Feral
     [104] = 3, --Guardian
     [105] = 3, --Restoration
-    -- [1447] = 3, --Initial Druid (no spec)
+    [1447] = 3, --Initial Druid (no spec)
     --Evoker
     [1465] = 1, --Initial Evoker (no spec)
     [1467] = 1, --Devastation
@@ -31,41 +31,47 @@ srslylawlUI.PowerBar.SpecBarTypeTable = {
     [253] = 0, --BM
     [254] = 0, --Marksmanship
     [255] = 0, --Survival
-    -- [1448] = 0, --Initial Hunter (no spec)
+    [1448] = 0, --Initial Hunter (no spec)
     --Mage
     [62] = 1, --Arcane
     [63] = 0, --Fire
     [64] = 0, --Frost
-    -- [1449] = 0, --Initial Mage (no spec)
+    [1449] = 0, --Initial Mage (no spec)
     --Monk
     [268] = 2, --Brewmaster
     [269] = 1, --Windwalker
     [270] = 0, --Mistweaver
-
+    [1450] = 0, --Initial Monk (no spec)
     --Paladin
     [65] = 1, --Holy
     [66] = 1, --Protection
     [70] = 1, --Retribution
+    [1451] = 1, --Initial
     --Priest
     [256] = 0, --Discipline
     [257] = 0, --Holy
     [258] = 2, --Shadow
+    [1452] = 0, --Initial Priest
     --Rogue
     [259] = 1, --Assassination
     [260] = 1, --Outlaw
     [261] = 1, --Subtlety
+    [1453] = 1, --Initial
     --Shaman
     [262] = 2, --Elemental
     [263] = 0, --Enhancement
     [264] = 0, --Restoration
+    [1444] = 0, --Initial
     --Warlock
     [265] = 1, --Affliction
     [266] = 1, --Demonology
     [267] = 1, --Destruction
+    [1454] = 1, --Initial Warlock (no spec)
     --Warrior
     [71] = 0, --Arms
     [72] = 0, --Fury
     [73] = 0, --Protection
+    [1446] = 0, --Initial Warrior (no spec)
 }
 
 srslylawlUI.PowerBar.SpecToPowerType = {
@@ -87,12 +93,14 @@ srslylawlUI.PowerBar.SpecToPowerType = {
     [65] = "HolyPower", --Holy
     [66] = "HolyPower", --Protection
     [70] = "HolyPower", --Retribution
+    [1451] = "HolyPower", --Initial
     --Priest
     [258] = "Mana", --Shadow
     --Rogue
     [259] = "ComboPoints", --Assassination
     [260] = "ComboPoints", --Outlaw
     [261] = "ComboPoints", --Subtlety
+    [1453] = "ComboPoints", --Initial
     --Shaman
     [262] = "Mana", --Elemental
     [263] = 0, --Enhancement
@@ -100,6 +108,7 @@ srslylawlUI.PowerBar.SpecToPowerType = {
     [265] = "SoulShards", --Affliction
     [266] = "SoulShards", --Demonology
     [267] = "SoulShards", --Destruction
+    [1454] = "SoulShards", --Initial
 }
 
 srslylawlUI.PowerBar.EventToTokenTable = {
@@ -149,7 +158,7 @@ srslylawlUI.PowerBar.BarDefaults = {
     ComboPoints   = { hideWhenInactive = true, inactiveState = "EMPTY" },
     Runes         = { hideWhenInactive = true, inactiveState = "FULL" },
     RunicPower    = { hideWhenInactive = true, inactiveState = "EMPTY" },
-    SoulShards    = { hideWhenInactive = true },
+    SoulShards    = { hideWhenInactive = true, inactiveState = "SOULSHARDS" },
     Essence       = { hideWhenInactive = true, inactiveState = "FULL" },
     LunarPower    = { hideWhenInactive = true, inactiveState = "EMPTY" },
     HolyPower     = { hideWhenInactive = true, inactiveState = "EMPTY" },
@@ -263,9 +272,22 @@ function srslylawlUI.CreatePointBar(parent, amount, padding, name)
             current.text:ScaleToFit(barSize, height, 20)
         end
         srslylawlUI.Utils_SetSizePixelPerfect(self, totalSize + diff, height)
+        if self.OnButtonCountChanged ~= nil then self:OnButtonCountChanged() end
     end
 
     return frame
+end
+
+local function SpecIDIsRogue(specID)
+    return (specID >= 259 and specID <= 261) or specID == 1453
+end
+
+local function SpecIDIsWarlock(specID)
+    return (specID >= 265 and specID <= 267) or specID == 1454
+end
+
+local function SpecIDIsDK(specID)
+    return (specID >= 250 and specID <= 252) or specID == 1455
 end
 
 function srslylawlUI.PowerBar.CreatePowerPointBar(amount, parent, padding, powerToken, specID)
@@ -289,10 +311,10 @@ function srslylawlUI.PowerBar.CreatePowerPointBar(amount, parent, padding, power
     end
 
     function frame:Update()
-        if self.specID >= 265 and self.specID <= 267 then --warlock
+        if SpecIDIsWarlock(self.specID) then --warlock
             self:SoulshardUpdate()
             return
-        elseif self.specID >= 259 and self.specID <= 261 then --rogue
+        elseif SpecIDIsRogue(self.specID) then --rogue
             self:RogueUpdate()
             return
         end
@@ -548,14 +570,13 @@ function srslylawlUI.PowerBar.CreatePowerPointBar(amount, parent, padding, power
 
     function frame:UpdateVisible()
         local visible = true
-        if specID >= 250 and specID <= 252 then --dk
+        if SpecIDIsDK(self.specID) then --dk
             self:RuneUpdate()
             return
-        end
-        if self.specID >= 265 and self.specID <= 267 then --warlock
+        elseif SpecIDIsWarlock(self.specID) then --warlock
             self:SoulshardUpdate()
             return
-        elseif self.specID >= 259 and self.specID <= 261 then --rogue
+        elseif SpecIDIsRogue(self.specID) then --rogue
             self:RogueUpdate()
             return
         end
@@ -568,16 +589,13 @@ function srslylawlUI.PowerBar.CreatePowerPointBar(amount, parent, padding, power
                 visible = false
             end
         end
-        if self.specID >= 259 and self.specID <= 261 then --rogue
-            visible = self.hasChargedPoint or visible
-        end
         PowerBarSetVisible(self, visible)
     end
 
     function frame:SetReverseFill(bool)
         if self.reversed ~= bool then
             self.reversed = bool
-            if self.specID >= 250 and self.specID <= 252 then
+            if SpecIDIsDK(self.specID) then
                 self:RuneUpdate()
             else
                 self:Update()
@@ -630,6 +648,8 @@ function srslylawlUI.PowerBar.CreateResourceBar(parent, powerToken, specID)
             if self.inactiveState == "EMPTY" and amount < 1 then
                 visible = false
             elseif self.inactiveState == "FULL" and abs(self.max - amount) < 1 then
+                visible = false
+            elseif self.inactiveState == "SOULSHARDS" and abs(amount - 300) <= 1 then
                 visible = false
             end
         end
@@ -810,11 +830,11 @@ function srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
     ]]
 
     -- rageBar:Hide() -- since it resets to 25 on bear enter anyway
-    if specID ~= 103 then
+    if specID ~= 103 then --if not feral we dont care about energy
         energyBar:Hide()
     end
     if specID ~= 102 then
-        astralPowerBar:Hide()
+        astralPowerBar:Hide() --if not moonkin we dont care about astral
     end
     if currentStance == nil or currentStance == 31 then
         --human/owl

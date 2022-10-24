@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.25"
+local version = "1.3"
 
 
 srslylawlUI.loadedSettings = {}
@@ -115,7 +115,6 @@ local debugString = ""
 party portrait right will overlap with pet frame, needs more options
 castbar text size
 plus minus button for sliders
-blizzard party frames visible when not using raid style party frames -> should be fixed
 let cc bar show multiple ccs
 totem bar
 powerbar fadeout instead of hide

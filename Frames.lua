@@ -1004,12 +1004,17 @@ function srslylawlUI.CreateCastBar(parent, unit)
         srslylawlUI.Utils_SetPointPixelPerfect(frame.SpellName, "LEFT", foreground, "LEFT", 1, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(frame.Timer, "RIGHT", foreground, "RIGHT", -1, 0)
 
+        frame.HoldPoint = frame:CreatePointFrame(frame, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(frame.HoldPoint, "TOPLEFT", parent.EmpowerBar, "TOPLEFT", 0, 0)
+        srslylawlUI.Utils_SetPointPixelPerfect(frame.HoldPoint, "BOTTOMRIGHT", parent.EmpowerBar, "BOTTOMRIGHT", 0, 0)
+        frame.HoldPoint:SetAlpha(.5)
+
         frame.foreground:SetFrameLevel(frame:GetFrameLevel() + 3)
 
         frame.Timer.defaultColor = { frame.Timer:GetTextColor() }
         frame.Timer.colorIsDefault = true
 
-        function frame:GetEmpowerStageColor(stage, done)
+        function frame:GetEmpowerStageColor(stage, done, nonInterruptible)
             local colors = {
                 [1] = { r = 0.67, g = 0.67, b = 0.67 },
                 [2] = { r = 0.87, g = 0.16, b = 0.0 },
@@ -1022,8 +1027,23 @@ function srslylawlUI.CreateCastBar(parent, unit)
                 [3] = { r = 1, g = 0.65, b = 0.0 },
                 [4] = { r = 1, g = 0.85, b = 0.00 },
             }
+            local colorsNotInterruptible = {
+                [1] = { r = 0.81, g = 0.33, b = 0.7 },
+                [2] = { r = 0.85, g = 0.26, b = 0.7 },
+                [3] = { r = 0.91, g = 0.21, b = 0.7 },
+                [4] = { r = 0.98, g = 0.15, b = 0.7 },
+            }
+            local colorsDoneNotInterruptible = {
+                [1] = { r = 0.88, g = 0.26, b = 0.74 },
+                [2] = { r = 0.9, g = 0.21, b = 0.74 },
+                [3] = { r = 0.94, g = 0.15, b = 0.74 },
+                [4] = { r = 1, g = 0.1, b = 0.74 },
+            }
             if stage <= 4 then
-                return done and colorsDone[stage] or colors[stage]
+                if not nonInterruptible then return done and colorsDone[stage] or colors[stage]
+                else
+                    return done and colorsDoneNotInterruptible[stage] or colorsNotInterruptible[stage]
+                end
             else
                 return { r = 1, g = 1, b = 1 }
             end
@@ -1109,19 +1129,20 @@ function srslylawlUI.CreateCastBar(parent, unit)
             local timeLeft = castBar.endSeconds - castBar.elapsed
             local currentCastTime = castBar.elapsed
             local bCount = self.desiredButtonCount
-            local totalDuration = castBar.endSeconds
             local currentStage = 0
             local maxHold = GetUnitEmpowerHoldAtMaxTime(castBar.unit) / 1000
             local totalPlusHold = castBar.endSeconds + maxHold
             local useDefaultTimerColor = true
-
-
+            local isInHoldTime = false
             if timeLeft <= 0 and castBar.elapsed >= totalPlusHold then
                 self.Timer:SetText("0.0")
             elseif castBar.elapsed > castBar.endSeconds and castBar.elapsed < totalPlusHold then
                 --is in spell hold time
+                isInHoldTime = true
                 useDefaultTimerColor = false
-                self.Timer:SetFormattedText("%.1f", totalPlusHold - castBar.elapsed, 1)
+                local holdTime = totalPlusHold - castBar.elapsed
+                self.HoldPoint:SetValue(1 - holdTime)
+                self.Timer:SetFormattedText("%.1f", holdTime, 1)
             elseif castBar.pushback == 0 then
                 -- no pushback
                 self.Timer:SetFormattedText("%.1f", timeLeft, 1)
@@ -1133,6 +1154,10 @@ function srslylawlUI.CreateCastBar(parent, unit)
                     srslylawlUI.Utils_DecimalRound(castBar.pushback, 1) ..
 
                     "|r" .. " " .. srslylawlUI.Utils_DecimalRound(timeLeft, 1))
+            end
+
+            if not isInHoldTime then
+                self.HoldPoint:SetValue(0)
             end
 
             if useDefaultTimerColor then
@@ -1175,15 +1200,11 @@ function srslylawlUI.CreateCastBar(parent, unit)
                     pf:SetValue(fill)
                     pf:SetAlpha(inProgressAlpha)
                 end
-                local col = self:GetEmpowerStageColor(stage, done)
+                local col = self:GetEmpowerStageColor(stage, done, self.notInterruptible)
                 pf:SetStatusBarColor(col.r, col.g, col.b)
 
                 currentStage = nextStage
             end
-
-
-
-
         end
     end
 
@@ -1197,6 +1218,10 @@ function srslylawlUI.CreateCastBar(parent, unit)
         if not spell then
             spell, displayName, icon, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numChargeStages = UnitChannelInfo(self
                 .unit)
+            if not spell then
+                return
+            end
+
             isEmpower = numChargeStages > 0;
             if not isEmpower then
                 isChannelled = true
@@ -1235,6 +1260,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
         self:SetScript("OnUpdate", CastOnUpdate)
 
         if self.isEmpower then
+            self.EmpowerBar.notInterruptible = notInterruptible
             self.EmpowerBar:SetEmpowerPoints(numChargeStages)
             self.StatusBar:Hide()
             self.EmpowerBar:Show()
@@ -1445,6 +1471,7 @@ function srslylawlUI.CreateCastBar(parent, unit)
 
     cBar:SetAlpha(0)
     cBar:SetScript("OnShow", function(self)
+        -- does not return anything while empower spell is in "hold" stage
         if UnitCastingInfo(self.unit) or UnitChannelInfo(self.unit) then
             if self:GetAlpha() < 0.9 then
                 self:UpdateCast()
@@ -1630,8 +1657,6 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
         local currentBar
         local lastBar
         local height
-        local started = true
-
         for i = 1, #bh.bars do
             currentBar = bh.bars[i].bar
             height = bh.bars[i].height or 40
