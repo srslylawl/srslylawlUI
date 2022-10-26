@@ -1550,17 +1550,30 @@ function srslylawlUI.CreateConfigWindow()
         spellList = srslylawlUI_Saved[auraType][spellListKey]
 
 
-        if spellList == nil then error("spelllist nil " .. spellListKey .. " " .. auraType) end
+        if spellList == nil then
+            srslylawlUI.Log("spell list nil " .. spellListKey .. " " .. auraType .. " Generating new...")
+            srslylawlUI_Saved[auraType][spellListKey] = {}
+            return
+        end
         -- sort list
         local sortedSpellList = {}
         local exactMatch = nil
         for spellId, _ in pairs(spellList) do
             local name, _, icon = GetSpellInfo(spellId)
-            local spell = { name = name, spellId = spellId, icon = icon }
-            if tostring(spellId) == tostring(filter) then
-                exactMatch = spell
-            elseif startsWith(name, filter) or startsWith(spellId, filter) or contains(name, filter) then
-                table.insert(sortedSpellList, spell)
+            if name == nil then
+                --spell was probably removed from game or file is corrupted, remove spell from list
+                srslylawlUI_Saved[auraType][spellListKey][spellId] = nil
+                srslylawlUI.Log("Spell with ID " ..
+                    spellId ..
+                    " no longer recognized by WoW client. Might have been removed - removing from saved variables.")
+            else
+
+                local spell = { name = name, spellId = spellId, icon = icon }
+                if tostring(spellId) == tostring(filter) then
+                    exactMatch = spell
+                elseif startsWith(name, filter) or startsWith(spellId, filter) or contains(name, filter) then
+                    table.insert(sortedSpellList, spell)
+                end
             end
         end
 
