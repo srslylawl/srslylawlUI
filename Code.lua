@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.31"
+local version = "1.32"
 
 
 srslylawlUI.loadedSettings = {}
@@ -112,7 +112,7 @@ local debugString = ""
 
 
 --[[ TODO:
-party portrait right will overlap with pet frame, needs more options
+disable powerbar options
 castbar text size
 plus minus button for sliders
 let cc bar show multiple ccs
@@ -250,17 +250,23 @@ function srslylawlUI.Utils_GetPixelScale()
     if not srslylawlUI.pixelScaleX then
         local physicalWidth, physicalHeight
         local isMaximized = GetCVar("gxMaximize") == 1 and true or false
+        local ingameWidth, ingameHeight
         if isMaximized then
+            ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
+            ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
             physicalWidth, physicalHeight = GetPhysicalScreenSize()
         else
             local vec2 = C_VideoOptions.GetCurrentGameWindowSize()
             physicalWidth, physicalHeight = vec2.x, vec2.y
+            ingameWidth = srslylawlUI.Utils_ScuffedRound(physicalWidth * UIParent:GetScale())
+            ingameHeight = srslylawlUI.Utils_ScuffedRound(physicalHeight * UIParent:GetScale())
         end
-        local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
-        local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
         srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY = ingameWidth / physicalWidth, ingameHeight / physicalHeight
+        -- print("Physical Size: " .. physicalWidth .. " " .. physicalHeight)
+        -- print("PixelScale: " .. srslylawlUI.pixelScaleX .. "x " .. srslylawlUI.pixelScaleY .. "y")
+        -- print("ScreenWidth: " .. GetScreenWidth() .. " " .. GetScreenHeight())
     end
-    -- srslylawlUI.Log("PixelScale: " .. srslylawlUI.pixelScaleX .. "x " .. srslylawlUI.pixelScaleY .. "y")
+
     return srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY
 end
 
