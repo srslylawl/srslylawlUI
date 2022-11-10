@@ -300,7 +300,7 @@ function srslylawlUI.CreateConfigWindow()
         return slider
     end
 
-    local function CreateCustomDropDown(title, width, parent, valuePath, values, onChangeFunc)
+    local function CreateCustomDropDown(title, width, parent, valuePath, values, onChangeFunc, onInitValueFunc)
         -- Create the dropdown, and configure its appearance
         local bounds = CreateFrame("Frame", "$parent_" .. valuePath .. "Bounds", parent)
         local dropDown = CreateFrame("FRAME", "$parent_" .. title, bounds, "UIDropDownMenuTemplate")
@@ -341,6 +341,10 @@ function srslylawlUI.CreateConfigWindow()
                 info.text = value
                 info.arg1 = value
                 info.checked = function(self) return self.value == srslylawlUI.GetSetting(valuePath, true) end
+                if onInitValueFunc then
+                    onInitValueFunc(info, value)
+                end
+                -- info.disabled =
                 UIDropDownMenu_AddButton(info)
             end
         end)
@@ -1036,7 +1040,25 @@ function srslylawlUI.CreateConfigWindow()
             local typeCap = i == 1 and "Buff" or "Debuff"
             local auraControl = CreateConfigControl(tab, "Party " .. typeCap .. " Frames", nil, "party")
             auraControl:SetPoint("TOPLEFT", anchor.bounds, "BOTTOMLEFT", 0, 0)
-            local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path .. aType .. "s.anchoredTo", anchorTable)
+            local pointOnInitValueFunc = function(info, value)
+                if i == 1 then
+                    --Is Buff Anchor
+                    --Disable button if Debuff Anchor is anchored to buffs
+                    local debuffAnchorPoint = srslylawlUI.GetSetting(path .. "debuff" .. "s.anchoredTo", true)
+                    if value == "Debuffs" then
+                        info.disabled = debuffAnchorPoint == "Buffs"
+                    end
+                else
+                    --Is Debuff Anchor
+                    --Disable button if Buff Anchor is anchored to debuffs
+                    local buffAnchorPoint = srslylawlUI.GetSetting(path .. "buff" .. "s.anchoredTo", true)
+                    if value == "Buffs" then
+                        info.disabled = buffAnchorPoint == "Debuffs"
+                    end
+                end
+            end
+            local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path .. aType .. "s.anchoredTo", anchorTable
+                , nil, pointOnInitValueFunc)
             local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path .. aType .. "s.anchor",
                 srslylawlUI.auraSortMethodTable, function() ResetAuraAll() end)
             --disabling the auraanchor dropdown, should we anchor to other auratype
@@ -1188,8 +1210,25 @@ function srslylawlUI.CreateConfigWindow()
                     local typeCap = i == 1 and "Buff" or "Debuff"
                     local auraControl = CreateConfigControl(tab, unitName .. " " .. typeCap .. " Frames", nil, unit)
                     auraControl:ChainToControl(anchor)
+                    local pointOnInitValueFunc = function(info, value)
+                        if i == 1 then
+                            --Is Buff Anchor
+                            --Disable button if Debuff Anchor is anchored to buffs
+                            local debuffAnchorPoint = srslylawlUI.GetSetting(path .. "debuff" .. "s.anchoredTo", true)
+                            if value == "Debuffs" then
+                                info.disabled = debuffAnchorPoint == "Buffs"
+                            end
+                        else
+                            --Is Debuff Anchor
+                            --Disable button if Buff Anchor is anchored to debuffs
+                            local buffAnchorPoint = srslylawlUI.GetSetting(path .. "buff" .. "s.anchoredTo", true)
+                            if value == "Buffs" then
+                                info.disabled = buffAnchorPoint == "Debuffs"
+                            end
+                        end
+                    end
                     local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path .. aType .. "s.anchoredTo",
-                        anchorTable)
+                        anchorTable, nil, pointOnInitValueFunc)
                     local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path .. aType .. "s.anchor",
                         srslylawlUI.auraSortMethodTable, function() srslylawlUI.SetAuraPointsAll(unit, "mainUnits") end)
 
