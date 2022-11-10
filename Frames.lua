@@ -836,6 +836,8 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
     frame.unitLevel.text:SetPoint("CENTER", frame.unitLevel)
     srslylawlUI.Utils_SetSizePixelPerfect(frame.unitLevel, 20, 20)
     frame.unitLevel.text:SetText("??")
+    frame.unitLevel.showClassification = srslylawlUI.GetSettingByUnit("unitLevel.showClassification",
+        frame:GetAttribute("unitsType"), unit)
 
     local oldSetPoint = frame.unitLevel.SetPoint
     function frame.unitLevel:SetPoint(...)
@@ -876,11 +878,18 @@ function srslylawlUI.Frame_SetupTargetFocusFrame(frame)
 
     function frame:UpdateUnitLevel()
         local unitLevel = UnitLevel(unit)
+        local classificationText = ""
+        if self.unitLevel.showClassification then
+            local class = UnitClassification(unit)
+            if class == "elite" then classificationText = "E" end
+            if class == "rareelite" then classificationText = "RE" end
+            if class == "rare" then classificationText = "R" end
+        end
 
         if unitLevel < 0 then
-            self.unitLevel.text:SetText("??")
+            self.unitLevel.text:SetText("??" .. classificationText)
         else
-            self.unitLevel.text:SetText(unitLevel)
+            self.unitLevel.text:SetText(unitLevel .. classificationText)
         end
     end
 
@@ -2338,7 +2347,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
 
     if unit == "target" then
         local name = UnitName(unit) or UNKNOWN
-        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth() * 0.45, healthPercent .. "%" .. " " .. name
+        button.healthBar.leftText:SetLimitedText(button.healthBar:GetWidth() * 0.52, healthPercent .. "%" .. " " .. name
             , true)
         button.healthBar.rightText:SetLimitedText(button.healthBar:GetWidth() * 0.45, rightText)
     elseif unit == "targettarget" then

@@ -1505,7 +1505,17 @@ function srslylawlUI.CreateConfigWindow()
 
                     local unitLevelControl = CreateConfigControl(tab, unitName .. " Level", nil, unit)
                     local elements = CreateAnchoringPanel(tab, path .. "unitLevel.position", unitFrame.unitLevel, anchorT)
+                    local unitClassificationEnable = CreateSettingsCheckButton("Show Classification", unitLevelControl,
+                        path .. "unitLevel.showClassification",
+                        function()
+                            local show = srslylawlUI.GetSettingByUnit("unitLevel.showClassification", "mainUnits", unit)
+                            unitFrame.unitLevel.showClassification = show
+                            unitFrame:UpdateUnitLevel()
+                        end)
+                    AddTooltip(unitClassificationEnable,
+                        "Indicate if target is rare ('R'), elite ('E') or rareelite ('RE') by appending the respective letters to the level.")
                     unitLevelControl:Add(unpack(elements))
+                    unitLevelControl:Add(unitClassificationEnable)
                     unitLevelControl:ChainToControl(portraitControl)
                     anchor = unitLevelControl
                 end

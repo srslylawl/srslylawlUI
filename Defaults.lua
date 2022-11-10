@@ -150,7 +150,8 @@ srslylawlUI.defaultSettings = {
                 anchor = "Frame"
             },
             unitLevel = {
-                position = { "CENTER", "TargetFramePortrait", "BOTTOMRIGHT", 0, 2 }
+                position = { "CENTER", "TargetFramePortrait", "BOTTOMRIGHT", 0, 2 },
+                showClassification = true,
             },
             raidIcon = {
                 enabled = true,
@@ -224,7 +225,8 @@ srslylawlUI.defaultSettings = {
                 anchor = "Frame"
             },
             unitLevel = {
-                position = { "CENTER", "FocusFrame", "RIGHT", 0, 2 }
+                position = { "CENTER", "FocusFrame", "RIGHT", 0, 2 },
+                showClassification = true,
             },
             raidIcon = {
                 enabled = true,
