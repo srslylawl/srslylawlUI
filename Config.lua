@@ -314,7 +314,7 @@ function srslylawlUI.CreateConfigWindow()
 
         dropDown:SetPoint("BOTTOMLEFT", bounds, "BOTTOMLEFT", -10, 0)
 
-        local width = math.max(dropDown.title:GetWidth(), 40) + 10
+        width = width or math.max(dropDown.title:GetWidth(), 40) + 10
 
         UIDropDownMenu_SetWidth(dropDown, width)
         UIDropDownMenu_SetText(dropDown, srslylawlUI.GetSetting(valuePath, true))
@@ -1007,9 +1007,14 @@ function srslylawlUI.CreateConfigWindow()
         --party petbars
         local petBars = CreateConfigControl(tab, "Party Pet", nil, "party")
         petBars:ChainToControl(powerBars, "RIGHT")
+        local petEnable = CreateSettingsCheckButton("Enable", tab, path .. "pet.enabled",
+            function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.Frame_ResetUnitButton(srslylawlUI
+                        .partyUnits[unit].unitFrame.unit, unit)
+                end
+            end)
         local petBarWidth = CreateCustomSlider("Width", tab, 1, 100, path .. "pet.width", 1, 0,
             srslylawlUI.Frame_Party_ResetDimensions_ALL)
-        petBars:Add(petBarWidth)
+        petBars:Add(petEnable, petBarWidth)
 
         --cc bar
         local ccBars = CreateConfigControl(tab, "Party Crowd Control", nil, "party")
@@ -1057,9 +1062,9 @@ function srslylawlUI.CreateConfigWindow()
                     end
                 end
             end
-            local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path .. aType .. "s.anchoredTo", anchorTable
+            local frameAnchor = CreateCustomDropDown("Anchor To", 100, tab, path .. aType .. "s.anchoredTo", anchorTable
                 , nil, pointOnInitValueFunc)
-            local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path .. aType .. "s.anchor",
+            local auraAnchor = CreateCustomDropDown("AnchorPoint", 100, tab, path .. aType .. "s.anchor",
                 srslylawlUI.auraSortMethodTable, function() ResetAuraAll() end)
             --disabling the auraanchor dropdown, should we anchor to other auratype
             local onChanged = function(self, newValue)
@@ -1098,10 +1103,10 @@ function srslylawlUI.CreateConfigWindow()
         local portraitControl = CreateConfigControl(tab, "Party Portrait", nil, "party")
         local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "portrait.enabled",
             function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
-        local portraitPosition = CreateCustomDropDown("Position", 250, tab, path .. "portrait.position",
+        local portraitPosition = CreateCustomDropDown("Position", 100, tab, path .. "portrait.position",
             { "LEFT", "RIGHT" },
             function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
-        local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, path .. "portrait.anchor",
+        local portraitAnchor = CreateCustomDropDown("Anchor", 100, tab, path .. "portrait.anchor",
             { "Frame", "Powerbar" }
             , function() for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame:TogglePortrait() end end)
         portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
@@ -1227,9 +1232,9 @@ function srslylawlUI.CreateConfigWindow()
                             end
                         end
                     end
-                    local frameAnchor = CreateCustomDropDown("Anchor To", 200, tab, path .. aType .. "s.anchoredTo",
+                    local frameAnchor = CreateCustomDropDown("Anchor To", 100, tab, path .. aType .. "s.anchoredTo",
                         anchorTable, nil, pointOnInitValueFunc)
-                    local auraAnchor = CreateCustomDropDown("AnchorPoint", 200, tab, path .. aType .. "s.anchor",
+                    local auraAnchor = CreateCustomDropDown("AnchorPoint", 100, tab, path .. aType .. "s.anchor",
                         srslylawlUI.auraSortMethodTable, function() srslylawlUI.SetAuraPointsAll(unit, "mainUnits") end)
 
                     --disabling the auraanchor dropdown, should we anchor to other auratype
@@ -1305,9 +1310,11 @@ function srslylawlUI.CreateConfigWindow()
 
             if unit == "player" then
                 local petControl = CreateConfigControl(tab, unitName .. " Pet Frame", nil, unit)
+                local petEnable = CreateSettingsCheckButton("Enable", tab, path .. "pet.enabled",
+                    function() srslylawlUI.Frame_ResetPetButton(unitFrame, unit .. "pet") end)
                 local petWidth = CreateCustomSlider("Width", tab, 1, 200, path .. "pet.width", 1, 0,
                     function() srslylawlUI.Frame_ResetDimensions_Pet(unitFrame) end)
-                petControl:Add(petWidth)
+                petControl:Add(petEnable, petWidth)
                 petControl:ChainToControl(anchor)
                 anchor = petControl
                 --powerbarsetup
@@ -1433,16 +1440,18 @@ function srslylawlUI.CreateConfigWindow()
                 --should place bars again once spec/druidform changes
             else
                 local powerBarControl = CreateConfigControl(tab, unitName .. " Powerbar", nil, unit)
+                local powerBarEnable = CreateSettingsCheckButton("Enable", tab, path .. "power.enabled",
+                    function() srslylawlUI.Frame_ResetUnitButton(unitFrame.unit, unit) end, true)
                 local powerBarWidth = CreateCustomSlider("Width", tab, 0, 100, path .. "power.width", 1, 0, function()
                     srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
                 end)
                 local powerBarText = CreateSettingsCheckButton("Show Text", tab, path .. "power.text",
                     function() srslylawlUI.Frame_ResetUnitButton(unitFrame.unit, unit) end)
-                local position = CreateCustomDropDown("Position", 200, tab, path .. "power.position", { "LEFT", "RIGHT" }
+                local position = CreateCustomDropDown("Position", 100, tab, path .. "power.position", { "LEFT", "RIGHT" }
                     , function()
                     srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
                 end)
-                powerBarControl:Add(powerBarWidth, powerBarText, position)
+                powerBarControl:Add(powerBarEnable, powerBarWidth, powerBarText, position)
                 powerBarControl:ChainToControl(anchor)
                 if unit == "targettarget" then
                     anchor = powerBarControl
@@ -1484,9 +1493,9 @@ function srslylawlUI.CreateConfigWindow()
                     local portraitControl = CreateConfigControl(tab, unitName .. " Portrait", nil, unit)
                     local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "portrait.enabled",
                         function() unitFrame:TogglePortrait() end)
-                    local portraitPosition = CreateCustomDropDown("Position", 250, tab, path .. "portrait.position",
+                    local portraitPosition = CreateCustomDropDown("Position", 100, tab, path .. "portrait.position",
                         { "LEFT", "RIGHT" }, function() unitFrame:TogglePortrait() end)
-                    local portraitAnchor = CreateCustomDropDown("Anchor", 250, tab, path .. "portrait.anchor",
+                    local portraitAnchor = CreateCustomDropDown("Anchor", 100, tab, path .. "portrait.anchor",
                         { "Frame", "Powerbar" }, function() unitFrame:TogglePortrait() end)
                     portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
                     portraitControl:ChainToControl(ccbarControl)

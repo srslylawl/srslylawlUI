@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.32"
+local version = "1.34"
 
 
 srslylawlUI.loadedSettings = {}
@@ -112,7 +112,6 @@ local debugString = ""
 
 
 --[[ TODO:
-disable powerbar options
 castbar text size
 plus minus button for sliders
 let cc bar show multiple ccs
@@ -120,7 +119,6 @@ totem bar
 powerbar fadeout instead of hide
 incoming ressurrection
 incoming summon
-faux frames for player pet
 more sort methods?
 faux frames absorb auras
 some environment defensive buffs arent immediately recognized (amz etc)

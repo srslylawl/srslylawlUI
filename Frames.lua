@@ -618,7 +618,7 @@ function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
 
         buttonFrame.pet:SetScript("OnShow", function(self)
             local unit = self:GetParent():GetAttribute("unit")
-            srslylawlUI.Frame_ResetPetButton(self, unit .. "pet")
+            srslylawlUI.Frame_ResetPetButton(buttonFrame, unit .. "pet")
         end)
         buttonFrame.unit:SetScript("OnEnter", function(self)
             local unit = self:GetParent():GetAttribute("unit")
@@ -691,7 +691,7 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
         RegisterUnitWatch(buttonFrame.pet)
         buttonFrame.pet:SetScript("OnShow", function(self)
             local unit = self:GetParent():GetAttribute("unit")
-            srslylawlUI.Frame_ResetPetButton(self, unit .. "pet")
+            srslylawlUI.Frame_ResetPetButton(buttonFrame, unit .. "pet")
         end)
         buttonFrame.unit:SetScript("OnEnter", function(self)
             local unit = self:GetParent():GetAttribute("unit")
@@ -2247,6 +2247,7 @@ function srslylawlUI.Frame_ResetUnitButton(button, unit)
     srslylawlUI.Frame_ResetHealthBar(button, unit)
     srslylawlUI.Frame_ResetPowerBar(button, unit)
     srslylawlUI.Frame_ResetName(button, unit)
+    if button.pet then srslylawlUI.Frame_ResetPetButton(button, unit .. "pet") end
     button.RaidIcon:SetRaidIcon()
     if UnitIsUnit(unit, "target") and button:GetAttribute("unitsType") == "partyUnits" then
         button.selected:Show()
@@ -2265,12 +2266,16 @@ function srslylawlUI.Frame_ResetName(button, unit)
 end
 
 function srslylawlUI.Frame_ResetPetButton(button, unit)
-    if UnitExists(unit) then
+    local exists = UnitExists(unit)
+    local show = button.pet and
+        srslylawlUI.GetSettingByUnit("pet.enabled", button:GetAttribute("unitsType"), button:GetAttribute("unit"))
+    if exists and show then
         local health = UnitHealth(unit)
         local maxHealth = UnitHealth(unit)
-        button.healthBar:SetMinMaxValues(0, maxHealth)
-        button.healthBar:SetValue(health)
+        button.pet.healthBar:SetMinMaxValues(0, maxHealth)
+        button.pet.healthBar:SetValue(health)
     end
+    button.pet:SetShown(show and exists)
 end
 
 function srslylawlUI.Frame_ResetHealthBar(button, unit)
@@ -2364,6 +2369,10 @@ function srslylawlUI.Frame_ResetPowerBar(button, unit)
     end
     button.powerBar.text.enabled = srslylawlUI.GetSettingByUnit("power.text", unitsType, unit)
     srslylawlUI.SetPowerBarValues(button, unit)
+    if unitsType ~= "mainUnits" or unit ~= "player" then
+        local enabled = srslylawlUI.GetSettingByUnit("power.enabled", unitsType, unit)
+        button.powerBar:SetShown(enabled)
+    end
 end
 
 function srslylawlUI.SetPowerBarValues(button, unit)
@@ -2451,7 +2460,7 @@ function srslylawlUI.Frame_ResetDimensions_Pet(button)
             button.pet:ClearAllPoints()
             srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "TOPRIGHT", button.unit, "TOPLEFT", -1, 0)
             srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMLEFT", button.unit, "BOTTOMLEFT",
-                -srslylawlUI.GetSetting("player." .. unit .. "Frame.pet.width"), 0)
+                -srslylawlUI.GetSetting("player." .. unit .. "Frame.pet.width") - 1, 0)
         end
     end
 

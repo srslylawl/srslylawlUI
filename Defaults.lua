@@ -15,10 +15,12 @@ srslylawlUI.defaultSettings = {
             position = { "BOTTOMLEFT", -1, -1 }
         },
         power = {
+            enabled = true,
             width = 15,
             text = true
         },
         pet = {
+            enabled = true,
             width = 15
         },
         buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 7, yOffset = -50, size = 27, scaledSize = 0,
@@ -73,6 +75,7 @@ srslylawlUI.defaultSettings = {
                 showLongDuration = true
             },
             pet = {
+                enabled = true,
                 width = 20
             },
             combatRestIcon = {
@@ -118,6 +121,7 @@ srslylawlUI.defaultSettings = {
                 showLongDuration = true
             },
             power = {
+                enabled = true,
                 width = 15,
                 position = "LEFT",
                 text = true
@@ -161,6 +165,7 @@ srslylawlUI.defaultSettings = {
                 width = 150, height = 70, fontSize = 7, reversed = false
             },
             power = {
+                enabled = false,
                 width = 15,
                 text = true,
                 position = "RIGHT"
@@ -190,6 +195,7 @@ srslylawlUI.defaultSettings = {
                 showLongDuration = true
             },
             power = {
+                enabled = false,
                 width = 15,
                 position = "LEFT",
                 text = true
