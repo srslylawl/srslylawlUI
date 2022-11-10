@@ -249,19 +249,22 @@ end
 function srslylawlUI.Utils_GetPixelScale()
     if not srslylawlUI.pixelScaleX then
         local physicalWidth, physicalHeight
-        local isMaximized = GetCVar("gxMaximize") == 1 and true or false
+        local isMaximized = GetCVar("gxMaximize") == "1" and true or false
         local ingameWidth, ingameHeight
+        local uiScale = UIParent:GetScale()
         if isMaximized then
-            ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
-            ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
+            ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * uiScale)
+            ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * uiScale)
             physicalWidth, physicalHeight = GetPhysicalScreenSize()
         else
             local vec2 = C_VideoOptions.GetCurrentGameWindowSize()
             physicalWidth, physicalHeight = vec2.x, vec2.y
-            ingameWidth = srslylawlUI.Utils_ScuffedRound(physicalWidth * UIParent:GetScale())
-            ingameHeight = srslylawlUI.Utils_ScuffedRound(physicalHeight * UIParent:GetScale())
+            ingameWidth = srslylawlUI.Utils_ScuffedRound(physicalWidth * uiScale)
+            ingameHeight = srslylawlUI.Utils_ScuffedRound(physicalHeight * uiScale)
         end
         srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY = ingameWidth / physicalWidth, ingameHeight / physicalHeight
+        -- print("UIParent Scale: " .. uiScale)
+        -- print("Is Maximized? " .. (isMaximized and "True" or "False"))
         -- print("Physical Size: " .. physicalWidth .. " " .. physicalHeight)
         -- print("PixelScale: " .. srslylawlUI.pixelScaleX .. "x " .. srslylawlUI.pixelScaleY .. "y")
         -- print("ScreenWidth: " .. GetScreenWidth() .. " " .. GetScreenHeight())
