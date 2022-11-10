@@ -1,5 +1,5 @@
 ## Title: |cff4D00FFsrslylawlUI|r
-## Version: 1.34
+## Version: 1.35
 ## Author: srslylawl
 ## Interface: 100000
 ## X-Category: UnitFrame
