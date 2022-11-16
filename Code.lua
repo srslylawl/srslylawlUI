@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.21"
+local version = "1.35"
 
 
 srslylawlUI.loadedSettings = {}
@@ -47,7 +47,7 @@ srslylawlUI.sortedSpellLists = {
 }
 srslylawlUI.textures = {
     AbsorbFrame = "Interface/RAIDFRAME/Shield-Fill",
-    HealthBar = "Interface/AddOns/srslylawlUI/media/powerBarSprite",--"Interface/Addons/srslylawlUI/media/healthBar",
+    HealthBar = "Interface/AddOns/srslylawlUI/media/powerBarSprite", --"Interface/Addons/srslylawlUI/media/healthBar",
     EffectiveHealth = "Interface/AddOns/srslylawlUI/media/eHealthBar",
     Immunity = "Interface/AddOns/srslylawlUI/media/immunitySprite",
     PowerBarSprite = "Interface/AddOns/srslylawlUI/media/powerBarSprite",
@@ -56,17 +56,19 @@ srslylawlUI.textures = {
     AuraSwipe32 = "Interface/AddOns/srslylawlUI/media/auraSwipe_32",
     AuraSwipe64 = "Interface/AddOns/srslylawlUI/media/auraSwipe_64",
 }
-srslylawlUI.unsaved = {flag = false, buttons = {}}
+srslylawlUI.unsaved = { flag = false, buttons = {} }
 srslylawlUI.keyPhrases = {
     defensive = {
         "reduces damage taken", "damage taken reduced", "reducing damage taken",
-        "reducing all damage taken", "reduces all damage taken", "damage taken is redirected", "damage taken is transferred"
+        "reducing all damage taken", "reduces all damage taken", "damage taken is redirected",
+        "damage taken is transferred"
     },
     absorbs = {
         "absorb", "prevents"
     },
     immunity = {
-        "immune to physical damage", "immune to all damage", "immune to all attacks", "immune to damage", "immune to magical damage"
+        "immune to physical damage", "immune to all damage", "immune to all attacks", "immune to damage",
+        "immune to magical damage"
     }
 }
 
@@ -85,9 +87,9 @@ srslylawlUI.mainUnits = {
 }
 srslylawlUI.fauxUnits = {}
 srslylawlUI.customTooltip = CreateFrame("GameTooltip", "srslylawl_CustomTooltip", UIParent, "GameTooltipTemplate")
-srslylawlUI.partyUnitsTable = { "player", "party1", "party2", "party3", "party4"}
-srslylawlUI.mainUnitsTable = {"player", "target", "targettarget", "focus"}
-srslylawlUI.crowdControlTable = { "stuns", "incaps", "disorients", "silences", "roots"}
+srslylawlUI.partyUnitsTable = { "player", "party1", "party2", "party3", "party4" }
+srslylawlUI.mainUnitsTable = { "player", "target", "targettarget", "focus" }
+srslylawlUI.crowdControlTable = { "stuns", "incaps", "disorients", "silences", "roots" }
 srslylawlUI.anchorTable = {
     "TOP", "RIGHT", "BOTTOM", "LEFT", "CENTER", "TOPRIGHT", "TOPLEFT", "BOTTOMLEFT", "BOTTOMRIGHT"
 }
@@ -110,16 +112,13 @@ local debugString = ""
 
 
 --[[ TODO:
-party portrait right will overlap with pet frame, needs more options
 castbar text size
 plus minus button for sliders
-blizzard party frames visible when not using raid style party frames -> should be fixed
 let cc bar show multiple ccs
 totem bar
 powerbar fadeout instead of hide
 incoming ressurrection
 incoming summon
-faux frames for player pet
 more sort methods?
 faux frames absorb auras
 some environment defensive buffs arent immediately recognized (amz etc)
@@ -138,6 +137,7 @@ function srslylawlUI.Log(text, ...)
         print("|cff4D00FFsrslylawlUI:|r " .. text, str)
     end
 end
+
 function srslylawlUI.Utils_ShortenString(str, start, numChars)
     -- This function can return a substring of a UTF-8 string, properly handling UTF-8 codepoints. Rather than taking a start index and optionally an end index, it takes the string, the start index, and
     -- the number of characters to select from the string.
@@ -157,6 +157,7 @@ function srslylawlUI.Utils_ShortenString(str, start, numChars)
     end
     return str:sub(start, currentIndex - 1)
 end
+
 function srslylawlUI.Utils_TableDeepCopy(orig)
     local orig_type = type(orig)
     local copy
@@ -170,6 +171,7 @@ function srslylawlUI.Utils_TableDeepCopy(orig)
     end
     return copy
 end
+
 function srslylawlUI.Utils_TableEquals(table1, table2)
     if table1 == table2 then return true end
     local table1Type = type(table1)
@@ -190,6 +192,7 @@ function srslylawlUI.Utils_TableEquals(table1, table2)
     for key2, _ in pairs(table2) do if not keySet[key2] then return false end end
     return true
 end
+
 function srslylawlUI.Utils_GetTableLength(T)
     local count = 0
     if t == nil then return 0
@@ -197,14 +200,17 @@ function srslylawlUI.Utils_GetTableLength(T)
     for _ in pairs(T) do count = count + 1 end
     return count
 end
+
 function srslylawlUI.Utils_ScuffedRound(num)
-    num = floor(num+0.5)
+    num = floor(num + 0.5)
     return num
 end
+
 function srslylawlUI.Utils_DecimalRound(num, numDecimalPlaces)
-    local mult = 10^(numDecimalPlaces or 0)
+    local mult = 10 ^ (numDecimalPlaces or 0)
     return math.floor(num * mult + 0.5) / mult
 end
+
 function srslylawlUI.Utils_DecimalRoundWithZero(num, numDecimalPlaces)
     local s = srslylawlUI.Utils_DecimalRound(num, numDecimalPlaces)
     s = tostring(s)
@@ -213,6 +219,7 @@ function srslylawlUI.Utils_DecimalRoundWithZero(num, numDecimalPlaces)
     end
     return s
 end
+
 function srslylawlUI.Utils_GetUnitNameWithServer(unit)
     local name, server
     if (UnitExists(unit)) then
@@ -221,6 +228,7 @@ function srslylawlUI.Utils_GetUnitNameWithServer(unit)
     end
     return name
 end
+
 function srslylawlUI.Utils_CCTableTranslation(string)
     if string == "stuns" then return "stun"
     elseif string == "incaps" then return "incapacitate"
@@ -235,69 +243,88 @@ function srslylawlUI.Utils_CCTableTranslation(string)
     else return "none"
     end
 end
+
 function srslylawlUI.Utils_GetPixelScale()
     if not srslylawlUI.pixelScaleX then
         local physicalWidth, physicalHeight
-        local isMaximized = GetCVar("gxMaximize") == 1 and true or false
+        local isMaximized = GetCVar("gxMaximize") == "1" and true or false
+        local ingameWidth, ingameHeight
+        local uiScale = UIParent:GetScale()
         if isMaximized then
+            ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * uiScale)
+            ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * uiScale)
             physicalWidth, physicalHeight = GetPhysicalScreenSize()
         else
-            local res = string.gmatch((GetScreenResolutions()), "%d+")
-            physicalWidth, physicalHeight = res(), res()
+            local vec2 = C_VideoOptions.GetCurrentGameWindowSize()
+            physicalWidth, physicalHeight = vec2.x, vec2.y
+            ingameWidth = srslylawlUI.Utils_ScuffedRound(physicalWidth * uiScale)
+            ingameHeight = srslylawlUI.Utils_ScuffedRound(physicalHeight * uiScale)
         end
-        local ingameWidth = srslylawlUI.Utils_ScuffedRound(GetScreenWidth() * UIParent:GetScale())
-        local ingameHeight = srslylawlUI.Utils_ScuffedRound(GetScreenHeight() * UIParent:GetScale())
-        srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY = ingameWidth/physicalWidth, ingameHeight/physicalHeight
+        srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY = ingameWidth / physicalWidth, ingameHeight / physicalHeight
+        -- print("UIParent Scale: " .. uiScale)
+        -- print("Is Maximized? " .. (isMaximized and "True" or "False"))
+        -- print("Physical Size: " .. physicalWidth .. " " .. physicalHeight)
+        -- print("PixelScale: " .. srslylawlUI.pixelScaleX .. "x " .. srslylawlUI.pixelScaleY .. "y")
+        -- print("ScreenWidth: " .. GetScreenWidth() .. " " .. GetScreenHeight())
     end
+
     return srslylawlUI.pixelScaleX, srslylawlUI.pixelScaleY
 end
+
 function srslylawlUI.Utils_SetWidthPixelPerfect(frame, width)
     local scaleX = srslylawlUI.Utils_GetPixelScale()
     width = srslylawlUI.Utils_ScuffedRound(width)
-    frame:SetWidth(width*scaleX)
+    frame:SetWidth(width * scaleX)
 end
+
 function srslylawlUI.Utils_SetHeightPixelPerfect(frame, height)
     local _, scaleY = srslylawlUI.Utils_GetPixelScale()
     height = srslylawlUI.Utils_ScuffedRound(height)
-    frame:SetHeight(height*scaleY)
+    frame:SetHeight(height * scaleY)
 end
+
 function srslylawlUI.Utils_SetSizePixelPerfect(frame, width, height)
     width = srslylawlUI.Utils_ScuffedRound(width)
     height = srslylawlUI.Utils_ScuffedRound(height)
     local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
-    frame:SetSize(width*scaleX, height*scaleY)
+    frame:SetSize(width * scaleX, height * scaleY)
 end
+
 function srslylawlUI.Utils_SetPointPixelPerfect(frame, ...)
     local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
     if select('#', ...) == 5 then
         local point, parent, relativeTo, offsetX, offsetY = ...
-        frame:SetPoint(point, parent, relativeTo, offsetX*scaleX, offsetY*scaleY)
+        frame:SetPoint(point, parent, relativeTo, offsetX * scaleX, offsetY * scaleY)
     else
         local point, offsetX, offsetY = ...
-        frame:SetPoint(point, offsetX*scaleX, offsetY*scaleY)
+        frame:SetPoint(point, offsetX * scaleX, offsetY * scaleY)
     end
 end
+
 function srslylawlUI.Utils_PixelFromCodeToScreen(width, height)
     if width and height then
         local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
 
-        return width*scaleX, height*scaleY
+        return width * scaleX, height * scaleY
     elseif not height then
         local scaleX = srslylawlUI.Utils_GetPixelScale()
 
-        return width*scaleX
+        return width * scaleX
     end
 end
+
 function srslylawlUI.Utils_PixelFromScreenToCode(width, height)
     if width and height then
         local scaleX, scaleY = srslylawlUI.Utils_GetPixelScale()
-        return srslylawlUI.Utils_PixelRound(width/scaleX, 1*scaleX), srslylawlUI.Utils_PixelRound(height/scaleX, 1*scaleY)
+        return srslylawlUI.Utils_PixelRound(width / scaleX, 1 * scaleX),
+            srslylawlUI.Utils_PixelRound(height / scaleX, 1 * scaleY)
     elseif not height then
         local scaleX = srslylawlUI.Utils_GetPixelScale()
 
-        return srslylawlUI.Utils_PixelRound(width/scaleX, 1*scaleX)
+        return srslylawlUI.Utils_PixelRound(width / scaleX, 1 * scaleX)
     end
 end
+
 function srslylawlUI.Utils_AnchorInvert(position)
     if position == "TOP" then
         return "BOTTOM"
@@ -319,6 +346,7 @@ function srslylawlUI.Utils_AnchorInvert(position)
         return "TOPLEFT"
     end
 end
+
 function srslylawlUI.Utils_StringHasKeyWord(str, keywordTable)
     local s = string.lower(str)
     for _, phrase in pairs(keywordTable) do
@@ -327,11 +355,12 @@ function srslylawlUI.Utils_StringHasKeyWord(str, keywordTable)
 
     return false
 end
+
 function srslylawlUI.Utils_TranslateTexY(texture, amount, isTiledTexture)
     --this bugs out if texture gets resized
-    local coords = {texture:GetTexCoord()}
+    local coords = { texture:GetTexCoord() }
     if isTiledTexture then
-        local original = {0, 0, 0, 1, 1, 0, 1, 1}
+        local original = { 0, 0, 0, 1, 1, 0, 1, 1 }
         local cont = false
         for i, v in ipairs(coords) do
             if coords[i] ~= original[i] then
@@ -348,12 +377,13 @@ function srslylawlUI.Utils_TranslateTexY(texture, amount, isTiledTexture)
 
     texture:SetTexCoord(unpack(coords))
 end
+
 function srslylawlUI.Utils_TranslateTexX(texture, amount, isTiledTexture)
     --this bugs out if texture gets resized
-    local coords = {texture:GetTexCoord()}
+    local coords = { texture:GetTexCoord() }
 
     if isTiledTexture then
-        local original = {0, 0, 0, 1, 1, 0, 1, 1}
+        local original = { 0, 0, 0, 1, 1, 0, 1, 1 }
         local cont = false
         for i, v in ipairs(coords) do
             if coords[i] ~= original[i] then
@@ -373,18 +403,20 @@ function srslylawlUI.Utils_TranslateTexX(texture, amount, isTiledTexture)
 
     texture:SetTexCoord(unpack(coords))
 end
+
 function srslylawlUI.Utils_SetLimitedText(fontstring, maxPixels, text, addDots)
     local substring
     local wasShortened = false
     for length = #text, 1, -1 do
         substring = srslylawlUI.Utils_ShortenString(text, 1, length)
-        fontstring:SetText(wasShortened and addDots and substring..".." or substring)
+        fontstring:SetText(wasShortened and addDots and substring .. ".." or substring)
         if fontstring:GetStringWidth() <= maxPixels then
             return
         end
         wasShortened = true
     end
 end
+
 function srslylawlUI.Utils_PixelRound(x, pixelSize)
     pixelSize = pixelSize or srslylawlUI.Utils_PixelFromCodeToScreen(1)
     if math.fmod(x, 1) >= pixelSize then
@@ -393,31 +425,33 @@ function srslylawlUI.Utils_PixelRound(x, pixelSize)
         return floor(x)
     end
 end
+
 function srslylawlUI.ShortenNumber(number)
     if number > 999999999 then
-        number = tostring(srslylawlUI.Utils_ScuffedRound(number/100000000))
-        if number:sub(string.len(number),string.len(number)) ~= '0' then
-            number = number:sub(1,string.len(number)-1).."."..number:sub(string.len(number)).."B"
+        number = tostring(srslylawlUI.Utils_ScuffedRound(number / 100000000))
+        if number:sub(string.len(number), string.len(number)) ~= '0' then
+            number = number:sub(1, string.len(number) - 1) .. "." .. number:sub(string.len(number)) .. "B"
         else
-            number = number:sub(1,string.len(number)-1).."B"
+            number = number:sub(1, string.len(number) - 1) .. "B"
         end
     elseif number > 999999 then
-        number = tostring(srslylawlUI.Utils_ScuffedRound(number/100000))
-        if number:sub(string.len(number),string.len(number)) ~= '0' then
-            number = number:sub(1,string.len(number)-1).."."..number:sub(string.len(number)).."M"
+        number = tostring(srslylawlUI.Utils_ScuffedRound(number / 100000))
+        if number:sub(string.len(number), string.len(number)) ~= '0' then
+            number = number:sub(1, string.len(number) - 1) .. "." .. number:sub(string.len(number)) .. "M"
         else
-            number = number:sub(1,string.len(number)-1).."M"
+            number = number:sub(1, string.len(number) - 1) .. "M"
         end
     elseif number > 999 then
-        number = tostring(srslylawlUI.Utils_ScuffedRound(number/100))
-        if number:sub(string.len(number),string.len(number)) ~= '0' then
-            number = number:sub(1,string.len(number)-1).."."..number:sub(string.len(number)).."K"
+        number = tostring(srslylawlUI.Utils_ScuffedRound(number / 100))
+        if number:sub(string.len(number), string.len(number)) ~= '0' then
+            number = number:sub(1, string.len(number) - 1) .. "." .. number:sub(string.len(number)) .. "K"
         else
-            number = number:sub(1,string.len(number)-1).."K"
+            number = number:sub(1, string.len(number) - 1) .. "K"
         end
     end
     return number
 end
+
 function srslylawlUI.TranslateFrameAnchor(anchor)
     if type(anchor) == "string" then
         if anchor == "Screen" then
@@ -451,19 +485,21 @@ function srslylawlUI.TranslateFrameAnchor(anchor)
         return "Screen"
     end
 end
+
 function srslylawlUI.Debug()
     if srslylawlUI.DebugWindow == nil then
         srslylawlUI.DebugWindow = CreateFrame("Frame", "srslylawlUI_DebugWindow", UIParent)
         srslylawlUI.DebugWindow:SetSize(500, 500)
         srslylawlUI.DebugWindow:SetPoint("CENTER")
-        local scrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", srslylawlUI.DebugWindow, "UIPanelScrollFrameTemplate,BackdropTemplate")
+        local scrollFrame = CreateFrame("ScrollFrame", "$parent_ScrollFrame", srslylawlUI.DebugWindow,
+            "UIPanelScrollFrameTemplate,BackdropTemplate")
         scrollFrame:SetAllPoints()
         scrollFrame:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
             edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
             edgeSize = 12,
-            insets = {left = 4, right = 4, top = 4, bottom = 4}
-            })
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
+        })
         scrollFrame:SetBackdropColor(0.05, 0.05, .05, .5)
         srslylawlUI.DebugWindow.ScrollFrame = scrollFrame
 
@@ -478,7 +514,8 @@ function srslylawlUI.Debug()
         editBox:SetMultiLine(true)
         editBox:SetFontObject(ChatFontNormal)
         srslylawlUI.DebugWindow.EditBox = editBox
-        srslylawlUI.DebugWindow.CloseButton = CreateFrame("Button", "srslylawlUI_DebugWindow_CloseButton", srslylawlUI.DebugWindow, "UIPanelCloseButton")
+        srslylawlUI.DebugWindow.CloseButton = CreateFrame("Button", "srslylawlUI_DebugWindow_CloseButton",
+            srslylawlUI.DebugWindow, "UIPanelCloseButton")
         srslylawlUI.DebugWindow.CloseButton:SetPoint("BOTTOMLEFT", srslylawlUI.DebugWindow, "TOPRIGHT", 0, 0)
         local text = "Debug \n"
         debugString = text
@@ -533,6 +570,7 @@ function srslylawlUI.GetPartyHealth()
 
     return nameStringSortedByHealthDesc, highestHP, averageHP, hasUnknownMember
 end
+
 --Auras
 function srslylawlUI.GetBuffText(buffIndex, unit)
     tooltipTextGrabber:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
@@ -542,6 +580,7 @@ function srslylawlUI.GetBuffText(buffIndex, unit)
 
     return n2
 end
+
 function srslylawlUI.GetDebuffText(debuffIndex, unit)
     tooltipTextGrabber:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
     tooltipTextGrabber:SetUnitDebuff(unit, debuffIndex)
@@ -549,6 +588,7 @@ function srslylawlUI.GetDebuffText(debuffIndex, unit)
     tooltipTextGrabber:Hide()
     return n2
 end
+
 function srslylawlUI.HandleAuras(unitbutton, unit)
     local unitsType = unitbutton:GetAttribute("unitsType")
     local function GetTypeOfAuraID(spellId)
@@ -562,7 +602,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
 
         return auraType
     end
-    local function TrackAura(source, spellId, count, name, index, absorb, icon, duration, expirationTime, auraType, verify)
+
+    local function TrackAura(source, spellId, count, name, index, absorb, icon, duration, expirationTime, auraType,
+                             verify)
         if auraType == nil then error("auraType is nil") end
 
         local byAura = auraType .. "Auras"
@@ -571,9 +613,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         if verify == nil or verify == false then end
         if source == nil then source = "unknown" end
 
-        local aura = {["name"] = name, ["index"] = index}
+        local aura = { ["name"] = name, ["index"] = index }
         if srslylawlUI[unitsType][unit][byAura][source] == nil then
-            srslylawlUI[unitsType][unit][byAura][source] = {[spellId] = aura}
+            srslylawlUI[unitsType][unit][byAura][source] = { [spellId] = aura }
         else
             srslylawlUI[unitsType][unit][byAura][source][spellId] = aura
         end
@@ -606,6 +648,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         t["auraType"] = auraType
         t["stacks"] = count
     end
+
     local function UntrackAura(index)
         local byIndex = "trackedAurasByIndex"
         local auraType = srslylawlUI[unitsType][unit][byIndex][index].auraType
@@ -635,7 +678,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         --No more auras being tracked for that unit, untrack source
         if t == 0 then srslylawlUI[unitsType][unit][byAura][src] = nil end
     end
-    local function ChangeTrackingIndex(name, source, count, spellId, currentIndex, absorb, icon, duration, expirationTime, auraType)
+
+    local function ChangeTrackingIndex(name, source, count, spellId, currentIndex, absorb, icon, duration, expirationTime
+                                       , auraType)
         -- srslylawlUI.Log("index changed " .. name)
         local byAura = auraType .. "Auras"
         local byIndex = "trackedAurasByIndex"
@@ -646,7 +691,8 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
 
         -- flag for timer refresh
         local diff = 0
-        if srslylawlUI[unitsType][unit][byIndex][oldIndex] ~= nil and srslylawlUI[unitsType][unit][byIndex][oldIndex].expiration ~= nil then
+        if srslylawlUI[unitsType][unit][byIndex][oldIndex] ~= nil and
+            srslylawlUI[unitsType][unit][byIndex][oldIndex].expiration ~= nil then
             diff = expirationTime - srslylawlUI[unitsType][unit][byIndex][oldIndex].expiration
         end
 
@@ -668,7 +714,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         t["index"] = currentIndex
         t["stacks"] = count
         t["auraType"] = auraType
-        
+
         --TODO: nil here
         if srslylawlUI[unitsType][unit][byIndex] and srslylawlUI[unitsType][unit][byIndex][oldIndex] then
             local tat = srslylawlUI[unitsType][unit][byIndex][oldIndex].trackedApplyTime
@@ -679,6 +725,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
 
         srslylawlUI[unitsType][unit][byIndex][oldIndex] = nil
     end
+
     local function IsAuraBeingTrackedAtOtherIndex(source, spellId, auraType)
         if srslylawlUI[unitsType][unit][auraType .. "Auras"][source] == nil then
             return false
@@ -688,9 +735,11 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             return true
         end
     end
+
     local function AuraIsBeingTrackedAtIndex(index)
         return srslylawlUI[unitsType][unit].trackedAurasByIndex[index] ~= nil
     end
+
     local function ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
         if IsAuraBeingTrackedAtOtherIndex(source, spellId, auraType) then
             -- aura is being tracked but at another index, change that
@@ -698,8 +747,32 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         else
             -- aura is not tracked at all, track it!
             TrackAura(source, spellId, count, name, i, absorb, icon, duration,
-                      expirationTime, auraType)
+                expirationTime, auraType)
         end
+    end
+
+    local function SetBuff(buffFrame, index, ...)
+        local name, icon, count, debuffType, duration, expirationTime, unitCaster, canStealOrPurge, _, spellId, canApplyAura = ...;
+        buffFrame.icon:SetTexture(icon);
+        if (count > 1) then
+            local countText = count;
+            if (count >= 100) then
+                countText = BUFF_STACKS_OVERFLOW;
+            end
+            buffFrame.count:Show();
+            buffFrame.count:SetText(countText);
+        else
+            buffFrame.count:Hide();
+        end
+        buffFrame:SetID(index);
+        local enabled = expirationTime and expirationTime ~= 0;
+        if enabled then
+            local startTime = expirationTime - duration;
+            CooldownFrame_Set(buffFrame.cooldown, startTime, duration, true);
+        else
+            CooldownFrame_Clear(buffFrame.cooldown);
+        end
+        buffFrame:Show();
     end
 
     -- reset frame check verifier
@@ -720,15 +793,16 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         -- loop through all buffs and assign them to frames
         local f = srslylawlUI[unitsType][unit].buffFrames[currentBuffFrame]
         local name, icon, count, debuffType, duration, expirationTime, source,
-              isStealable, nameplateShowPersonal, spellId, canApplyAura,
-              isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
-            UnitAura(unit, i, "HELPFUL")
-            if name then -- if aura on this index exists, assign it
+        isStealable, nameplateShowPersonal, spellId, canApplyAura,
+        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
+        UnitAura(unit, i, "HELPFUL")
+        if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberBuff(i, unit)
-            if srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, UnitAura(unit, i, "HELPFUL")) and currentBuffFrame <= maxBuffs then
-                CompactUnitFrame_UtilSetBuff(f, i, UnitAura(unit, i))
+            if srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, UnitAura(unit, i, "HELPFUL")) and
+                currentBuffFrame <= maxBuffs then
+                SetBuff(f, i, UnitAura(unit, i))
                 if isStealable then
-	                f.border:SetVertexColor(unpack(buffIsStealableColor))
+                    f.border:SetVertexColor(unpack(buffIsStealableColor))
                     size = scaledBuffSize
                 elseif source and UnitIsEnemy(source, "player") then
                     f.border:SetVertexColor(unpack(buffIsEnemyColor))
@@ -756,7 +830,8 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                     if srslylawlUI[unitsType][unit].trackedAurasByIndex[i]["spellId"] ~= spellId then
                         -- different spell is being tracked
                         UntrackAura(i)
-                        ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
+                        ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime,
+                            auraType)
                     else
                         -- aura is tracked and at same index, update that we verified that this frame
                         TrackAura(source, spellId, count, name, i, absorb, icon, duration, expirationTime, auraType, true)
@@ -789,13 +864,15 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     for i = 1, 40 do
         local f = srslylawlUI[unitsType][unit].debuffFrames[currentDebuffFrame]
         local name, icon, count, debuffType, duration, expirationTime, source,
-              isStealable, nameplateShowPersonal, spellId, canApplyAura,
-              isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
-            UnitAura(unit, i, "HARMFUL")
+        isStealable, nameplateShowPersonal, spellId, canApplyAura,
+        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
+        UnitAura(unit, i, "HARMFUL")
         if name then -- if aura on this index exists, assign it
             srslylawlUI.Auras_RememberDebuff(spellId, i, unit)
             --check if its CC
-            if srslylawlUI_Saved.debuffs.known[spellId] ~= nil and srslylawlUI_Saved.debuffs.known[spellId].crowdControlType ~= "none" and srslylawlUI_Saved.debuffs.blackList[spellId] == nil then
+            if srslylawlUI_Saved.debuffs.known[spellId] ~= nil and
+                srslylawlUI_Saved.debuffs.known[spellId].crowdControlType ~= "none" and
+                srslylawlUI_Saved.debuffs.blackList[spellId] == nil then
                 local cc = {
                     ["ID"] = spellId,
                     ["index"] = i,
@@ -803,32 +880,33 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                     ["icon"] = icon,
                     ["debuffType"] = debuffType,
                     ["ccType"] = srslylawlUI_Saved.debuffs.known[spellId].crowdControlType,
-                    ["remaining"] = expirationTime-GetTime()
+                    ["remaining"] = expirationTime - GetTime()
                 }
                 table.insert(appliedCC, cc)
             end
-            if srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, UnitAura(unit, i, "HARMFUL")) and currentDebuffFrame <= maxDebuffs then
+            if srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, UnitAura(unit, i, "HARMFUL")) and
+                currentDebuffFrame <= maxDebuffs then
                 f.icon:SetTexture(icon)
-                if ( count > 1 ) then
-		            local countText = count;
-		            if ( count >= 100 ) then
-			            countText = BUFF_STACKS_OVERFLOW;
-		            end
-		            f.count:Show();
-		            f.count:SetText(countText);
-	            elseif f then
-		            f.count:Hide();
-	            end
+                if (count > 1) then
+                    local countText = count;
+                    if (count >= 100) then
+                        countText = BUFF_STACKS_OVERFLOW;
+                    end
+                    f.count:Show();
+                    f.count:SetText(countText);
+                elseif f then
+                    f.count:Hide();
+                end
                 f:SetID(i)
                 local enabled = expirationTime and expirationTime ~= 0;
-	            if enabled then
-		            local startTime = expirationTime - duration;
-		            CooldownFrame_Set(f.cooldown, startTime, duration, true);
-	            else
-		            CooldownFrame_Clear(f.cooldown);
+                if enabled then
+                    local startTime = expirationTime - duration;
+                    CooldownFrame_Set(f.cooldown, startTime, duration, true);
+                else
+                    CooldownFrame_Clear(f.cooldown);
                 end
                 local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
-	            f.border:SetVertexColor(color.r, color.g, color.b);
+                f.border:SetVertexColor(color.r, color.g, color.b);
 
                 if source and source == "player" and unitsType == "mainUnits" then
                     size = scaledDebuffSize
@@ -869,7 +947,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
 
         if CCToDisplay.ccType == "roots" then
             --if we picked a root, see if theres a hardcc applied as well, and if yes, display it instead
-            for i=2, #appliedCC do
+            for i = 2, #appliedCC do
                 if appliedCC[i].ccType ~= "roots" then
                     CCToDisplay = appliedCC[i]
                     break
@@ -885,42 +963,44 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
 
         --See if its already being displayed
         if not exists or differentSpell or differentExpTime or differentIndex then
+            -- expirationTime can for some reason be different for the same spell now in 10.0
+
             --not being displayed
             unitbutton.CCDurBar.spellData = CCToDisplay
             unitbutton.CCDurBar.icon:SetTexture(CCToDisplay.icon)
             unitbutton.CCDurBar.statusBar:SetStatusBarColor(color.r, color.g, color.b)
             local timer, duration, expirationTime, remaining = 0, 0, 0, 0
             local updateInterval = 0.02
-            remaining = expirationTime-GetTime()
-            unitbutton.CCDurBar.statusBar:SetValue(remaining/duration)
-            local timerstring = tostring(remaining)
-            timerstring = timerstring:match("%d+%p?%d")
-            unitbutton.CCDurBar.timer:SetText(timerstring)
+            local timerstring = ""
 
-            unitbutton.CCDurBar:SetScript("OnUpdate",
-                function(self, elapsed)
-                    timer = timer + elapsed
-                    _, _, _, _, duration, expirationTime = UnitAura(unit, self.spellData.index, "HARMFUL")
-                    if expirationTime == nil then return end
-                    if timer >= updateInterval then
-                        if duration == 0 then
-                            self.statusBar:SetValue(1)
-                            self.timer:SetText("")
-                        else
-                            remaining = expirationTime-GetTime()
-                            self.statusBar:SetValue(remaining/duration)
-                            timerstring = tostring(remaining)
-                            timerstring = timerstring:match("%d+%p?%d")
-                            self.timer:SetText(timerstring)
-                        end
-                        timer = timer - updateInterval
+            local function updateBar(self, elapsed)
+                timer = timer + elapsed
+                _, _, _, _, duration, expirationTime = UnitAura(unit, self.spellData.index, "HARMFUL")
+                if expirationTime == nil then return end
+                if timer >= updateInterval then
+                    if duration == 0 then
+                        self.statusBar:SetValue(1)
+                        self.timer:SetText("")
+                    else
+                        remaining = expirationTime - GetTime()
+                        local fill = remaining / duration
+                        self.statusBar:SetValue(fill)
+                        timerstring = tostring(remaining)
+                        timerstring = timerstring:match("%d+%p?%d")
+                        self.timer:SetText(timerstring)
                     end
-                end)
+                    timer = timer - updateInterval
+                end
+            end
+
+            unitbutton.CCDurBar:SetScript("OnUpdate", updateBar)
+            --call update once to instantly fill in
+            updateBar(unitbutton.CCDurBar, updateInterval)
         else
             --just update data
             unitbutton.CCDurBar.spellData = CCToDisplay
         end
-        
+
     end
     if unitbutton.CCDurBar then
         unitbutton.CCDurBar:SetShown(displayCC)
@@ -936,6 +1016,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     srslylawlUI.HandleEffectiveHealth(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
     srslylawlUI.HandleAbsorbFrames(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
 end
+
 function srslylawlUI.Main_HandleAuras_ALL()
     for _, unit in pairs(srslylawlUI.mainUnitsTable) do
         if unit ~= "targettarget" then
@@ -946,6 +1027,7 @@ function srslylawlUI.Main_HandleAuras_ALL()
         end
     end
 end
+
 function srslylawlUI.Party_HandleAuras_ALL()
     for _k, unit in pairs(srslylawlUI.partyUnitsTable) do
         local f = srslylawlUI.Frame_GetFrameByUnit(unit, "partyUnits")
@@ -955,6 +1037,7 @@ function srslylawlUI.Party_HandleAuras_ALL()
         end
     end
 end
+
 function srslylawlUI.ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, isHealPrediction)
     frame:SetAttribute("absorbAmount", absorbAmount)
     srslylawlUI.Utils_SetSizePixelPerfect(frame, barWidth, height)
@@ -977,6 +1060,7 @@ function srslylawlUI.ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, 
         end
     end
 end
+
 function srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
     local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(unit, unitsType)
     local width = srslylawlUI.Utils_PixelFromScreenToCode(buttonFrame.unit.healthBar:GetWidth())
@@ -992,23 +1076,29 @@ function srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
     end
     local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
     local direction = 1
-    local offset = (baseAnchorOffset+pixelOffset)
+    local offset = (baseAnchorOffset + pixelOffset)
     if buttonFrame.unit.healthBar.reversed then
         anchor1, anchor2 = "TOPRIGHT", "TOPLEFT"
         direction = -1
     end
-    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFrames"][1], anchor1, buttonFrame.unit.healthBar,anchor1, offset*direction, 0)
-    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], anchor2, buttonFrame.unit.healthBar, anchor1, (baseAnchorOffset+mergeOffset)*direction,0)
-    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], anchor1, buttonFrame.unit.healthBar,anchor1, (offset-srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset)*direction, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFrames"][1], anchor1,
+        buttonFrame.unit.healthBar, anchor1, offset * direction, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], anchor2,
+        buttonFrame.unit.healthBar, anchor1, (baseAnchorOffset + mergeOffset) * direction, 0)
+    srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], anchor1,
+        buttonFrame.unit.healthBar, anchor1,
+        (offset - srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset) * direction, 0)
 end
+
 function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
     local name, icon, count, debuffType, duration, expirationTime, source,
-              isStealable, nameplateShowPersonal, spellId, canApplyAura,
-              isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
+    isStealable, nameplateShowPersonal, spellId, canApplyAura,
+    isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
     local function NotDefault(bool)
         return bool ~= srslylawlUI.GetSettingByUnit("buffs.showDefault", unitsType, unit)
     end
+
     if srslylawlUI_Saved.buffs.whiteList[spellId] then
         --always show whitelisted spells
         return true
@@ -1021,7 +1111,7 @@ function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
 
     if srslylawlUI_Saved.buffs.absorbs[spellId] then
         --dont show absorb spells unless whitelisted
-        
+
         return isStealable and unit == "target"
     end
 
@@ -1047,14 +1137,16 @@ function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
 
     return srslylawlUI.GetSettingByUnit("buffs.showDefault", unitsType, unit)
 end
+
 function srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, ...)
     local name, icon, count, debuffType, duration, expirationTime, source,
-        isStealable, nameplateShowPersonal, spellId, canApplyAura,
-        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
+    isStealable, nameplateShowPersonal, spellId, canApplyAura,
+    isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
 
     local function NotDefault(bool)
         return bool ~= srslylawlUI.GetSettingByUnit("debuffs.showDefault", unitsType, unit)
     end
+
     if srslylawlUI_Saved.debuffs.whiteList[spellId] then
         --always show whitelisted spells
         return true
@@ -1089,25 +1181,27 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, ...)
 
     return srslylawlUI.GetSettingByUnit("debuffs.showDefault", unitsType, unit)
 end
+
 function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
     local function GetPercentValue(tooltipText)
-            -- %d+ = multiple numbers in a row
-            -- %% = the % sign
-            -- so we are looking for something like 15%
-            local valueWithSign = tooltipText:match("%d*%.?%d+%%")
+        -- %d+ = multiple numbers in a row
+        -- %% = the % sign
+        -- so we are looking for something like 15%
+        local valueWithSign = tooltipText:match("%d*%.?%d+%%")
 
-            if not valueWithSign then return 0 end
-            -- remove the percent sign now
+        if not valueWithSign then return 0 end
+        -- remove the percent sign now
 
-            local number = valueWithSign:match("%d+")
+        local number = valueWithSign:match("%d+")
 
-            return tonumber(number) or 0
+        return tonumber(number) or 0
     end
+
     local function ProcessID(buffIndex, unit)
         local spellName, icon, stacks, debuffType, duration, expirationTime, source,
-              isStealable, nameplateShowPersonal, spellId, canApplyAura,
-              isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1 =
-            UnitAura(unit, buffIndex, "HELPFUL")
+        isStealable, nameplateShowPersonal, spellId, canApplyAura,
+        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1 =
+        UnitAura(unit, buffIndex, "HELPFUL")
         local isKnown = srslylawlUI_Saved.buffs.known[spellId] ~= nil
         local buffText = srslylawlUI.GetBuffText(buffIndex, unit)
         if not buffText then
@@ -1119,10 +1213,12 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             end
         end
         local buffLower = buffText ~= nil and string.lower(buffText) or ""
-        local keyWordAbsorb = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.absorbs) and ((arg1 ~= nil) and (arg1 > 1))
+        local keyWordAbsorb = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.absorbs) and
+            ((arg1 ~= nil) and (arg1 > 1))
         local keyWordDefensive = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.defensive)
         local keyWordImmunity = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.immunity)
-        local autoDetectDisabled = isKnown and srslylawlUI_Saved.buffs.known[spellId].autoDetect ~= nil and srslylawlUI_Saved.buffs.known[spellId].autoDetect == false
+        local autoDetectDisabled = isKnown and srslylawlUI_Saved.buffs.known[spellId].autoDetect ~= nil and
+            srslylawlUI_Saved.buffs.known[spellId].autoDetect == false
         if autoDetectDisabled then
             srslylawlUI_Saved.buffs.known[spellId].text = buffText
             return
@@ -1146,9 +1242,9 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
 
             srslylawlUI_Saved.buffs.absorbs[spellId] = spell
         elseif keyWordImmunity then
-            
+
             spell.reductionAmount = 100
-            
+
             if not srslylawlUI_Saved.buffs.defensives[spellId] then
                 local log = "new defensive spell " .. link .. " encountered as immunity!"
                 -- first time entry
@@ -1164,7 +1260,8 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
 
                 if stacks ~= 0 then
                     amount = amount / stacks
-                    log = "new defensive spell " .. link .. " encountered with a reduction of " .. amount .. "% per stack!"
+                    log = "new defensive spell " ..
+                        link .. " encountered with a reduction of " .. amount .. "% per stack!"
                 end
 
                 if abs(amount) ~= 0 then
@@ -1199,6 +1296,7 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
 
     ProcessID(buffIndex, unit)
 end
+
 function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
     local function GetCrowdControlType(tooltipText)
         local s = string.lower(tooltipText)
@@ -1210,15 +1308,17 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
         elseif s:match("disoriented") or s:match("feared") then
             return "disorients"
         elseif s:match("incapacitated") or s:match("sleep") then
-            return "incaps"    
+            return "incaps"
         end
 
-        if s:match("rooted") or s:match("immobilized") or s:match("frozen") or s:match("pinned in place") or s:match("immobile") then
+        if s:match("rooted") or s:match("immobilized") or s:match("frozen") or s:match("pinned in place") or
+            s:match("immobile") then
             return "roots"
         end
 
         return "none"
     end
+
     local function ProcessID(spellId, debuffIndex, unit, arg1)
         local spellName = GetSpellInfo(spellId)
         local debuffText = srslylawlUI.GetDebuffText(debuffIndex, unit)
@@ -1226,7 +1326,8 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
 
         local CCType = GetCrowdControlType(debuffLower)
         local isKnown = srslylawlUI_Saved.debuffs.known[spellId] ~= nil
-        local autoDetectDisabled = isKnown and srslylawlUI_Saved.debuffs.known[spellId].autoDetect ~= nil and srslylawlUI_Saved.debuffs.known[spellId].autoDetect == false
+        local autoDetectDisabled = isKnown and srslylawlUI_Saved.debuffs.known[spellId].autoDetect ~= nil and
+            srslylawlUI_Saved.debuffs.known[spellId].autoDetect == false
 
         if autoDetectDisabled then
             --only update last parsed text
@@ -1266,6 +1367,7 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
 
     ProcessID(spellId, debuffIndex, unit, arg1)
 end
+
 function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
     -- we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it
     -- it should get added/updated though once we ever see it on any party members
@@ -1305,6 +1407,7 @@ function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
         srslylawlUI.Log("New spell added: " .. link .. "!")
     end
 end
+
 function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
 
     srslylawlUI_Saved[auraType].known[spellId] = nil
@@ -1314,7 +1417,7 @@ function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
         if category[spellId] ~= nil then
             category[spellId] = nil
             srslylawlUI_Saved[auraType][k][spellId] = nil
-            srslylawlUI.Log(link .. " removed from "..k.."!")
+            srslylawlUI.Log(link .. " removed from " .. k .. "!")
         end
     end
 
@@ -1334,6 +1437,7 @@ function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
     --     srslylawlUI.spells.blackList[spellId] = spell
     -- end
 end
+
 function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
     local spell = srslylawlUI_Saved[auraType].known[spellId]
     local str = spell.name
@@ -1344,29 +1448,35 @@ function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
         srslylawlUI_Saved[auraType].whiteList[spellID] = nil
         str = str .. " removed from whitelist and "
     end
-    
+
     srslylawlUI.Party_HandleAuras_ALL()
     srslylawlUI.Main_HandleAuras_ALL()
     srslylawlUI.Log(str .. " blacklisted, will no longer be shown.")
 end
+
 function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     local height, width, currentBarLength
     local barWidth
     if unitsType == "partyUnits" then
-        height = srslylawlUI.GetSetting("party.hp.height")*(srslylawlUI.GetSetting("party.hp.absorbHeightPercent") or .7)
+        height = srslylawlUI.GetSetting("party.hp.height") *
+            (srslylawlUI.GetSetting("party.hp.absorbHeightPercent") or .7)
         width = srslylawlUI.GetSetting("party.hp.width")
-        barWidth = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar:GetWidth())
+        barWidth = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar:
+            GetWidth())
     elseif unitsType == "mainUnits" then
-        height = srslylawlUI.GetSetting("player."..unit.."Frame.hp.height")*(srslylawlUI.GetSetting("player."..unit.."Frame.hp.absorbHeightPercent") or .7)
-        width = srslylawlUI.GetSetting("player."..unit.."Frame.hp.width")
+        height = srslylawlUI.GetSetting("player." .. unit .. "Frame.hp.height") *
+            (srslylawlUI.GetSetting("player." .. unit .. "Frame.hp.absorbHeightPercent") or .7)
+        width = srslylawlUI.GetSetting("player." .. unit .. "Frame.hp.width")
         barWidth = width
     end
-    local pixelPerHp = barWidth / UnitHealthMax(unit)
+    local maxHp = UnitHealthMax(unit)
+    maxHp = maxHp == 0 and 1 or maxHp
+    local pixelPerHp = barWidth / maxHp
     local playerCurrentHP = UnitHealth(unit)
     currentBarLength = playerCurrentHP * pixelPerHp
     local totalAbsorbBarLength = 0
     local overlapBarIndex, curBarIndex, curBarOverlapIndex = 1, 1, 1 --overlapBarIndex 1 means we havent filled the bar up with absorbs, 2 means we are now overlaying absorbs over the healthbar
-    local variousAbsorbAmount = 0  -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
+    local variousAbsorbAmount = 0 -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
     local absorbSegments = {}
     local incomingHeal = UnitGetIncomingHeals(unit)
     local healAbsorb = UnitGetTotalHealAbsorbs(unit)
@@ -1382,6 +1492,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
             ["oIndex"] = oIndex
         }
     end
+
     local function SortAbsorbBySpellIDDesc(absorbAuraTable)
         local t = {}
         for k, _ in pairs(absorbAuraTable) do
@@ -1392,11 +1503,16 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
         table.sort(t, function(a, b) return b.spellId < a.spellId end)
         return t
     end
+
     local function CalcSegment(amount, sType, tAura)
         local absorbAmount = amount
         local barWidth
         if absorbAmount == nil then
-            local errorMsg = "Aura " .. tAura.name .. " with ID " .. tAura.index .. " does not have an absorb amount. Make sure that it is the spellID of the actual buff, not of the spell that casts the buff."
+            local errorMsg = "Aura " ..
+                tAura.name ..
+                " with ID " ..
+                tAura.index ..
+                " does not have an absorb amount. Make sure that it is the spellID of the actual buff, not of the spell that casts the buff."
             srslylawlUI.Log(errorMsg)
             return
         end
@@ -1405,16 +1521,16 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
             --caching the index so we display the segment correctly
             local oIndex = overlapBarIndex
 
-            local pixelOverlap = (currentBarLength + barWidth) - width*overlapBarIndex
+            local pixelOverlap = (currentBarLength + barWidth) - width * overlapBarIndex
             --if we are already at overlapindex 2 and we have overlap, we are now at the left end of the bar
             --for now, ignore it and just let it stick out
 
             if pixelOverlap > 0 and overlapBarIndex < 3 then
-                barWidth = barWidth-pixelOverlap
+                barWidth = barWidth - pixelOverlap
                 if overlapBarIndex == 1 and barWidth > 1 then
-                    barWidth = barWidth-1 --remove 1 for anchor spacing, if bar is smaller than 1 pixel it will be added to the last bar instead, thus no space necessary
+                    barWidth = barWidth - 1 --remove 1 for anchor spacing, if bar is smaller than 1 pixel it will be added to the last bar instead, thus no space necessary
                 end
-                absorbAmount = absorbAmount - barWidth/pixelPerHp
+                absorbAmount = absorbAmount - barWidth / pixelPerHp
                 overlapBarIndex = overlapBarIndex + 1
             elseif pixelOverlap <= 0 then
                 absorbAmount = 0
@@ -1442,6 +1558,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
             end
         end
     end
+
     local function SetupSegment(tAura, bar, absorbAmount, barWidth, height)
         local iconID = tAura.icon
         local duration = tAura.duration
@@ -1469,13 +1586,15 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
         currentBar.icon:SetTexture(iconID)
         currentBar:Show()
     end
+
     local function DisplayFrames(absorbSegments)
         local segment, bar, pool, i, shouldMerge
         local roundingError = 0
         for k, _ in ipairs(absorbSegments) do
             segment = absorbSegments[k]
             i = segment.oIndex > 1 and curBarOverlapIndex or curBarIndex
-            pool = segment.oIndex > 1 and srslylawlUI[unitsType][unit]["absorbFramesOverlap"] or srslylawlUI[unitsType][unit]["absorbFrames"]
+            pool = segment.oIndex > 1 and srslylawlUI[unitsType][unit]["absorbFramesOverlap"] or
+                srslylawlUI[unitsType][unit]["absorbFrames"]
             bar = pool[i]
             shouldMerge = false
 
@@ -1486,7 +1605,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
             roundingError = roundingError + (rounded - segment.width)
             segment.width = rounded
             --see if this is the last frame for current index, and add the rounding error on top if it is
-            if not absorbSegments[k+1] or absorbSegments[k+1].oIndex > segment.oIndex then
+            if not absorbSegments[k + 1] or absorbSegments[k + 1].oIndex > segment.oIndex then
                 segment.width = srslylawlUI.Utils_PixelRound(segment.width - roundingError, pixelSize)
                 roundingError = 0
             end
@@ -1508,7 +1627,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
                 bar.mergeAmount = absorbSegments[1].width
                 segment.width = segment.width + bar.mergeAmount
             end
-            
+
             if segment.sType == "incomingHeal" then
                 bar.texture:SetTexture(srslylawlUI.textures.HealthBar, ARTWORK)
                 bar.texture:SetVertexColor(.2, .9, .1, .9)
@@ -1533,7 +1652,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
                 SetupSegment(segment.tAura, bar, segment.amount, segment.width, height)
             end
             bar.hide = false
-            
+
             if segment.oIndex > 1 then
                 curBarOverlapIndex = curBarOverlapIndex + 1
             else
@@ -1541,6 +1660,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
             end
         end
     end
+
     sortedAbsorbAuras = SortAbsorbBySpellIDDesc(trackedAurasByIndex)
 
     if incomingHeal ~= nil then
@@ -1560,7 +1680,7 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     end
     if healAbsorb > 0 then
         healAbsorbWidth = floor(healAbsorb * pixelPerHp)
-        
+
         if healAbsorbWidth > 2 then
             CalcSegment(healAbsorb, "healAbsorb", nil)
         end
@@ -1590,9 +1710,10 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
             bar:Hide()
         end
     end
-        -- make sure that our first absorb anchor moves with the bar fill amount
+    -- make sure that our first absorb anchor moves with the bar fill amount
     srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
 end
+
 function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
     local function FilterDefensives(trackedAuras)
         local sortedTable = {}
@@ -1609,6 +1730,7 @@ function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
 
         return sortedTable
     end
+
     --Display effective health
 
     srslylawlUI[unitsType][unit].effectiveHealthSegments = FilterDefensives(trackedAurasByIndex)
@@ -1619,7 +1741,7 @@ function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
         for _, v in ipairs(srslylawlUI[unitsType][unit].effectiveHealthSegments) do
             stackMultiplier = v.stacks > 1 and v.stacks or 1
             reducAmount = srslylawlUI_Saved.buffs.known[v.spellId].reductionAmount / 100
-    
+
             effectiveHealthMod = effectiveHealthMod * (1 - (reducAmount * stackMultiplier))
         end
     end
@@ -1631,20 +1753,22 @@ function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
         local width = srslylawlUI.Utils_PixelFromScreenToCode(hpBar:GetWidth()) --need to convert here since we will later reapply the pixel scaling
         local height = srslylawlUI.Utils_PixelFromScreenToCode(hpBar:GetHeight())
         local playerHealthMax = UnitHealthMax(unit)
+        playerHealthMax = playerHealthMax == 0 and 1 or playerHealthMax
         local playerCurrentHP = UnitHealth(unit)
         local pixelPerHp = width / playerHealthMax
         local playerMissingHP = playerHealthMax - playerCurrentHP
-        local maxWidth = playerMissingHP*pixelPerHp - 1
+        local maxWidth = playerMissingHP * pixelPerHp - 1
         local barWidth
 
         eHealth = playerCurrentHP / effectiveHealthMod
         local additionalHealth = eHealth - playerCurrentHP
-        barWidth = math.min(pixelPerHp*playerHealthMax, additionalHealth * pixelPerHp)
+        barWidth = math.min(pixelPerHp * playerHealthMax, additionalHealth * pixelPerHp)
         srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset = math.max(barWidth - maxWidth, 0)
 
         showFrames = barWidth >= 2
         if showFrames then
-            srslylawlUI.ChangeAbsorbSegment(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], barWidth, eHealth, height)
+            srslylawlUI.ChangeAbsorbSegment(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], barWidth, eHealth,
+                height)
         end
         srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:SetShown(showFrames)
     else
@@ -1663,6 +1787,7 @@ function srslylawlUI.ToggleConfigVisible(visible)
         srslylawlUI_ConfigFrame:Hide()
     end
 end
+
 function srslylawlUI.LoadSettings(reset, announce)
     if announce then srslylawlUI.Log("Settings Loaded") end
 
@@ -1683,20 +1808,24 @@ function srslylawlUI.LoadSettings(reset, announce)
         srslylawlUI.UpdateEverything()
     end
 end
+
 function srslylawlUI.SaveSettings()
     srslylawlUI.Log("Settings Saved")
     srslylawlUI_Saved.settings = srslylawlUI.Utils_TableDeepCopy(srslylawlUI.loadedSettings)
     srslylawlUI.RemoveDirtyFlag()
 end
+
 function srslylawlUI.SetDirtyFlag()
     if #srslylawlUI.unsaved.buttons < 2 or srslylawlUI.unsaved.flag == true then return end
     srslylawlUI.unsaved.flag = true
     for _, v in ipairs(srslylawlUI.unsaved.buttons) do v:Enable() end
 end
+
 function srslylawlUI.RemoveDirtyFlag()
     srslylawlUI.unsaved.flag = false
     for _, v in ipairs(srslylawlUI.unsaved.buttons) do v:Disable() end
 end
+
 local function CreateValueAtPath(value, path, tableObject)
     local subTable = tableObject[path[1]]
     if subTable and type(subTable) == "table" and #path > 1 then
@@ -1716,6 +1845,7 @@ local function CreateValueAtPath(value, path, tableObject)
         end
     end
 end
+
 local function FindInTable(tableObject, path)
     if path and #path > 0 then
         if #path == 1 then
@@ -1735,44 +1865,49 @@ local function FindInTable(tableObject, path)
         return tableObject
     end
 end
+
 local function SplitStringAtChar(str, splitChar)
     local t = {}
     local curr = ""
-    for i=1, string.len(str) do 
-       local c = string.sub(str, i, i)
-       if c == splitChar then
-          table.insert(t, curr)
-          curr = ""
-       else
-          curr = curr .. c
-       end
+    for i = 1, string.len(str) do
+        local c = string.sub(str, i, i)
+        if c == splitChar then
+            table.insert(t, curr)
+            curr = ""
+        else
+            curr = curr .. c
+        end
     end
     if curr ~= "" then
-       table.insert(t, curr)
+        table.insert(t, curr)
     end
     return t
 end
+
 function srslylawlUI.GetSetting(path, canBeNil)
     local pathTable = SplitStringAtChar(path, ".")
-    local variable = FindInTable(srslylawlUI.loadedSettings, {unpack(pathTable)})
+    local variable = FindInTable(srslylawlUI.loadedSettings, { unpack(pathTable) })
     if variable == nil then
         --not in loaded settings
-        variable = FindInTable(srslylawlUI_Saved.settings, {unpack(pathTable)})
+        variable = FindInTable(srslylawlUI_Saved.settings, { unpack(pathTable) })
         if variable == nil then
             --not in saved settings
-            variable = FindInTable(srslylawlUI.defaultSettings, {unpack(pathTable)})
+            variable = FindInTable(srslylawlUI.defaultSettings, { unpack(pathTable) })
             if variable == nil then
                 --not in default settings either, doesnt exist
                 if canBeNil then
                     return nil
                 else
-                    error("setting "..path.." does not exist")
+                    error("setting " .. path .. " does not exist")
                 end
             else
                 --found in default settings, just wasnt loaded
-                local pVar = type(variable) ~= "table" and ": "..tostring(variable).." " or " "
+                local pVar = type(variable) ~= "table" and ": " .. tostring(variable) .. " " or " "
                 CreateValueAtPath(variable, pathTable, srslylawlUI_Saved.settings)
-                srslylawlUI.Log("Variable not found in saved settings: '" .. path .. "'. Default value"..pVar.."used instead. Seeing this message after updating this addon should be fine.")
+                srslylawlUI.Log("Variable not found in saved settings: '" ..
+                    path ..
+                    "'. Default value" ..
+                    pVar .. "used instead. Seeing this message after updating this addon should be fine.")
             end
         end
     end
@@ -1782,23 +1917,25 @@ function srslylawlUI.GetSetting(path, canBeNil)
     end
     return variable
 end
+
 function srslylawlUI.GetSettingByUnit(path, unitsType, unit, canBeNil)
     local s
     if unitsType == "partyUnits" or unitsType == "fauxUnits" then
-        s = "party."..path
+        s = "party." .. path
     elseif unit and unitsType == "mainUnits" or unitsType == "mainFauxUnits" then
-        s = "player."..unit.."Frame."..path
+        s = "player." .. unit .. "Frame." .. path
     else
         error("couldnt get setting by unit")
     end
 
     return srslylawlUI.GetSetting(s, canBeNil)
 end
+
 function srslylawlUI.GetDefault(path)
     local pathTable = SplitStringAtChar(path, ".")
-    local variable = FindInTable(srslylawlUI.defaultSettings, {unpack(pathTable)})
+    local variable = FindInTable(srslylawlUI.defaultSettings, { unpack(pathTable) })
     if variable == nil then
-        error("setting "..path.." does not exist")
+        error("setting " .. path .. " does not exist")
     end
 
     if type(variable) == "table" then
@@ -1806,17 +1943,19 @@ function srslylawlUI.GetDefault(path)
     end
     return variable
 end
+
 function srslylawlUI.GetDefaultByUnit(path, unitsType, unit)
     local s
     if unitsType == "partyUnits" or unitsType == "fauxUnits" then
-        s = "party."..path
+        s = "party." .. path
     elseif unit and unitsType == "mainUnits" or unitsType == "mainFauxUnits" then
-        s = "player."..unit.."Frame."..path
+        s = "player." .. unit .. "Frame." .. path
     else
         error("couldn't get setting by unit")
     end
     return srslylawlUI.GetDefault(s)
 end
+
 function srslylawlUI.ChangeSetting(path, variable)
     local pathTable = SplitStringAtChar(path, ".")
     CreateValueAtPath(variable, pathTable, srslylawlUI.loadedSettings)
@@ -1845,6 +1984,7 @@ local function Initialize()
         end
 
     end
+
     local function HideBlizzardFrames()
         srslylawlUI.HiddenFrameAnchor = CreateFrame("Frame")
         srslylawlUI.HiddenFrameAnchor:Hide()
@@ -1853,19 +1993,20 @@ local function Initialize()
             frame:UnregisterAllEvents()
 
             if frame.manabar then frame.manabar:UnregisterAllEvents() end
-		    if frame.healthbar then frame.healthbar:UnregisterAllEvents() end
-		    if frame.spellbar then frame.spellbar:UnregisterAllEvents() end
-		    if frame.powerBarAlt then frame.powerBarAlt:UnregisterAllEvents() end
+            if frame.healthbar then frame.healthbar:UnregisterAllEvents() end
+            if frame.spellbar then frame.spellbar:UnregisterAllEvents() end
+            if frame.powerBarAlt then frame.powerBarAlt:UnregisterAllEvents() end
 
             if frame ~= CastingBarFrame then
                 frame:SetParent(srslylawlUI.HiddenFrameAnchor)
-			    frame:HookScript("OnShow", function(self)
+                frame:HookScript("OnShow", function(self)
                     if InCombatLockdown() then return end
-		            self:Hide()
+                    self:Hide()
                 end)
             end
             frame:Hide()
         end
+
         local showPlayer = srslylawlUI.GetSetting("blizzard.player.enabled")
         local showTarget = srslylawlUI.GetSetting("blizzard.target.enabled")
         local showParty = srslylawlUI.GetSetting("blizzard.party.enabled")
@@ -1881,27 +2022,31 @@ local function Initialize()
             Hide(TargetFrame)
         end
         if not showParty then
-            for i=1, MAX_PARTY_MEMBERS do
-                Hide(_G["PartyMemberFrame"..i])
-            end
+            Hide(PartyFrame)
+            -- for i = 1, MAX_PARTY_MEMBERS do
+            --     srslylawlUI.Log(i);
+            --     Hide(_G["PartyFrame"])
+            -- end
         end
         if not showCastbar then
-            Hide(CastingBarFrame)
+            Hide(PlayerCastingBarFrame)
         end
         if not showAuras then
             Hide(BuffFrame)
+            Hide(DebuffFrame)
         end
         if not showFocus then
             Hide(FocusFrame)
         end
         if not showBoss then
-            for i=1, MAX_BOSS_FRAMES do
-			    local name = "Boss"..i.."TargetFrame"
-			    Hide(_G[name])
-                Hide(_G[name.."HealthBar"])
-                Hide(_G[name.."ManaBar"])
+            for i = 1, MAX_BOSS_FRAMES do
+                local name = "Boss" .. i .. "TargetFrame"
+                local frame = _G[name]
+
+                if frame then Hide(frame)
+                else srslylawlUI.Log("Error: Unable to hide Blizzard Frame " .. name .. ", as it does not exist.") end
             end
-		end
+        end
 
         UIParent:HookScript("OnHide", function(self)
             srslylawlUI.ToggleAllFrames(false)
@@ -1910,11 +2055,13 @@ local function Initialize()
             srslylawlUI.ToggleAllFrames(true)
         end)
     end
+
     srslylawlUI.LoadSettings()
     srslylawlUI.FrameSetup()
     HideBlizzardFrames()
     CreateSlashCommands()
 end
+
 srslylawlUI_EventFrame = CreateFrame("Frame")
 srslylawlUI_EventFrame:RegisterEvent("PLAYER_LOGIN")
 srslylawlUI_EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -1926,7 +2073,8 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         self:UnregisterEvent("PLAYER_LOGIN")
     elseif event == "UNIT_MAXHEALTH" or event == "GROUP_ROSTER_UPDATE" then
         -- delay since it bugs if it happens on the same frame for some reason
-        if event == "UNIT_MAXHEALTH" and not (arg1 == "player" or arg1 == "party1" or arg1 == "party2" or arg1 == "party3" or arg1 == "party4") then
+        if event == "UNIT_MAXHEALTH" and
+            not (arg1 == "player" or arg1 == "party1" or arg1 == "party2" or arg1 == "party3" or arg1 == "party4") then
             --this event fires for all nameplates etc, but we only care about our party members
             return
         end
@@ -1956,43 +2104,43 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         srslylawlUI.UpdateEverything()
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     elseif event == "ADDON_LOADED" then
-	    if arg1 == "srslylawlUI" or arg1 == "OmniCD" then
-        --register omnicd
-		local ofunc = OmniCD and OmniCD.AddUnitFrameData
-		if ofunc then
-			ofunc("srslylawlUI", "srslylawlUI_PartyHeader_party", "unitID", 1)
-		end
+        if arg1 == "srslylawlUI" or arg1 == "OmniCD" then
+            --register omnicd
+            local ofunc = OmniCD and OmniCD.AddUnitFrameData
+            if ofunc then
+                ofunc("srslylawlUI", "srslylawlUI_PartyHeader_party", "unitID", 1)
+            end
 
-        --register bigdebuffs
-        if arg1 == "srslylawlUI" or arg1 == "BigDebuffs" then
-            local exists = BigDebuffs and BigDebuffs.anchors
-            if exists then
-                BigDebuffs.anchors.srslylawlUI = {
-                    func = function(anchor)
-                        local frame = _G[anchor]
-                        if not frame then return end
-                        local portrait = _G[anchor.."_Portrait"]
-                        if portrait and portrait:IsShown() then
-                            return portrait, frame
-                        else
-                            return frame, frame, true
-                        end
-                    end,
-                    units = {
-                        player = "srslylawlUI_PartyHeader_player_Unit", -- "srslylawlUI_Main_player_Unit",
-                        pet = "srslylawlUI_Main_player_Pet_HealthBar",
-                        target = "srslylawlUI_Main_target_Unit",
-                        focus = "srslylawlUI_Main_focus_Unit",
-                        party1 = "srslylawlUI_PartyHeader_party1_Unit",
-                        party2 = "srslylawlUI_PartyHeader_party2_Unit",
-                        party3 = "srslylawlUI_PartyHeader_party3_Unit",
-                        party4 = "srslylawlUI_PartyHeader_party4_Unit",
-                    },
-                }
+            --register bigdebuffs
+            if arg1 == "srslylawlUI" or arg1 == "BigDebuffs" then
+                local exists = BigDebuffs and BigDebuffs.anchors
+                if exists then
+                    BigDebuffs.anchors.srslylawlUI = {
+                        func = function(anchor)
+                            local frame = _G[anchor]
+                            if not frame then return end
+                            local portrait = _G[anchor .. "_Portrait"]
+                            if portrait and portrait:IsShown() then
+                                return portrait, frame
+                            else
+                                return frame, frame, true
+                            end
+                        end,
+                        units = {
+                            player = "srslylawlUI_PartyHeader_player_Unit", -- "srslylawlUI_Main_player_Unit",
+                            pet = "srslylawlUI_Main_player_Pet_HealthBar",
+                            target = "srslylawlUI_Main_target_Unit",
+                            focus = "srslylawlUI_Main_focus_Unit",
+                            party1 = "srslylawlUI_PartyHeader_party1_Unit",
+                            party2 = "srslylawlUI_PartyHeader_party2_Unit",
+                            party3 = "srslylawlUI_PartyHeader_party3_Unit",
+                            party4 = "srslylawlUI_PartyHeader_party4_Unit",
+                        },
+                    }
+                end
             end
         end
     end
-	end
 end)
 -- since events seem to fire in arbitrary order after login, we use this frame for the first time the maxhealth event fires
 srslylawlUI_FirstMaxHealthEventFrame = CreateFrame("Frame")
