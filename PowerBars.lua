@@ -129,6 +129,7 @@ srslylawlUI.PowerBar.EventToTokenTable = {
     ARCANE_CHARGES = "ArcaneCharges",
     FURY = "Fury",
     PAIN = "Pain",
+    ALTERNATE = "Alternate"
 }
 srslylawlUI.PowerBar.TokenToPowerBarColor = {
     --used for powerbarcolor
@@ -142,6 +143,7 @@ srslylawlUI.PowerBar.TokenToPowerBarColor = {
     [7] = "SOUL_SHARDS",
     [8] = "LUNAR_POWER",
     [9] = "HOLY_POWER",
+    [10] = "FUEL", -- is "ALTERNATE"
     [11] = "MAELSTROM",
     [12] = "CHI",
     [13] = "INSANITY",
@@ -169,6 +171,7 @@ srslylawlUI.PowerBar.BarDefaults = {
     Fury          = { hideWhenInactive = true, inactiveState = "EMPTY" },
     Pain          = { hideWhenInactive = true, inactiveState = "EMPTY" },
     Stagger       = { hideWhenInactive = true, inactiveState = "EMPTY" },
+    Alternate     = { hideWhenInactive = true, inactiveState = "FULL" }
 }
 
 local function PowerBarSetVisible(self, visible)
@@ -589,6 +592,7 @@ function srslylawlUI.PowerBar.CreatePowerPointBar(amount, parent, padding, power
                 visible = false
             end
         end
+        -- print(self:GetName() .. " update visible ? " .. (visible and "SHOW" or "HIDE") .. " " .. displayCount)
         PowerBarSetVisible(self, visible)
     end
 
@@ -785,12 +789,12 @@ function srslylawlUI.PowerBar.GetPowerToken()
 end
 
 function srslylawlUI.PowerBar.GetBar(parent, type, token)
+    if token == "Alternate" then
+        return
+    end
     local specID = parent.specID
     if not parent.powerBars[token] then
-        if token == "Stagger" then
-            parent.powerBars[token] = srslylawlUI.PowerBar.CreateResourceBar(parent, token, specID)
-        end
-        if type == "resource" or type == nil then
+        if token == "Stagger" or type == "resource" or type == nil then
             parent.powerBars[token] = srslylawlUI.PowerBar.CreateResourceBar(parent, token, specID)
         elseif type == "point" then
             local maxPoints = UnitPowerMax("player", Enum.PowerType[token])
@@ -948,13 +952,14 @@ function srslylawlUI.PowerBar.Update(parent, powerToken)
     powerToken = eventToToken and eventToToken or powerToken
     if powerToken then
         local bar = srslylawlUI.PowerBar.GetBar(parent, nil, powerToken)
-        if not bar.disabled and not bar.isUnparented then
+        if bar and not bar.disabled and not bar.isUnparented then
             --since bars we dont want to see can still get events(druid's rage in other forms, since it gets reset to 25 anyway), check for that here
             bar:Update()
         end
     else
         for _, bar in pairs(parent.powerBars) do
             if not bar.disabled and not bar.isUnparented then
+                -- note: updates all here, comment below is questionable?
                 --since bars we dont want to see can still get events(druid's rage in other forms, since it gets reset to 25 anyway), check for that here
                 bar:Update()
             end
@@ -965,7 +970,10 @@ end
 function srslylawlUI.PowerBar.UpdateMax(parent, powerToken)
     local eventToToken = srslylawlUI.PowerBar.EventToTokenTable[powerToken]
     powerToken = eventToToken and eventToToken or powerToken
-    srslylawlUI.PowerBar.GetBar(parent, nil, powerToken):UpdateMax()
+    local bar = srslylawlUI.PowerBar.GetBar(parent, nil, powerToken)
+    if bar then
+        bar:UpdateMax()
+    end
 end
 
 function srslylawlUI.GetSpecID()
