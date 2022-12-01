@@ -2080,7 +2080,7 @@ function srslylawlUI.RegisterEvents(buttonFrame)
     buttonFrame:RegisterUnitEvent("UNIT_TARGET", unit)
     buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 
-    if buttonFrame.pet ~= nil then
+    if buttonFrame.pet ~= nil and unit ~= "target" and unit ~= "focus" then
         buttonFrame:RegisterUnitEvent("UNIT_PET", unit)
     end
 
