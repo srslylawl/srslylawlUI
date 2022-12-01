@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.36"
+local version = "1.37"
 
 
 srslylawlUI.loadedSettings = {}

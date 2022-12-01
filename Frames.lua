@@ -2080,6 +2080,10 @@ function srslylawlUI.RegisterEvents(buttonFrame)
     buttonFrame:RegisterUnitEvent("UNIT_TARGET", unit)
     buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 
+    if buttonFrame.pet ~= nil then
+        buttonFrame:RegisterUnitEvent("UNIT_PET", unit)
+    end
+
 
     if unit ~= "targettarget" then
         buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
@@ -2169,6 +2173,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         srslylawlUI.Frame_ReadyCheck(self, "end")
     elseif event == "UNIT_TARGET" and unit == "target" or unit == "targettarget" then
         srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
+    elseif event == "UNIT_PET" then
+        srslylawlUI.Frame_ResetPetButton(self, unit .. "pet")
     elseif arg1 and UnitIsUnit(unit, arg1) and arg1 ~= "nameplate1" then
         if event == "UNIT_MAXHEALTH" then
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
