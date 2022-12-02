@@ -106,12 +106,10 @@ srslylawlUI.unitHealthBars = {}
 local unitHealthBars = srslylawlUI.unitHealthBars
 srslylawlUI.sortTimerActive = false
 
-local tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrabber", UIParent, "GameTooltipTemplate")
 local debugString = ""
 
-
-
 --[[ TODO:
+party anchoring infight will overlap frames
 castbar text size
 plus minus button for sliders
 let cc bar show multiple ccs
@@ -250,14 +248,16 @@ function srslylawlUI.ToggleDebugMode()
                             ["lowest"] = 999999999999,
                             ["count"] = 0,
                             ["total"] = 0,
+                            ["maxCallsPerFrame"] = 0,
                         }
                     end
 
                     local d = srslylawlUI.DebugFrameData[k]
-                    if v > d.highest then d.highest = v end
-                    if v < d.lowest then d.lowest = v end
+                    if v.value > d.highest then d.highest = v.value end
+                    if v.value < d.lowest then d.lowest = v.value end
                     d.count = d.count + 1
-                    d.total = d.total + v
+                    d.total = d.total + v.value
+                    if v.callsThisFrame > d.maxCallsPerFrame then d.maxCallsPerFrame = v.callsThisFrame end
                 end
 
                 srslylawlUI.DebugTimerData = {} --reset
@@ -290,7 +290,10 @@ function srslylawlUI.DebugTrackTimeStop(nameString, useCheckPoint)
     end
 
     if not srslylawlUI.DebugTimerData[nameString] then
-        srslylawlUI.DebugTimerData[nameString] = 0
+        srslylawlUI.DebugTimerData[nameString] = {
+            value = 0,
+            callsThisFrame = 0
+        }
     end
 
     local stop = debugprofilestop()
@@ -299,7 +302,8 @@ function srslylawlUI.DebugTrackTimeStop(nameString, useCheckPoint)
         stop = stop - srslylawlUI.DebugCheckPoint
     end
 
-    srslylawlUI.DebugTimerData[nameString] = srslylawlUI.DebugTimerData[nameString] + stop
+    srslylawlUI.DebugTimerData[nameString].value = srslylawlUI.DebugTimerData[nameString].value + stop
+    srslylawlUI.DebugTimerData[nameString].callsThisFrame = srslylawlUI.DebugTimerData[nameString].callsThisFrame + 1
 end
 
 function srslylawlUI.PrintDebug()
@@ -309,15 +313,17 @@ function srslylawlUI.PrintDebug()
     end
     srslylawlUI.Log("Debug Log for " .. srslylawlUI.DebugTimer .. "s")
     local sortedTable = {}
-    for key, value in pairs(srslylawlUI.DebugData) do
+    for key, v in pairs(srslylawlUI.DebugData) do
         local t = {}
-        t["value"] = value
+        t["value"] = v
         t["name"] = key
         table.insert(sortedTable, t)
     end
     table.sort(sortedTable, function(a, b) return a.value < b.value end)
     for _, v in pairs(sortedTable) do
-        srslylawlUI.Log(v.name .. " total: " .. v.value .. " | " .. (v.value / srslylawlUI.DebugTimer) .. "/s")
+        srslylawlUI.Log(v.name ..
+            " total: " ..
+            v.value .. " | " .. (v.value / srslylawlUI.DebugTimer) .. "/s")
     end
     print("____________________________________")
 end
@@ -338,11 +344,12 @@ function srslylawlUI.PrintFrameDebug()
     local sortedTable = {}
     for key, v in pairs(srslylawlUI.DebugFrameData) do
         local t = {
-            ["avg"] = v.total / v.count,
+            ["avg"] = srslylawlUI.Utils_DecimalRound(v.total / v.count, 3),
             ["name"] = key,
-            ["total"] = v.total,
-            ["avgTotal"] = v.total / srslylawlUI.DebugTickCount,
-            ["high"] = v.highest
+            ["total"] = srslylawlUI.Utils_DecimalRound(v.total),
+            ["avgTotal"] = srslylawlUI.Utils_DecimalRound(v.total / srslylawlUI.DebugTickCount, 3),
+            ["high"] = v.highest,
+            ["maxCalls"] = v.maxCallsPerFrame
         }
         table.insert(sortedTable, t)
     end
@@ -351,9 +358,11 @@ function srslylawlUI.PrintFrameDebug()
 
     for k, v in pairs(sortedTable) do
         srslylawlUI.Log(v.name ..
-            " avg: " .. v.avg
+            " \navg: " .. v.avg
             ..
-            " high: " .. v.high .. " total: " .. v.total .. " avg total: " .. v.avgTotal)
+            " high: " ..
+            v.high ..
+            " total: " .. v.total .. " avg total: " .. v.avgTotal .. " highest: " .. v.maxCalls .. " /f")
     end
     print("____________________________________")
 
@@ -709,21 +718,22 @@ function srslylawlUI.GetPartyHealth()
 end
 
 --Auras
-function srslylawlUI.GetBuffText(buffIndex, unit)
-    tooltipTextGrabber:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
-    tooltipTextGrabber:SetUnitBuff(unit, buffIndex)
-    local n2 = srslylawl_TooltipTextGrabberTextLeft2:GetText()
-    tooltipTextGrabber:Hide()
+function srslylawlUI.TryGetAuraText(isBuff, index, unit)
+    --sometimes an aura does not have a text at some calls
+    srslylawlUI.SetDebugCheckPoint()
+    local data = isBuff and C_TooltipInfo.GetUnitBuff(unit, index) or C_TooltipInfo.GetUnitDebuff(unit, index)
+    TooltipUtil.SurfaceArgs(data)
+    for _, line in ipairs(data.lines) do
+        TooltipUtil.SurfaceArgs(line)
+    end
 
-    return n2
-end
+    local text
+    if data.lines[2] then
+        text = data.lines[2].leftText
+    end
 
-function srslylawlUI.GetDebuffText(debuffIndex, unit)
-    tooltipTextGrabber:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
-    tooltipTextGrabber:SetUnitDebuff(unit, debuffIndex)
-    local n2 = srslylawl_TooltipTextGrabberTextLeft2:GetText()
-    tooltipTextGrabber:Hide()
-    return n2
+    srslylawlUI.DebugTrackTimeStop("GetAuraTextNew", true)
+    return text
 end
 
 function srslylawlUI.HandleAuras(unitbutton, unit)
@@ -936,10 +946,8 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
         UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
-            srslylawlUI.SetDebugCheckPoint()
-            srslylawlUI.DebugTrackTimeStop("HandleAuras (General) after Auras_Remember Buff", true)
-            srslylawlUI.SetDebugCheckPoint()
             srslylawlUI.Auras_RememberBuff(i, unit)
+            srslylawlUI.SetDebugCheckPoint()
             if srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, UnitAura(unit, i, "HELPFUL")) and
                 currentBuffFrame <= maxBuffs then
                 SetBuff(f, i, UnitAura(unit, i))
@@ -1162,8 +1170,14 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     end
 
     -- -- we tracked all absorbs, now we have to visualize them
+    srslylawlUI.SetDebugCheckPoint()
     srslylawlUI.HandleEffectiveHealth(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
+    srslylawlUI.DebugTrackTimeStop("HandleEffectiveHealth", true)
+
+    srslylawlUI.SetDebugCheckPoint()
     srslylawlUI.HandleAbsorbFrames(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
+    srslylawlUI.DebugTrackTimeStop("HandleAbsorbFrames", true)
+
     srslylawlUI.DebugTrackTimeStop("HandleAuras (General)")
 end
 
@@ -1348,12 +1362,14 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
     end
 
     local function ProcessID(buffIndex, unit)
+        srslylawlUI.SetDebugCheckPoint()
         local spellName, icon, stacks, debuffType, duration, expirationTime, source,
         isStealable, nameplateShowPersonal, spellId, canApplyAura,
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1 =
         UnitAura(unit, buffIndex, "HELPFUL")
+
         local isKnown = srslylawlUI_Saved.buffs.known[spellId] ~= nil
-        local buffText = srslylawlUI.GetBuffText(buffIndex, unit)
+        local buffText = srslylawlUI.TryGetAuraText(true, buffIndex, unit)
         if not buffText then
             --so, for some buffs that are applied by the environment (AMZ, consecration, guardian of the forgotten queen, etc),
             --the buff can actually not have a proper tooltip
@@ -1373,7 +1389,6 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             srslylawlUI_Saved.buffs.known[spellId].text = buffText
             return
         end
-
         local spell = {
             name = spellName,
             text = buffText,
@@ -1470,13 +1485,23 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
         return "none"
     end
 
-    local function ProcessID(spellId, debuffIndex, unit, arg1)
+    local function ProcessID(spellId, debuffIndex, unit)
         local spellName = GetSpellInfo(spellId)
-        local debuffText = srslylawlUI.GetDebuffText(debuffIndex, unit)
+        local debuffText = srslylawlUI.TryGetAuraText(false, debuffIndex, unit)
+        local isKnown = srslylawlUI_Saved.debuffs.known[spellId] ~= nil
+
+        if not debuffText then
+            --so, for some buffs that are applied by the environment (AMZ, consecration, guardian of the forgotten queen, etc),
+            --the buff can actually not have a proper tooltip
+            --if this happens, we use our stored tooltip. it usually gets updated next frame though.
+            if isKnown then
+                debuffText = srslylawlUI_Saved.debuffs.known[spellId].text
+            end
+        end
+
         local debuffLower = debuffText ~= nil and string.lower(debuffText) or ""
 
         local CCType = GetCrowdControlType(debuffLower)
-        local isKnown = srslylawlUI_Saved.debuffs.known[spellId] ~= nil
         local autoDetectDisabled = isKnown and srslylawlUI_Saved.debuffs.known[spellId].autoDetect ~= nil and
             srslylawlUI_Saved.debuffs.known[spellId].autoDetect == false
 
@@ -1573,20 +1598,6 @@ function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
     end
 
     srslylawlUI.Log(link .. " removed from " .. auraType .. "!")
-
-
-    -- see if the spell is somewhere else, if not then put it to unapproved spells
-    -- no longer needed since unapproved is now just a blacklist
-    -- local isInAbsorbs = srslylawlUI.spells.absorbs[spellId] ~= nil
-    -- local isInDefensives = srslylawlUI.spells.defensives[spellId] ~= nil
-    -- local isInWhiteList = srslylawlUI.spells.whiteList[spellId] ~= nil
-    -- local isInUnapproved = srslylawlUI.spells.blackList[spellId] ~= nil
-    -- local isSomeWhere = isInAbsorbs or isInDefensives or isInWhiteList or
-    --                         isInUnapproved or false
-
-    -- if srslylawlUI.spells.blackList[spellId] == nil and not isSomeWhere then
-    --     srslylawlUI.spells.blackList[spellId] = spell
-    -- end
 end
 
 function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)

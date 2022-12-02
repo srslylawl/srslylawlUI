@@ -609,16 +609,28 @@ function srslylawlUI.CreateConfigWindow()
 
     local function AddSpellTooltip(frame, id)
         --since the tooltip seems to glitch the first time we mouseover, we add an onupdate
+
+        local function AddSpellByIDToToolTip(tooltipFrame, spellId)
+            local data = C_TooltipInfo.GetSpellByID(spellId)
+            if data then
+                local tooltipInfo = { tooltipData = data, append = true };
+                tooltipFrame:ProcessInfo(tooltipInfo);
+                tooltipFrame:Show()
+            end
+        end
+
         local function OnEnter(self)
             srslylawlUI.customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
             srslylawlUI.customTooltip:ClearLines()
-            srslylawlUI.customTooltip:AddSpellByID(id)
+            -- srslylawlUI.customTooltip:AddSpellByID(id)
+            AddSpellByIDToToolTip(srslylawlUI.customTooltip, id)
         end
 
         local function OnUpdate(self)
             if srslylawlUI.customTooltip:IsOwned(self) then
                 srslylawlUI.customTooltip:ClearLines()
-                srslylawlUI.customTooltip:AddSpellByID(id)
+                -- srslylawlUI.customTooltip:AddSpellByID(id)
+                AddSpellByIDToToolTip(srslylawlUI.customTooltip, id)
             end
         end
 
