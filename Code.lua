@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.38"
+local version = "1.4"
 
 
 srslylawlUI.loadedSettings = {}
@@ -119,10 +119,9 @@ incoming ressurrection
 incoming summon
 more sort methods?
 faux frames absorb auras
-some environment defensive buffs arent immediately recognized (amz etc)
+some environment defensive buffs arent immediately recognized (amz etc) -- probably api limitation
 vehiclestuff
 alt powerbar
-refactoring, performance optimization
 ]]
 
 --Utils
@@ -268,6 +267,7 @@ function srslylawlUI.ToggleDebugMode()
 end
 
 function srslylawlUI.SetDebugCheckPoint()
+    if not srslylawlUI.DebugMode then return end
     srslylawlUI.DebugCheckPoint = debugprofilestop()
 end
 
@@ -285,6 +285,7 @@ function srslylawlUI.DebugTrackCall(nameString)
 end
 
 function srslylawlUI.DebugTrackTimeStop(nameString, useCheckPoint)
+    if not srslylawlUI.DebugMode then return end
     if not srslylawlUI.DebugTimerData then
         srslylawlUI.DebugTimerData = {}
     end
