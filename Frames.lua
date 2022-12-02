@@ -640,10 +640,19 @@ function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
                 if (self.TimeSinceLastUpdate > 0.1) then
                     --check for unit range
                     local unit = self:GetAttribute("unit")
-                    local range = UnitInRange(unit) ~= self.wasInRange
-                    local online = UnitIsConnected(unit) ~= self.online
-                    local alive = not UnitIsDeadOrGhost(unit) ~= self.alive
+                    local range = UnitInRange(unit) ~= self.unit.wasInRange
+                    local online = UnitIsConnected(unit) ~= self.unit.online
+                    local alive = UnitIsDeadOrGhost(unit) ~= self.unit.dead
                     if range or online or alive then
+
+                        if online then
+                            srslylawlUI.DebugTrackCall("ResetHealthBarOnUpdate OnlineDifferent: " ..
+                                tostring(UnitIsConnected(unit)) .. " and " .. tostring(self.online))
+                        else
+                            srslylawlUI.DebugTrackCall("ResetHealthBarOnUpdate " ..
+                                unit .. (range and "Range" or online and "Online" or alive and "alive"))
+                        end
+
                         srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
                     end
                     self.TimeSinceLastUpdate = 0;
@@ -1836,6 +1845,7 @@ function srslylawlUI_Frame_OnShow(button)
     if unit then
         local guid = UnitGUID(unit)
         if guid ~= button.guid then
+            srslylawlUI.DebugTrackCall("ResetUnitButton ___ ON SHOW " .. unit)
             srslylawlUI.Frame_ResetUnitButton(button.unit, unit)
             button.guid = guid
         end
@@ -2069,23 +2079,26 @@ end
 --events
 function srslylawlUI.RegisterEvents(buttonFrame)
     local unit = buttonFrame:GetAttribute("unit")
-    buttonFrame:RegisterUnitEvent("UNIT_HEALTH", unit, "pet")
-    buttonFrame:RegisterUnitEvent("UNIT_MAXHEALTH", unit, "pet")
-    buttonFrame:RegisterUnitEvent("UNIT_POWER_FREQUENT", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_DISPLAYPOWER", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_MAXPOWER", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_NAME_UPDATE", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_ENTERED_VEHICLE", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", unit)
-    buttonFrame:RegisterUnitEvent("UNIT_TARGET", unit)
-    buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    buttonFrame:RegisterEvent("PLAYER_TARGET_CHANGED") --to show "selected" overlay
 
-    if buttonFrame.pet ~= nil and unit ~= "target" and unit ~= "focus" then
-        buttonFrame:RegisterUnitEvent("UNIT_PET", unit)
+    if unit == "target" or unit == "targettarget" then
+        buttonFrame:RegisterUnitEvent("UNIT_TARGET", unit)
     end
 
 
+
     if unit ~= "targettarget" then
+        if buttonFrame.pet ~= nil and unit ~= "target" and unit ~= "focus" then
+            buttonFrame:RegisterUnitEvent("UNIT_PET", unit)
+        end
+
+        buttonFrame:RegisterUnitEvent("UNIT_HEALTH", unit, "pet")
+        buttonFrame:RegisterUnitEvent("UNIT_MAXHEALTH", unit, "pet")
+        buttonFrame:RegisterUnitEvent("UNIT_DISPLAYPOWER", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_MAXPOWER", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_NAME_UPDATE", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_ENTERED_VEHICLE", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", unit)
         buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
         buttonFrame:RegisterUnitEvent("UNIT_CONNECTION", unit)
         buttonFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", unit)
@@ -2094,15 +2107,26 @@ function srslylawlUI.RegisterEvents(buttonFrame)
         buttonFrame:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", unit)
         buttonFrame:RegisterUnitEvent("UNIT_PHASE", unit)
         buttonFrame:RegisterUnitEvent("READY_CHECK_CONFIRM", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_POWER_FREQUENT", unit)
         buttonFrame:RegisterEvent("READY_CHECK")
         buttonFrame:RegisterEvent("READY_CHECK_FINISHED")
         buttonFrame:RegisterEvent("PARTY_LEADER_CHANGED")
         buttonFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
         buttonFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    else
+        buttonFrame.TimeSinceLastUpdate = 0
+        buttonFrame:HookScript("OnUpdate", function(self, elapsed)
+            self.TimeSinceLastUpdate = self.TimeSinceLastUpdate + elapsed;
+            if (self.TimeSinceLastUpdate > 0.1) then
+                srslylawlUI.Frame_ResetUnitButton(buttonFrame.unit, "targettarget")
+                self.TimeSinceLastUpdate = 0
+            end
+        end)
     end
 end
 
 function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
+
     local function UpdatePowerBar(unit, unitsType, token)
         if unit == "player" and unitsType == "mainUnits" then
             srslylawlUI.PowerBar.Update(self, token)
@@ -2112,6 +2136,14 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
     end
 
     local unit = self:GetAttribute("unit")
+    srslylawlUI.DebugTrackCall("OnEvent (General) " .. unit)
+    srslylawlUI.DebugTrackCall("OnEvent " ..
+        unit ..
+        " Event: " ..
+        event ..
+        " " ..
+        (arg1 ~= nil and tostring(arg1) or "") .. " " .. (arg2 ~= nil and type(arg2) ~= "table" and tostring(arg2) or ""
+        ))
     local unitExists = UnitExists(unit)
     local unitsType = self:GetAttribute("unitsType")
     if not unitExists then return end
@@ -2144,6 +2176,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             if unit ~= "targettarget" then
                 srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
             end
+            srslylawlUI.DebugTrackCall("ResetUnitButton ___ PLAYER TARGET CHANGED " .. unit)
             srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
         end
     elseif event == "PLAYER_FOCUS_CHANGED" then
@@ -2158,6 +2191,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         self:UpdateUnitFaction()
         srslylawlUI.HandleAuras(self.unit, unit)
         srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
+        srslylawlUI.DebugTrackCall("ResetUnitButton ___ PLAYER FOCUS CHANGED " .. unit)
         srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
     elseif event == "PLAYER_SPECIALIZATION_CHANGED" and unit == "player" then
         srslylawlUI.PowerBar.Set(self, unit)
@@ -2171,11 +2205,14 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         srslylawlUI.Frame_ReadyCheck(self, arg2 and "ready" or "notready")
     elseif event == "READY_CHECK_FINISHED" then
         srslylawlUI.Frame_ReadyCheck(self, "end")
-    elseif event == "UNIT_TARGET" and unit == "target" or unit == "targettarget" then
-        srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
     elseif event == "UNIT_PET" then
         srslylawlUI.Frame_ResetPetButton(self, unit .. "pet")
     elseif arg1 and UnitIsUnit(unit, arg1) and arg1 ~= "nameplate1" then
+        -- Unit events
+        if unit == "targettarget" and arg1 ~= unit then
+            --Targettarget will receive EVERY unit event so filter them out
+            return
+        end
         if event == "UNIT_MAXHEALTH" then
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
                 if unit ~= "targettarget" then
@@ -2185,7 +2222,11 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             end
             self.unit.healthBar:SetMinMaxValues(0, UnitHealthMax(unit))
             self.unit.healthBar:SetValue(UnitHealth(unit))
+        elseif event == "UNIT_TARGET" then
+            srslylawlUI.DebugTrackCall("ResetUnitButton ___ UNIT TARGET " .. unit .. " " .. (tostring(arg1)))
+            srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
         elseif event == "UNIT_HEALTH" then
+            srslylawlUI.DebugTrackCall("ResetHealth_1")
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
             if unit ~= "targettarget" then
                 srslylawlUI.HandleAuras(self.unit, unit)
@@ -2195,7 +2236,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             if unit == "player" and unitsType == "mainUnits" then
                 srslylawlUI.PowerBar.Set(self, unit)
             end
-        elseif event == "UNIT_POWER_FREQUENT" then
+        elseif event == "UNIT_POWER_FREQUENT" or event == "UNIT_POWER_UPDATE" then
             UpdatePowerBar(unit, unitsType, arg2)
         elseif event == "UNIT_MAXPOWER" then
             if unit == "player" and unitsType == "mainUnits" then
@@ -2205,6 +2246,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             end
         elseif event == "UNIT_NAME_UPDATE" then
             if unit == "target" then
+                srslylawlUI.DebugTrackCall("ResetHealth_2")
                 srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
             else
                 srslylawlUI.Frame_ResetName(self.unit, unit)
@@ -2212,6 +2254,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
             srslylawlUI.Frame_ResetUnitThreat(self.unit, unit)
         elseif event == "UNIT_CONNECTION" then
+            srslylawlUI.DebugTrackCall("ResetHealth_3")
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
             if unitsType == "partyUnits" then
@@ -2225,6 +2268,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_PREDICTION" then
             srslylawlUI.HandleAuras(self.unit, unit)
         elseif event == "UNIT_PHASE" then
+            srslylawlUI.DebugTrackCall("ResetHealth_4")
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
         elseif event == "UNIT_PORTRAIT_UPDATE" and unit == "target" then
             self.portrait:PortraitUpdate()
@@ -2233,8 +2277,10 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         elseif event == "UNIT_FACTION" then
             self:UpdateUnitFaction()
         elseif event == "UNIT_ENTERED_VEHICLE" then
+            srslylawlUI.DebugTrackCall("ResetHealth_5")
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
         elseif event == "UNIT_EXITED_VEHICLE" then
+            srslylawlUI.DebugTrackCall("ResetHealth_6")
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
         end
     elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
@@ -2259,9 +2305,12 @@ function srslylawlUI.Frame_ResetUnitThreat(button, unit)
 end
 
 function srslylawlUI.Frame_ResetUnitButton(button, unit)
+    srslylawlUI.DebugTrackCall("ResetUnitButton " .. unit)
     srslylawlUI.Frame_ResetHealthBar(button, unit)
     srslylawlUI.Frame_ResetPowerBar(button, unit)
-    srslylawlUI.Frame_ResetName(button, unit)
+    if unit ~= "target" and unit ~= "targettarget" then
+        srslylawlUI.Frame_ResetName(button, unit)
+    end
     if button.pet then srslylawlUI.Frame_ResetPetButton(button, unit .. "pet") end
     button.RaidIcon:SetRaidIcon()
     if UnitIsUnit(unit, "target") and button:GetAttribute("unitsType") == "partyUnits" then
@@ -2272,6 +2321,7 @@ function srslylawlUI.Frame_ResetUnitButton(button, unit)
 end
 
 function srslylawlUI.Frame_ResetName(button, unit)
+    srslylawlUI.DebugTrackCall("ResetName " .. unit)
     if unit == "target" or unit == "targettarget" then
         srslylawlUI.Frame_ResetHealthBar(button, unit)
         return
@@ -2282,18 +2332,24 @@ end
 
 function srslylawlUI.Frame_ResetPetButton(button, unit)
     local exists = UnitExists(unit)
+    if not exists then
+        button.pet:SetShown(false)
+        return
+    end
+
     local show = button.pet and
         srslylawlUI.GetSettingByUnit("pet.enabled", button:GetAttribute("unitsType"), button:GetAttribute("unit"))
-    if exists and show then
+    if show then
         local health = UnitHealth(unit)
         local maxHealth = UnitHealth(unit)
         button.pet.healthBar:SetMinMaxValues(0, maxHealth)
         button.pet.healthBar:SetValue(health)
     end
-    button.pet:SetShown(show and exists)
+    button.pet:SetShown(show)
 end
 
 function srslylawlUI.Frame_ResetHealthBar(button, unit)
+    srslylawlUI.DebugTrackCall("ResetHealthBar " .. unit)
     local class = select(2, UnitClass(unit))
     local SBColor
     local isPlayer = UnitIsPlayer(unit)
@@ -2311,14 +2367,14 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
     if isPlayer and class then
         SBColor = { RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b,
             RAID_CLASS_COLORS[class].a }
-        local alive = not UnitIsDeadOrGhost(unit)
+        local dead = UnitIsDeadOrGhost(unit)
         local online = UnitIsConnected(unit)
         local inRange = UnitInRange(unit)
         local differentPhase = UnitPhaseReason(unit)
-        if not alive or not online then
+        if dead or not online then
             -- set bar color to grey and fill bar
             SBColor[1], SBColor[2], SBColor[3] = 0.3, 0.3, 0.3
-            if not alive then
+            if dead then
                 rightText = "DEAD"
             elseif not online then
                 rightText = "offline"
@@ -2341,7 +2397,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
         else
             SBColor[4] = 0.4
         end
-        button.dead = (not alive)
+        button.dead = dead
         button.online = online
         button.wasInRange = inRange
     else --npc
@@ -2409,6 +2465,7 @@ end
 
 function srslylawlUI.Frame_ResetDimensions(button)
     local unit = button:GetAttribute("unit")
+    srslylawlUI.DebugTrackCall("ResetDimensions " .. unit)
     local unitsType = button:GetAttribute("unitsType")
     local h, w = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit),
         srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
@@ -2557,6 +2614,7 @@ function srslylawlUI.ToggleAllFrames(bool)
 end
 
 function srslylawlUI.SetAuraPoints(unit, unitsType, auraType)
+    srslylawlUI.DebugTrackCall("SetAuraPoints " .. unit)
     local function ReversePos(str)
         if str == "TOP" then return "BOTTOM"
         elseif str == "BOTTOM" then return "TOP"
@@ -2912,6 +2970,7 @@ function srslylawlUI.SortAfterLogin()
 end
 
 function srslylawlUI.SortPartyFrames()
+    srslylawlUI.DebugTrackCall("SortPartyFrames")
     if not srslylawlUI.GetSetting("party.sorting.enabled") then
         local showPlayer = srslylawlUI.GetSetting("party.visibility.showPlayer")
         if not srslylawlUI.partyFramesDefaultSortActive or

@@ -229,6 +229,143 @@ function srslylawlUI.Utils_GetUnitNameWithServer(unit)
     return name
 end
 
+function srslylawlUI.ToggleDebugMode()
+    srslylawlUI.DebugMode = not srslylawlUI.DebugMode
+    if srslylawlUI.DebugMode then
+        if not srslylawlUI.DebugData then
+            srslylawlUI.DebugData = {}
+            srslylawlUI.DebugFrameData = {}
+            srslylawlUI.DebugTickCount = 0;
+            srslylawlUI.DebugTimer = 0;
+            srslylawlUI.DebugCheckPoint = 0;
+            srslylawlUI.DebugFrame = CreateFrame("Frame", "SrslylawluiDebug")
+            srslylawlUI.DebugFrame:SetScript("OnUpdate", function(self, elapsed)
+                srslylawlUI.DebugTickCount = srslylawlUI.DebugTickCount + 1;
+                srslylawlUI.DebugTimer = srslylawlUI.DebugTimer + elapsed;
+
+                for k, v in pairs(srslylawlUI.DebugTimerData) do
+                    if not srslylawlUI.DebugFrameData[k] then
+                        srslylawlUI.DebugFrameData[k] = {
+                            ["highest"] = 0,
+                            ["lowest"] = 999999999999,
+                            ["count"] = 0,
+                            ["total"] = 0,
+                        }
+                    end
+
+                    local d = srslylawlUI.DebugFrameData[k]
+                    if v > d.highest then d.highest = v end
+                    if v < d.lowest then d.lowest = v end
+                    d.count = d.count + 1
+                    d.total = d.total + v
+                end
+
+                srslylawlUI.DebugTimerData = {} --reset
+
+            end)
+        end
+    end
+end
+
+function srslylawlUI.SetDebugCheckPoint()
+    srslylawlUI.DebugCheckPoint = debugprofilestop()
+end
+
+srslylawlUI.ToggleDebugMode()
+
+function srslylawlUI.DebugTrackCall(nameString)
+    if not srslylawlUI.DebugMode then return end
+
+
+    if not srslylawlUI.DebugData[nameString] then
+        srslylawlUI.DebugData[nameString] = 0;
+    end
+
+    srslylawlUI.DebugData[nameString] = srslylawlUI.DebugData[nameString] + 1;
+end
+
+function srslylawlUI.DebugTrackTimeStop(nameString, useCheckPoint)
+    if not srslylawlUI.DebugTimerData then
+        srslylawlUI.DebugTimerData = {}
+    end
+
+    if not srslylawlUI.DebugTimerData[nameString] then
+        srslylawlUI.DebugTimerData[nameString] = 0
+    end
+
+    local stop = debugprofilestop()
+
+    if useCheckPoint then
+        stop = stop - srslylawlUI.DebugCheckPoint
+    end
+
+    srslylawlUI.DebugTimerData[nameString] = srslylawlUI.DebugTimerData[nameString] + stop
+end
+
+function srslylawlUI.PrintDebug()
+    if not srslylawlUI.DebugMode then
+        srslylawlUI.Log("Debug Mode not active.")
+        return
+    end
+    srslylawlUI.Log("Debug Log for " .. srslylawlUI.DebugTimer .. "s")
+    local sortedTable = {}
+    for key, value in pairs(srslylawlUI.DebugData) do
+        local t = {}
+        t["value"] = value
+        t["name"] = key
+        table.insert(sortedTable, t)
+    end
+    table.sort(sortedTable, function(a, b) return a.value < b.value end)
+    for _, v in pairs(sortedTable) do
+        srslylawlUI.Log(v.name .. " total: " .. v.value .. " | " .. (v.value / srslylawlUI.DebugTimer) .. "/s")
+    end
+    print("____________________________________")
+end
+
+function srslylawlUI.PrintFrameDebug()
+    if not srslylawlUI.DebugMode then
+        srslylawlUI.Log("Debug Mode not active.")
+        return
+    end
+
+    if not srslylawlUI.DebugFrameData then
+        srslylawlUI.Log("No FrameData.")
+        return
+    end
+
+    srslylawlUI.Log("Debug frame data:")
+
+    local sortedTable = {}
+    for key, v in pairs(srslylawlUI.DebugFrameData) do
+        local t = {
+            ["avg"] = v.total / v.count,
+            ["name"] = key,
+            ["total"] = v.total,
+            ["avgTotal"] = v.total / srslylawlUI.DebugTickCount,
+            ["high"] = v.highest
+        }
+        table.insert(sortedTable, t)
+    end
+    table.sort(sortedTable, function(a, b) return a.avg < b.avg end)
+
+
+    for k, v in pairs(sortedTable) do
+        srslylawlUI.Log(v.name ..
+            " avg: " .. v.avg
+            ..
+            " high: " .. v.high .. " total: " .. v.total .. " avg total: " .. v.avgTotal)
+    end
+    print("____________________________________")
+
+end
+
+function srslylawlUI.Debug_Reset()
+    srslylawlUI.DebugData = {}
+    srslylawlUI.DebugFrameData = {}
+    srslylawlUI.DebugTickCount = 0;
+    srslylawlUI.DebugTimer = 0;
+end
+
 function srslylawlUI.Utils_CCTableTranslation(string)
     if string == "stuns" then return "stun"
     elseif string == "incaps" then return "incapacitate"
@@ -590,6 +727,8 @@ function srslylawlUI.GetDebuffText(debuffIndex, unit)
 end
 
 function srslylawlUI.HandleAuras(unitbutton, unit)
+    srslylawlUI.DebugTrackCall("HandleAuras " .. unit)
+    debugprofilestart()
     local unitsType = unitbutton:GetAttribute("unitsType")
     local function GetTypeOfAuraID(spellId)
         local auraType = nil
@@ -797,6 +936,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
         UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
+            srslylawlUI.SetDebugCheckPoint()
+            srslylawlUI.DebugTrackTimeStop("HandleAuras (General) after Auras_Remember Buff", true)
+            srslylawlUI.SetDebugCheckPoint()
             srslylawlUI.Auras_RememberBuff(i, unit)
             if srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, UnitAura(unit, i, "HELPFUL")) and
                 currentBuffFrame <= maxBuffs then
@@ -845,6 +987,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                     UntrackAura(i)
                 end
             end
+            srslylawlUI.DebugTrackTimeStop("HandleAuras (General) after Auras Buff Iteration", true)
         end
     end
     for i = currentBuffFrame, 40 do
@@ -868,7 +1011,10 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
         UnitAura(unit, i, "HARMFUL")
         if name then -- if aura on this index exists, assign it
+            srslylawlUI.SetDebugCheckPoint()
             srslylawlUI.Auras_RememberDebuff(spellId, i, unit)
+            srslylawlUI.DebugTrackTimeStop("HandleAuras (General) after Auras_RememberDebuff", true)
+            srslylawlUI.SetDebugCheckPoint()
             --check if its CC
             if srslylawlUI_Saved.debuffs.known[spellId] ~= nil and
                 srslylawlUI_Saved.debuffs.known[spellId].crowdControlType ~= "none" and
@@ -921,6 +1067,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 f:Show()
                 currentDebuffFrame = currentDebuffFrame + 1
             end
+            srslylawlUI.DebugTrackTimeStop("HandleAuras (General) after Debuff Aura Iteration", true)
         end
     end
     for i = currentDebuffFrame, 40 do
@@ -932,6 +1079,8 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     if auraPointsChanged then
         srslylawlUI.SetAuraPointsAll(unit, unitsType)
     end
+
+
 
     --see if we want to display our cced frame
     local displayCC = #appliedCC > 0
@@ -1015,6 +1164,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     -- -- we tracked all absorbs, now we have to visualize them
     srslylawlUI.HandleEffectiveHealth(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
     srslylawlUI.HandleAbsorbFrames(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
+    srslylawlUI.DebugTrackTimeStop("HandleAuras (General)")
 end
 
 function srslylawlUI.Main_HandleAuras_ALL()
@@ -1267,7 +1417,8 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
                 if abs(amount) ~= 0 then
                     spell.reductionAmount = amount
                 else
-                    error("reduction amount is 0 " .. spellName .. " " .. buffText)
+                    spell.reductionAmount = 0
+                    -- error("reduction amount is 0 " .. spellName .. " " .. buffText)
                 end
 
                 if not isKnown then
