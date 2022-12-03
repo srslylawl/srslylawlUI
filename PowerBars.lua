@@ -743,8 +743,9 @@ function srslylawlUI.PowerBar.Set(parent, unit)
             end)
             bar.isRegistered = true
         elseif parent.specID >= 259 and parent.specID <= 261 and not bar.isRegistered then --is rogue, check for kyrian ability cp chargedPointsTable
-            bar:RegisterEvent("UNIT_POWER_POINT_CHARGE")
+            bar:RegisterUnitEvent("UNIT_POWER_POINT_CHARGE", unit)
             bar:RegisterEvent("PLAYER_REGEN_ENABLED")
+            bar:RegisterEvent("PLAYER_ENTERING_WORLD")
             bar:SetScript("OnEvent", function(self, event, ...)
                 self:OnComboPointCharged()
             end)
