@@ -1020,7 +1020,7 @@ function srslylawlUI.CreateConfigWindow()
         local petBars = CreateConfigControl(tab, "Party Pet", nil, "party")
         petBars:ChainToControl(powerBars, "RIGHT")
         local petEnable = CreateSettingsCheckButton("Enable", tab, path .. "pet.enabled",
-            function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.Frame_ResetUnitButton(srslylawlUI
+            function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.srslylawlUI.Frame_ResetPetButton(srslylawlUI
                         .partyUnits[unit].unitFrame.unit, unit)
                 end
             end)
@@ -1266,16 +1266,16 @@ function srslylawlUI.CreateConfigWindow()
                         path .. aType .. "s.max" .. typeCap .. "s", 1, 0, function()
                         srslylawlUI.CreateBuffFrames(unitFrame, unit)
                         srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                        srslylawlUI.HandleAuras(unitFrame, unit)
+                        srslylawlUI.HandleAuras(unitFrame, unit, nil, "configMaxAuras")
                     end)
                     local auraSize = CreateCustomSlider("Size", tab, 0, 200, path .. aType .. "s.size", 1, 0,
                         function()
-                            srslylawlUI.HandleAuras(unitFrame, unit)
+                            srslylawlUI.HandleAuras(unitFrame, unit, nil, "configAuraSize")
                             srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
                         end)
                     local scaledAuraSize = CreateCustomSlider("Scaled Size", tab, 0, 200, path .. aType .. "s.scaledSize"
                         , 1, 0, function()
-                        srslylawlUI.HandleAuras(unitFrame, unit)
+                        srslylawlUI.HandleAuras(unitFrame, unit, nil, "configScaledAuraSize")
                         srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
                     end)
                     if unit == "target" then

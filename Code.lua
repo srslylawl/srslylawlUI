@@ -234,7 +234,7 @@ function srslylawlUI.ToggleDebugMode()
             srslylawlUI.DebugFrameData = {}
             srslylawlUI.DebugTickCount = 0;
             srslylawlUI.DebugTimer = 0;
-            srslylawlUI.DebugCheckPoint = 0;
+            srslylawlUI.DebugCheckPoint = {};
             srslylawlUI.DebugFrame = CreateFrame("Frame", "SrslylawluiDebug")
             srslylawlUI.DebugFrame:SetScript("OnUpdate", function(self, elapsed)
                 srslylawlUI.DebugTickCount = srslylawlUI.DebugTickCount + 1;
@@ -266,9 +266,10 @@ function srslylawlUI.ToggleDebugMode()
     end
 end
 
-function srslylawlUI.SetDebugCheckPoint()
+function srslylawlUI.SetDebugCheckPoint(val)
+    if not val then val = 0 end
     if not srslylawlUI.DebugMode then return end
-    srslylawlUI.DebugCheckPoint = debugprofilestop()
+    srslylawlUI.DebugCheckPoint[val] = debugprofilestop()
 end
 
 srslylawlUI.ToggleDebugMode()
@@ -284,7 +285,7 @@ function srslylawlUI.DebugTrackCall(nameString)
     srslylawlUI.DebugData[nameString] = srslylawlUI.DebugData[nameString] + 1;
 end
 
-function srslylawlUI.DebugTrackTimeStop(nameString, useCheckPoint)
+function srslylawlUI.DebugTrackTimeStop(nameString, checkPointVal)
     if not srslylawlUI.DebugMode then return end
     if not srslylawlUI.DebugTimerData then
         srslylawlUI.DebugTimerData = {}
@@ -299,8 +300,8 @@ function srslylawlUI.DebugTrackTimeStop(nameString, useCheckPoint)
 
     local stop = debugprofilestop()
 
-    if useCheckPoint then
-        stop = stop - srslylawlUI.DebugCheckPoint
+    if checkPointVal then
+        stop = stop - srslylawlUI.DebugCheckPoint[checkPointVal]
     end
 
     srslylawlUI.DebugTimerData[nameString].value = srslylawlUI.DebugTimerData[nameString].value + stop
@@ -354,7 +355,7 @@ function srslylawlUI.PrintFrameDebug()
         }
         table.insert(sortedTable, t)
     end
-    table.sort(sortedTable, function(a, b) return a.avg < b.avg end)
+    table.sort(sortedTable, function(a, b) return a.high < b.high end)
 
 
     for k, v in pairs(sortedTable) do
@@ -681,8 +682,6 @@ function srslylawlUI.GetPartyHealth()
     local highestHP, averageHP, memberCount = 0, 0, 0
     local currentUnit = "player"
 
-
-    local partyIndex = 0
     if not UnitExists("player") then
         --error("player doesnt exist?")
         return nil
@@ -721,7 +720,7 @@ end
 --Auras
 function srslylawlUI.TryGetAuraText(isBuff, index, unit)
     --sometimes an aura does not have a text at some calls
-    srslylawlUI.SetDebugCheckPoint()
+    srslylawlUI.SetDebugCheckPoint("AuraText")
     local data = isBuff and C_TooltipInfo.GetUnitBuff(unit, index) or C_TooltipInfo.GetUnitDebuff(unit, index)
     TooltipUtil.SurfaceArgs(data)
     for _, line in ipairs(data.lines) do
@@ -733,14 +732,15 @@ function srslylawlUI.TryGetAuraText(isBuff, index, unit)
         text = data.lines[2].leftText
     end
 
-    srslylawlUI.DebugTrackTimeStop("GetAuraTextNew", true)
+    srslylawlUI.DebugTrackTimeStop("GetAuraTextNew", "AuraText")
     return text
 end
 
-function srslylawlUI.HandleAuras(unitbutton, unit)
+function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
     srslylawlUI.DebugTrackCall("HandleAuras " .. unit)
     debugprofilestart()
     local unitsType = unitbutton:GetAttribute("unitsType")
+
     local function GetTypeOfAuraID(spellId)
         local auraType = nil
         if srslylawlUI_Saved.buffs.absorbs[spellId] ~= nil then
@@ -760,7 +760,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         local byAura = auraType .. "Auras"
         local byIndex = "trackedAurasByIndex"
 
-        if verify == nil or verify == false then end
         if source == nil then source = "unknown" end
 
         local aura = { ["name"] = name, ["index"] = index }
@@ -925,11 +924,103 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         buffFrame:Show();
     end
 
+    local function ParseAuras()
+        local updateTable = {}
+        local updateTableHasContent = false
+        local doFullUpdate = false
+        if updatedAuras == nil or updatedAuras.IsFullUpdate then
+            --do full update
+            doFullUpdate = true
+        else
+            -- print("UpdatedAuras with payload for unit " .. unit .. ":")
+            if updatedAuras.addedAuras then
+                -- print("Added Auras:")
+                for i, unitAuraInfo in ipairs(updatedAuras.addedAuras) do
+                    -- print(unitAuraInfo.name)
+                    -- trackedTable[unitAuraInfo.auraInstanceID] = unitAuraInfo
+                    updateTable[unitAuraInfo.spellId] = true
+                    updateTableHasContent = true
+                end
+            end
+
+            if updatedAuras.updatedAuraInstanceIDs then
+                -- print("Updated Auras:")
+                for i, auraInstanceID in ipairs(updatedAuras.updatedAuraInstanceIDs) do
+                    local unitAuraInfo = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
+                    --this can actually be null when its removed at the same frame as its being updated so we check for it :-)
+                    if unitAuraInfo then
+                        -- trackedTable[auraInstanceID] = unitAuraInfo
+                        -- print(unitAuraInfo.name .. " " .. auraInstanceID)
+                        updateTable[unitAuraInfo.spellId] = true
+                        updateTableHasContent = true
+                    end
+                end
+            end
+            -- if updatedAuras.removedAuraInstanceIDs then
+            --     -- print("Removed Auras:")
+            --     for i, auraInstanceID in ipairs(updatedAuras.removedAuraInstanceIDs) do
+            --         if trackedTable[auraInstanceID] then
+            --             -- print(auraInstanceID .. " " .. tostring(trackedTable[auraInstanceID].name))
+            --             trackedTable[auraInstanceID] = nil
+            --         end
+            --     end
+            -- end
+        end
+        -- parse aura data
+        -- buffs
+        for i = 1, 40 do
+            local name, icon, count, debuffType, duration, expirationTime, source,
+            isStealable, nameplateShowPersonal, spellId, canApplyAura,
+            isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
+            UnitAura(unit, i, "HELPFUL")
+            local doRemember = doFullUpdate or (updateTableHasContent and updateTable[spellId])
+            if name and doRemember then
+                srslylawlUI.Auras_RememberBuff(i, unit)
+            end
+        end
+        --debuffs
+        for i = 1, 40 do
+            local name, icon, count, debuffType, duration, expirationTime, source,
+            isStealable, nameplateShowPersonal, spellId, canApplyAura,
+            isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
+            UnitAura(unit, i, "HARMFUL")
+            local doRemember = doFullUpdate or (updateTableHasContent and updateTable[spellId])
+            if name and doRemember then
+                srslylawlUI.Auras_RememberDebuff(spellId, i, unit)
+            end
+        end
+
+    end
+
+    if not srslylawlUI[unitsType][unit].aurasByInstanceID then
+        srslylawlUI[unitsType][unit].aurasByInstanceID = {}
+    end
+
+    local doParse = true
+    if unit == "player" then
+        --player as partyFrame and main both receive the exact same data, so we save performance if we only check them once but apply to both
+        --partyUnit player should never do anything as long as player frame is enabled
+        if unitsType == "partyUnits" then
+            doParse = not srslylawlUI.Frame_GetFrameByUnit(unit, "mainUnits"):IsShown()
+            --do nothing as main player will take care of it
+        end
+    end
+    -- print("HandleAuras " .. unit .. " " .. unitsType .. " " .. (tostring(dbgEventString)))
+    -- local trackedTable = srslylawlUI[unitsType][unit].aurasByInstanceID
+    if doParse then
+        srslylawlUI.SetDebugCheckPoint("Parse")
+        ParseAuras()
+        srslylawlUI.DebugTrackTimeStop("ParseAllAuras", "Parse")
+    end
+
+    srslylawlUI.SetDebugCheckPoint("AssignAuraFrames")
+    srslylawlUI.SetDebugCheckPoint("Buffs")
+
     -- reset frame check verifier
     for k, v in pairs(srslylawlUI[unitsType][unit].trackedAurasByIndex) do
         v["checkedThisEvent"] = false
     end
-    -- process buffs on unit
+    -- assign buffs to frames
     local auraPointsChanged = false
     local buffBaseColor = srslylawlUI.GetSetting("colors.buffBaseColor")
     local buffIsStealableColor = srslylawlUI.GetSetting("colors.buffIsStealableColor")
@@ -947,8 +1038,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
         UnitAura(unit, i, "HELPFUL")
         if name then -- if aura on this index exists, assign it
-            srslylawlUI.Auras_RememberBuff(i, unit)
-            srslylawlUI.SetDebugCheckPoint()
             if srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, UnitAura(unit, i, "HELPFUL")) and
                 currentBuffFrame <= maxBuffs then
                 SetBuff(f, i, UnitAura(unit, i))
@@ -996,7 +1085,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                     UntrackAura(i)
                 end
             end
-            srslylawlUI.DebugTrackTimeStop("HandleAuras (General) after Auras Buff Iteration", true)
         end
     end
     for i = currentBuffFrame, 40 do
@@ -1005,11 +1093,14 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
             f:Hide()
         end
     end
-    -- process debuffs on unit
 
+    srslylawlUI.DebugTrackTimeStop("Buffs", "Buffs")
+    srslylawlUI.SetDebugCheckPoint("Debuffs")
+
+
+    -- assign debuffs to frames
     local appliedCC = {}
     currentDebuffFrame = 1
-
     local debuffSize = srslylawlUI.GetSettingByUnit("debuffs.size", unitsType, unit)
     local scaledDebuffSize = debuffSize + srslylawlUI.GetSettingByUnit("debuffs.scaledSize", unitsType, unit)
     local maxDebuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
@@ -1020,10 +1111,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
         UnitAura(unit, i, "HARMFUL")
         if name then -- if aura on this index exists, assign it
-            srslylawlUI.SetDebugCheckPoint()
-            srslylawlUI.Auras_RememberDebuff(spellId, i, unit)
-            srslylawlUI.DebugTrackTimeStop("HandleAuras (General) after Auras_RememberDebuff", true)
-            srslylawlUI.SetDebugCheckPoint()
             --check if its CC
             if srslylawlUI_Saved.debuffs.known[spellId] ~= nil and
                 srslylawlUI_Saved.debuffs.known[spellId].crowdControlType ~= "none" and
@@ -1076,7 +1163,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
                 f:Show()
                 currentDebuffFrame = currentDebuffFrame + 1
             end
-            srslylawlUI.DebugTrackTimeStop("HandleAuras (General) after Debuff Aura Iteration", true)
         end
     end
     for i = currentDebuffFrame, 40 do
@@ -1089,7 +1175,8 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
         srslylawlUI.SetAuraPointsAll(unit, unitsType)
     end
 
-
+    srslylawlUI.DebugTrackTimeStop("Debuffs", "Debuffs")
+    srslylawlUI.DebugTrackTimeStop("AssignAuraFrames", "AssignAuraFrames")
 
     --see if we want to display our cced frame
     local displayCC = #appliedCC > 0
@@ -1171,15 +1258,14 @@ function srslylawlUI.HandleAuras(unitbutton, unit)
     end
 
     -- -- we tracked all absorbs, now we have to visualize them
-    srslylawlUI.SetDebugCheckPoint()
-    srslylawlUI.HandleEffectiveHealth(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
-    srslylawlUI.DebugTrackTimeStop("HandleEffectiveHealth", true)
+    srslylawlUI.SetDebugCheckPoint("ABC")
+    srslylawlUI.HandleEffectiveHealth(unit, unitsType)
+    srslylawlUI.DebugTrackTimeStop("HandleEffectiveHealth", "ABC")
 
     srslylawlUI.SetDebugCheckPoint()
-    srslylawlUI.HandleAbsorbFrames(srslylawlUI[unitsType][unit].trackedAurasByIndex, unit, unitsType)
-    srslylawlUI.DebugTrackTimeStop("HandleAbsorbFrames", true)
-
-    srslylawlUI.DebugTrackTimeStop("HandleAuras (General)")
+    srslylawlUI.HandleAbsorbFrames(unit, unitsType)
+    srslylawlUI.DebugTrackTimeStop("HandleAbsorbFrames", "ABC")
+    srslylawlUI.DebugTrackTimeStop("HandleAuras(General)")
 end
 
 function srslylawlUI.Main_HandleAuras_ALL()
@@ -1187,7 +1273,7 @@ function srslylawlUI.Main_HandleAuras_ALL()
         if unit ~= "targettarget" then
             local f = srslylawlUI.Frame_GetFrameByUnit(unit, "mainUnits")
             if f.unit then
-                srslylawlUI.HandleAuras(f.unit, unit)
+                srslylawlUI.HandleAuras(f.unit, unit, nil, "HandleAll")
             end
         end
     end
@@ -1198,7 +1284,7 @@ function srslylawlUI.Party_HandleAuras_ALL()
         local f = srslylawlUI.Frame_GetFrameByUnit(unit, "partyUnits")
 
         if f.unit then
-            srslylawlUI.HandleAuras(f.unit, unit)
+            srslylawlUI.HandleAuras(f.unit, unit, nil, "PartyHandleAll")
         end
     end
 end
@@ -1542,7 +1628,7 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
         end
     end
 
-    ProcessID(spellId, debuffIndex, unit, arg1)
+    ProcessID(spellId, debuffIndex, unit)
 end
 
 function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
@@ -1617,7 +1703,9 @@ function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
     srslylawlUI.Log(str .. " blacklisted, will no longer be shown.")
 end
 
-function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
+function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
+    local trackedAurasByIndex = trackedAurasOverride ~= nil and trackedAurasOverride or
+        srslylawlUI[unitsType][unit].trackedAurasByIndex
     local height, width, currentBarLength
     local barWidth
     if unitsType == "partyUnits" then
@@ -1877,24 +1965,27 @@ function srslylawlUI.HandleAbsorbFrames(trackedAurasByIndex, unit, unitsType)
     srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
 end
 
-function srslylawlUI.HandleEffectiveHealth(trackedAurasByIndex, unit, unitsType)
+function srslylawlUI.HandleEffectiveHealth(unit, unitsType, trackedAurasOverride)
     local function FilterDefensives(trackedAuras)
         local sortedTable = {}
         for index, aura in pairs(trackedAuras) do
-            if aura.auraType == "defensive" then
+            if aura.auraType == "defensive" and srslylawlUI_Saved.buffs.known[aura.spellId].reductionAmount > 0 then
                 table.insert(sortedTable, aura)
             end
         end
 
         table.sort(sortedTable, function(a, b)
             -- spells that expire first are last in the list
-            if a.expiration > b.expiration then return true end
+            return a.expiration > b.expiration
         end)
 
         return sortedTable
     end
 
     --Display effective health
+
+    local trackedAurasByIndex = trackedAurasOverride ~= nil and trackedAurasOverride or
+        srslylawlUI[unitsType][unit].trackedAurasByIndex
 
     srslylawlUI[unitsType][unit].effectiveHealthSegments = FilterDefensives(trackedAurasByIndex)
     local effectiveHealthMod = 1

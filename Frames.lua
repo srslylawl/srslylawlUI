@@ -659,6 +659,7 @@ function srslylawlUI.Frame_InitialPartyUnitConfig(buttonFrame, faux)
                 end
             end)
         end
+        --TODO: check for setting here if pet should be shown
         RegisterUnitWatch(buttonFrame)
         RegisterUnitWatch(buttonFrame.pet)
         buttonFrame.unit.registered = true
@@ -2126,7 +2127,6 @@ function srslylawlUI.RegisterEvents(buttonFrame)
 end
 
 function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
-
     local function UpdatePowerBar(unit, unitsType, token)
         if unit == "player" and unitsType == "mainUnits" then
             srslylawlUI.PowerBar.Update(self, token)
@@ -2142,14 +2142,16 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         " Event: " ..
         event ..
         " " ..
-        (arg1 ~= nil and tostring(arg1) or "") .. " " .. (arg2 ~= nil and type(arg2) ~= "table" and tostring(arg2) or ""
+        (arg1 ~= nil and tostring(arg1) or "") ..
+        " " .. (arg2 ~= nil and type(arg2) ~= "table" and tostring(arg2) or ""
         ))
     local unitExists = UnitExists(unit)
     local unitsType = self:GetAttribute("unitsType")
-    if not unitExists then return end
+
+    if not unitExists or unitsType == "partyUnits" and not srslylawlUI_PartyHeader:IsShown() then return end
     -- Handle any events that don’t accept a unit argument
     if event == "PLAYER_ENTERING_WORLD" then
-        srslylawlUI.HandleAuras(self.unit, unit)
+        srslylawlUI.HandleAuras(self.unit, unit, nil, "PLAYER_ENTERING_WORLD")
         UpdatePowerBar(unit, unitsType, nil)
     elseif event == "GROUP_ROSTER_UPDATE" then
         self.PartyLeader:SetShown(UnitIsGroupLeader(unit))
@@ -2171,7 +2173,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                 end
                 self:UpdateUnitLevel()
                 self:UpdateUnitFaction()
-                srslylawlUI.HandleAuras(self.unit, unit)
+                srslylawlUI.HandleAuras(self.unit, unit, nil, "PLAYER_TARGET_CHANGED")
             end
             if unit ~= "targettarget" then
                 srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
@@ -2189,7 +2191,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         end
         self:UpdateUnitLevel()
         self:UpdateUnitFaction()
-        srslylawlUI.HandleAuras(self.unit, unit)
+        srslylawlUI.HandleAuras(self.unit, unit, nil, "PLAYER_FOCUS_CHANGED")
         srslylawlUI.Frame_SetCombatIcon(self.unit.CombatIcon)
         srslylawlUI.DebugTrackCall("ResetUnitButton ___ PLAYER FOCUS CHANGED " .. unit)
         srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
@@ -2216,7 +2218,9 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         if event == "UNIT_MAXHEALTH" then
             if self.unit.dead ~= UnitIsDeadOrGhost(unit) then
                 if unit ~= "targettarget" then
-                    srslylawlUI.HandleAuras(self.unit, unit)
+                    srslylawlUI.HandleAbsorbFrames(unit, unitsType)
+                    srslylawlUI.HandleEffectiveHealth(unit, unitsType)
+                    -- srslylawlUI.HandleAuras(self.unit, unit, nil, "UNIT_MAXHEALTH")
                 end
                 srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
             end
@@ -2226,10 +2230,12 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             srslylawlUI.DebugTrackCall("ResetUnitButton ___ UNIT TARGET " .. unit .. " " .. (tostring(arg1)))
             srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
         elseif event == "UNIT_HEALTH" then
-            srslylawlUI.DebugTrackCall("ResetHealth_1")
+            -- might just adjust health value here instead of resetting completely?
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
             if unit ~= "targettarget" then
-                srslylawlUI.HandleAuras(self.unit, unit)
+                srslylawlUI.HandleAbsorbFrames(unit, unitsType)
+                srslylawlUI.HandleEffectiveHealth(unit, unitsType)
+                -- srslylawlUI.HandleAuras(self.unit, unit, nil, "UNIT_HEALTH")
             end
         elseif event == "UNIT_DISPLAYPOWER" then
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
@@ -2254,19 +2260,19 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
             srslylawlUI.Frame_ResetUnitThreat(self.unit, unit)
         elseif event == "UNIT_CONNECTION" then
-            srslylawlUI.DebugTrackCall("ResetHealth_3")
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
             if unitsType == "partyUnits" then
                 if UnitName(unit) ~= "Unknown" then
                     srslylawlUI.Log(UnitName(unit) ..
-                        (UnitIsConnected(unit) and " is now online." or " is now offline."
+                        (UnitIsConnected(unit) and " is now online." or " disconnected."
                         ))
                 end
             end
         elseif event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" or
             event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_PREDICTION" then
-            srslylawlUI.HandleAuras(self.unit, unit)
+            local updatedAuras = (event == "UNIT_AURA") and arg2 or nil
+            srslylawlUI.HandleAuras(self.unit, unit, updatedAuras, event)
         elseif event == "UNIT_PHASE" then
             srslylawlUI.DebugTrackCall("ResetHealth_4")
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
@@ -2331,21 +2337,23 @@ function srslylawlUI.Frame_ResetName(button, unit)
 end
 
 function srslylawlUI.Frame_ResetPetButton(button, unit)
-    local exists = UnitExists(unit)
-    if not exists then
-        button.pet:SetShown(false)
-        return
-    end
-
     local show = button.pet and
         srslylawlUI.GetSettingByUnit("pet.enabled", button:GetAttribute("unitsType"), button:GetAttribute("unit"))
+
+    if not InCombatLockdown() then
+        if show then
+            RegisterUnitWatch(button)
+        else
+            UnregisterUnitWatch(button)
+        end
+    end
+
     if show then
         local health = UnitHealth(unit)
         local maxHealth = UnitHealth(unit)
         button.pet.healthBar:SetMinMaxValues(0, maxHealth)
         button.pet.healthBar:SetValue(health)
     end
-    button.pet:SetShown(show)
 end
 
 function srslylawlUI.Frame_ResetHealthBar(button, unit)

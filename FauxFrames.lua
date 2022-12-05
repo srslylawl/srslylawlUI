@@ -7,7 +7,6 @@ function srslylawlUI.ToggleFauxFrames(visible)
     end
 
     if not srslylawlUI_FAUX_PartyHeader.initiated then
-        local lastFrame
         local class = select(2, UnitClass("player")) or "WARRIOR"
         local health = UnitHealthMax("player")
         local _, powerToken = UnitPowerType("player")

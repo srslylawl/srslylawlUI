@@ -752,6 +752,7 @@ function srslylawlUI.PowerBar.Set(parent, unit)
             bar.isRegistered = true
         elseif parent.specID >= 265 and parent.specID <= 267 then -- warlock
             bar:RegisterEvent("PLAYER_REGEN_ENABLED")
+            bar:RegisterEvent("PLAYER_ENTERING_WORLD")
             bar:SetScript("OnEvent", function(self, event, ...)
                 self:SoulshardUpdate()
             end)
