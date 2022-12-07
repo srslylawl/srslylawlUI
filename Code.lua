@@ -109,6 +109,7 @@ srslylawlUI.sortTimerActive = false
 local debugString = ""
 
 --[[ TODO:
+-- GRP PET 0 hp for some reason
 party anchoring infight will overlap frames
 castbar text size
 plus minus button for sliders
@@ -126,7 +127,7 @@ alt powerbar
 
 --Utils
 function srslylawlUI.Log(text, ...)
-    str = ""
+    local str = ""
     for i = 1, select('#', ...) do
         str = str .. (select(i, ...) .. " ")
     end
@@ -190,11 +191,11 @@ function srslylawlUI.Utils_TableEquals(table1, table2)
     return true
 end
 
-function srslylawlUI.Utils_GetTableLength(T)
+function srslylawlUI.Utils_GetTableLength(t)
     local count = 0
     if t == nil then return 0
     end
-    for _ in pairs(T) do count = count + 1 end
+    for _ in pairs(t) do count = count + 1 end
     return count
 end
 
@@ -272,7 +273,7 @@ function srslylawlUI.SetDebugCheckPoint(val)
     srslylawlUI.DebugCheckPoint[val] = debugprofilestop()
 end
 
-srslylawlUI.ToggleDebugMode()
+-- srslylawlUI.ToggleDebugMode()
 
 function srslylawlUI.DebugTrackCall(nameString)
     if not srslylawlUI.DebugMode then return end
@@ -1694,7 +1695,7 @@ function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
     srslylawlUI_Saved[auraType].blackList[spellId] = spell
 
     if srslylawlUI_Saved[auraType].whiteList[spellId] ~= nil then
-        srslylawlUI_Saved[auraType].whiteList[spellID] = nil
+        srslylawlUI_Saved[auraType].whiteList[spellId] = nil
         str = str .. " removed from whitelist and "
     end
 
