@@ -1915,15 +1915,20 @@ end
 
 function srslylawlUI.Frame_UpdateVisibility()
     local function UpdateHeaderVisible(show)
-        local frame = srslylawlUI_PartyHeader
-        if show then
-            if not frame:IsShown() then
-                frame:Show()
+        if not InCombatLockdown() then
+            local frame = srslylawlUI_PartyHeader
+            if show then
+                if not frame:IsShown() then
+                    frame:Show()
+                end
+            else
+                if frame:IsShown() then
+                    frame:Hide()
+                end
             end
         else
-            if frame:IsShown() then
-                frame:Hide()
-            end
+            -- print("caught!")
+            C_Timer.After(1, function() UpdateHeaderVisible(show) end)
         end
     end
 
@@ -3042,12 +3047,17 @@ function srslylawlUI.SortPartyFrames()
         return
     end
 
-    local parent = srslylawlUI_PartyHeader
-    for i = 1, #list do
-        local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(list[i].unit, "partyUnits").unit
-        local showPlayer = srslylawlUI.GetSetting("party.visibility.showPlayer")
+    --TODO: parent units that arent visible anyway, so they arent fucked up when someone joins mid fight, just unsorted instead.
+    --Done: partyhealth returns list of all units now even if they are not active, so should properly sort in all cases
 
-        if buttonFrame and not (list[i].unit == "player" and not showPlayer) then
+    local parent = srslylawlUI_PartyHeader
+    for i, v in ipairs(list) do
+        local unit = v.unit
+        local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(unit, "partyUnits").unit
+        local showPlayer = srslylawlUI.GetSetting("party.visibility.showPlayer")
+        local unitIsPlayer = unit == "player"
+
+        if buttonFrame and not (unitIsPlayer and not showPlayer) then
             buttonFrame:ClearAllPoints()
             if parent == srslylawlUI_PartyHeader then
                 buttonFrame:SetPoint("TOPLEFT", parent, "TOPLEFT")
@@ -3058,7 +3068,7 @@ function srslylawlUI.SortPartyFrames()
             srslylawlUI.Frame_ResetUnitButton(buttonFrame, list[i].unit)
         end
 
-        if list[i].unit == "player" then
+        if unitIsPlayer then
             if not showPlayer then
                 if buttonFrame.registered then
                     UnregisterUnitWatch(buttonFrame)

@@ -109,7 +109,7 @@ srslylawlUI.sortTimerActive = false
 local debugString = ""
 
 --[[ TODO:
-auras size 0 will crash the addon as it will then fail to initialize while setting fontsize to 0 (as it scales with aurasize)
+faux debuff frames (target) dont scale their size
 player portrait
 -- GRP PET 0 hp for some reason
 party anchoring infight will overlap frames
@@ -683,39 +683,51 @@ function srslylawlUI.GetPartyHealth()
     local hasUnknownMember = false
 
     local highestHP, averageHP, memberCount = 0, 0, 0
-    local currentUnit = "player"
-
     if not UnitExists("player") then
         --error("player doesnt exist?")
         return nil
-    else
-        -- loop through all units
-        repeat
-            unitHealthBars[currentUnit] = unitHealthBars[currentUnit] or {}
+    end
+
+    -- loop through all units
+    for _, currentUnit in pairs(srslylawlUI.partyUnitsTable) do
+        if not srslylawlUI.unitHealthBars[currentUnit] then
+            srslylawlUI.unitHealthBars[currentUnit] = {
+                maxHealth = 1,
+                name = "",
+                unit = currentUnit
+            }
+        end
+        local bar = srslylawlUI.unitHealthBars[currentUnit]
+        local exists = UnitExists(currentUnit)
+        if exists then
             local maxHealth = UnitHealthMax(currentUnit)
             if currentUnit == "player" and not srslylawlUI.GetSetting("party.visibility.showPlayer") then
                 maxHealth = 0
             end
             if maxHealth > highestHP then highestHP = maxHealth end
             local name = srslylawlUI.Utils_GetUnitNameWithServer(currentUnit)
-
             if name == "Unknown" or maxHealth == 1 then
                 hasUnknownMember = true
             end
 
-            unitHealthBars[currentUnit]["maxHealth"] = maxHealth
-            unitHealthBars[currentUnit]["unit"] = currentUnit
-            unitHealthBars[currentUnit]["name"] = name
+            bar.name = name
+            bar.maxHealth = maxHealth
 
             averageHP = averageHP + maxHealth
             table.insert(nameStringSortedByHealthDesc, unitHealthBars[currentUnit])
             memberCount = memberCount + 1
-            currentUnit = "party" .. memberCount
-        until not UnitExists(currentUnit)
+        end
     end
 
-    table.sort(nameStringSortedByHealthDesc, function(a, b) return b.maxHealth < a.maxHealth end)
+    table.sort(nameStringSortedByHealthDesc, function(a, b) return a.maxHealth > b.maxHealth
+    end)
     averageHP = floor(averageHP / memberCount)
+
+    --add nonexisting members in order so they aren't in a wacky random order
+    for i = memberCount + 1, 5 do
+        local unit = srslylawlUI.partyUnitsTable[i]
+        table.insert(nameStringSortedByHealthDesc, unitHealthBars[unit])
+    end
 
     return nameStringSortedByHealthDesc, highestHP, averageHP, hasUnknownMember
 end
@@ -2408,3 +2420,5 @@ srslylawlUI_FirstMaxHealthEventFrame:SetScript("OnEvent", function(self, event, 
         self:UnregisterEvent("UNIT_MAXHEALTH")
     end
 end)
+
+srslylawlUI.ToggleDebugMode()
