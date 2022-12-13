@@ -6,6 +6,9 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
     local size = srslylawlUI.GetSettingByUnit("buffs.size", unitsType, unit)
     local texture = size >= 64 and srslylawlUI.textures.AuraBorder64 or srslylawlUI.textures.AuraBorder32
     local swipeTexture = size >= 64 and srslylawlUI.textures.AuraSwipe64 or srslylawlUI.textures.AuraSwipe32
+    local fontSize = size / 2
+    fontSize = fontSize > 0 and fontSize or 1
+    fontSize = srslylawlUI.Utils_PixelFromCodeToScreen(fontSize)
     for i = 1, maxBuffs do
         if not srslylawlUI[unitsType][unit].buffFrames[i] then --so we can call this function multiple times
             local f = CreateFrame("Button", frameName .. i, buttonFrame.unit, "CompactBuffTemplate")
@@ -43,7 +46,7 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "TOPLEFT", f, "TOPLEFT", -1, 1)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.cooldown:SetSwipeTexture(swipeTexture)
-            f.count:SetFont("Fonts\\FRIZQT__.TTF", size / 2, "OUTLINE")
+            f.count:SetFont("Fonts\\FRIZQT__.TTF", fontSize, "OUTLINE")
             f.count:SetPoint("BOTTOMRIGHT")
             srslylawlUI[unitsType][unit].buffFrames[i] = f
             f:Hide()
@@ -64,6 +67,9 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
     local size = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
     local texture = size >= 64 and srslylawlUI.textures.AuraBorder64 or srslylawlUI.textures.AuraBorder32
     local swipeTexture = size >= 64 and srslylawlUI.textures.AuraSwipe64 or srslylawlUI.textures.AuraSwipe32
+    local fontSize = size / 2
+    fontSize = fontSize > 0 and fontSize or 1
+    fontSize = srslylawlUI.Utils_PixelFromCodeToScreen(fontSize)
     for i = 1, maxBuffs do
         if not srslylawlUI[unitsType][unit].debuffFrames[i] then
             local f = CreateFrame("Button", frameName .. i, buttonFrame.unit, "CompactDebuffTemplate")
@@ -98,7 +104,8 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "TOPLEFT", f, "TOPLEFT", -1, 1)
             srslylawlUI.Utils_SetPointPixelPerfect(f.cooldown, "BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
             f.cooldown:SetSwipeTexture(swipeTexture)
-            f.count:SetFont("Fonts\\FRIZQT__.TTF", srslylawlUI.Utils_PixelFromCodeToScreen(size / 2), "OUTLINE")
+
+            f.count:SetFont("Fonts\\FRIZQT__.TTF", fontSize, "OUTLINE")
             f.count:SetPoint("BOTTOMRIGHT")
 
             srslylawlUI[unitsType][unit].debuffFrames[i] = f

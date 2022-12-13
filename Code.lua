@@ -109,6 +109,8 @@ srslylawlUI.sortTimerActive = false
 local debugString = ""
 
 --[[ TODO:
+auras size 0 will crash the addon as it will then fail to initialize while setting fontsize to 0 (as it scales with aurasize)
+player portrait
 -- GRP PET 0 hp for some reason
 party anchoring infight will overlap frames
 castbar text size
