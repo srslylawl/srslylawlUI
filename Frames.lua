@@ -1914,8 +1914,16 @@ function srslylawlUI.Frame_IsHeaderVisible()
 end
 
 function srslylawlUI.Frame_UpdateVisibility()
-    local function UpdateHeaderVisible(show)
+    local function DoIfNotInfight(func)
         if not InCombatLockdown() then
+            func()
+        else
+            C_Timer.After(1, function() DoIfNotInfight(func) end)
+        end
+    end
+
+    local function UpdateHeaderVisible(show)
+        DoIfNotInfight(function()
             local frame = srslylawlUI_PartyHeader
             if show then
                 if not frame:IsShown() then
@@ -1926,10 +1934,7 @@ function srslylawlUI.Frame_UpdateVisibility()
                     frame:Hide()
                 end
             end
-        else
-            -- print("caught!")
-            C_Timer.After(1, function() UpdateHeaderVisible(show) end)
-        end
+        end)
     end
 
     if srslylawlUI_FAUX_PartyHeader:IsShown() then return end
@@ -1946,16 +1951,18 @@ function srslylawlUI.Frame_UpdateVisibility()
     elseif isInArena then
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showArena"))
     else
-        local frame = srslylawlUI_PartyHeader.player
-        if srslylawlUI.GetSetting("party.visibility.showSolo") then
-            if not frame:IsShown() then
-                RegisterUnitWatch(frame)
+        DoIfNotInfight(function()
+            local frame = srslylawlUI_PartyHeader.player
+            if srslylawlUI.GetSetting("party.visibility.showSolo") then
+                if not frame:IsShown() then
+                    RegisterUnitWatch(frame)
+                end
+            else
+                if frame:IsShown() then
+                    UnregisterUnitWatch(frame)
+                end
             end
-        else
-            if frame:IsShown() then
-                UnregisterUnitWatch(frame)
-            end
-        end
+        end)
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showSolo"))
     end
 end
