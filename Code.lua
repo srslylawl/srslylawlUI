@@ -109,6 +109,10 @@ srslylawlUI.sortTimerActive = false
 local debugString = ""
 
 --[[ TODO:
+raidicon sometimes missing after reload
+absorb frames duration fix for the new api weirdness
+effective health scale out of bar in grp scenario
+header visibility (party) does not properly reset after arena
 faux debuff frames (target) dont scale their size
 player portrait
 -- GRP PET 0 hp for some reason
@@ -2359,6 +2363,7 @@ srslylawlUI_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     elseif event == "PLAYER_ENTERING_WORLD" then
         if not (arg1 or arg2) then
             -- just zoning between maps
+            srslylawlUI.Frame_UpdateVisibility()
         elseif arg1 then
             -- srslylawlUI.SortAfterLogin()
             -- since it takes a while for everything to load, we just wait until all our frames are visible before we do anything else
