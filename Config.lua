@@ -1785,8 +1785,13 @@ function srslylawlUI.CreateConfigWindow()
                     srslylawlUI_Saved.buffs.known[id].reductionAmount = amount
                     srslylawlUI_Saved.buffs.defensives[id] = srslylawlUI_Saved.buffs.known[id]
 
-                    srslylawlUI.Log("Damage reduction amount for spell " ..
-                        GetSpellInfo(id) .. " set from " .. old .. "% to " .. amount .. "%!")
+                    if old then
+                        srslylawlUI.Log("Damage reduction amount for spell " ..
+                            GetSpellInfo(id) .. " set from " .. old .. "% to " .. amount .. "%!")
+                    else
+                        srslylawlUI.Log("Damage reduction amount for spell " ..
+                            GetSpellInfo(id) .. " set to " .. amount .. "%!")
+                    end
                 end)
                 AddTooltip(attributePanel.DefensiveAmount,
                     "Set custom damage reduction effect (per stack) in % and confirm with [ENTER]-Key.\n(For example: Enter 15 for 15% damage reduction)\n\nSetting this to 100 will cause this spell to be treated as an immunity")
