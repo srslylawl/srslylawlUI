@@ -2195,12 +2195,12 @@ function srslylawlUI.CreateConfigWindow()
                     anchor = unitLevelControl
                 end
             end
+            local h = 0
+            for _, v in pairs(tabParent.controls) do
+                h = h + v
+            end
+            tabParent:SetHeight(h)
         end
-        local h = 0
-        for _, v in pairs(tabParent.controls) do
-            h = h + v
-        end
-        tabParent:SetHeight(h)
     end
 
     srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "SettingsFrameTemplate")
