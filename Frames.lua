@@ -1621,16 +1621,24 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
 
         table.insert(bh.bars, { bar = bar, priority = priority, height = height })
 
-        if not bar:GetScript("OnShow") then
+        local hasOnShowScript = bar:GetScript("OnShow") ~= nil
+        if not bar.onShowIsSetPoints and not hasOnShowScript then
             bar:SetScript("OnShow", function() self:SetPoints() end)
-        else
+            bar.onShowIsSetPoints = true
+        end
+        if not bar.onShowIsSetPoints and hasOnShowScript and not bar.onShowIsHookedSetPoints then
             bar:HookScript("OnShow", function() self:SetPoints() end)
+            bar.onShowIsHookedSetPoints = true
         end
 
-        if not bar:GetScript("OnHide") then
+        local hasOnHideScript = bar:GetScript("OnHide") ~= nil
+        if not bar.onHideIsSetPoints and not hasOnHideScript then
             bar:SetScript("OnHide", function() self:SetPoints() end)
-        else
+            bar.onHideIsSetPoints = true
+        end
+        if not bar.onHideIsSetPoints and hasOnHideScript and not bar.onHideIsHookedSetPoints then
             bar:HookScript("OnHide", function() self:SetPoints() end)
+            bar.onHideIsHookedSetPoints = true
         end
     end
 

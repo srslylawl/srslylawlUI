@@ -109,6 +109,7 @@ srslylawlUI.sortTimerActive = false
 local debugString = ""
 
 --[[ TODO:
+
 raidicon sometimes missing after reload
 absorb frames duration fix for the new api weirdness
 effective health scale out of bar in grp scenario
