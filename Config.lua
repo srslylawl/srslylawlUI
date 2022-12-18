@@ -1147,412 +1147,6 @@ function srslylawlUI.CreateConfigWindow()
         tab:SetHeight(h)
     end
 
-    local function FillPlayerFramesTab(tab)
-        local cFrame = srslylawlUI_ConfigFrame
-
-        local anchor = tab
-        for _, unit in pairs(srslylawlUI.mainUnitsTable) do
-            local unitName = unit:sub(1, 1):upper() .. unit:sub(2)
-            local playerFrameControl = CreateConfigControl(tab, unitName .. " Frame", nil, unit)
-            playerFrameControl.title:SetFont("Fonts\\FRIZQT__.TTF", 25, "")
-            local path = "player." .. unit .. "Frame."
-            local unitFrame = srslylawlUI.mainUnits[unit].unitFrame
-            if unit == "player" then
-                playerFrameControl:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -15)
-            else
-                playerFrameControl:AppendToControl(anchor)
-                if unit == "target" then
-                    cFrame.nextControlAfterPlayerPower = playerFrameControl
-                end
-            end
-
-            local enable = CreateSettingsCheckButton("Enable", tab, path .. "enabled", function(self)
-                local checked = self:GetChecked()
-                if checked then
-                    RegisterUnitWatch(unitFrame)
-                    if UnitExists(unit) then
-                        unitFrame:SetShown(checked)
-                    end
-                else
-                    UnregisterUnitWatch(unitFrame)
-                    unitFrame:SetShown(checked)
-                end
-
-            end)
-            local hpWidth = CreateCustomSlider("Width", tab, 1, 3000, path .. "hp.width", 1, 0,
-                function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
-            local hpHeight = CreateCustomSlider("Height", tab, 1, 2000, path .. "hp.height", 1, 0,
-                function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
-            local fontSize = CreateCustomSlider("FontSize", tab, 0.5, 100, path .. "hp.fontSize", 0.5, 1,
-                function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
-            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, path .. "hp.reversed",
-                srslylawlUI.Frame_UpdateMainHealthBarAlignment)
-
-            if unit == "targettarget" then
-                playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill)
-            else
-                local absorbHeight = CreateCustomSlider("Absorb Frame Height %", tab, 0.1, 1,
-                    path .. "hp.absorbHeightPercent", 0.05, 2, srslylawlUI.Main_HandleAuras_ALL)
-                playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill, absorbHeight)
-            end
-
-            local playerPosControl = CreateConfigControl(tab, unitName .. " Frame Position", nil, unit)
-            playerPosControl:ChainToControl(playerFrameControl)
-            local aTable
-            if unit == "player" then
-                aTable = { "Screen", "TargetFrame" }
-            elseif unit == "target" then
-                aTable = { "Screen", "PlayerFrame" }
-            elseif unit == "focus" then
-                aTable = { "Screen", "PlayerFrame", "TargetFrame" }
-            end
-
-            local anchorElements = CreateAnchoringPanel(tab, path .. "position", unitFrame.unit, aTable)
-            playerPosControl:Add(unpack(anchorElements))
-
-            local raidIconControl = CreateConfigControl(tab, unitName .. " Raid Icon", nil, unit)
-            local raidEnable = CreateSettingsCheckButton("Enable", tab, path .. "raidIcon.enabled",
-                function(self) unitFrame.unit.RaidIcon:SetEnabled(self:GetChecked()) end)
-            local raidPos = CreateAnchoringPanel(tab, path .. "raidIcon.position", unitFrame.unit.RaidIcon, nil, true)
-            local raidSize = CreateCustomSlider("Size", tab, 1, 100, path .. "raidIcon.size", 1, 0,
-                function() unitFrame.unit.RaidIcon:Resize() end)
-            raidIconControl:Add(raidEnable, raidSize, unpack(raidPos))
-            raidIconControl:ChainToControl(playerPosControl)
-            anchor = raidIconControl
-
-            if unit ~= "targettarget" then
-                for i = 1, 2 do
-                    local anchorTable = i == 1 and { "Frame", "Debuffs" } or { "Frame", "Buffs" }
-                    local aType = i == 1 and "buff" or "debuff"
-                    local typeCap = i == 1 and "Buff" or "Debuff"
-                    local auraControl = CreateConfigControl(tab, unitName .. " " .. typeCap .. " Frames", nil, unit)
-                    auraControl:ChainToControl(anchor)
-                    local pointOnInitValueFunc = function(info, value)
-                        if i == 1 then
-                            --Is Buff Anchor
-                            --Disable button if Debuff Anchor is anchored to buffs
-                            local debuffAnchorPoint = srslylawlUI.GetSetting(path .. "debuff" .. "s.anchoredTo", true)
-                            if value == "Debuffs" then
-                                info.disabled = debuffAnchorPoint == "Buffs"
-                            end
-                        else
-                            --Is Debuff Anchor
-                            --Disable button if Buff Anchor is anchored to debuffs
-                            local buffAnchorPoint = srslylawlUI.GetSetting(path .. "buff" .. "s.anchoredTo", true)
-                            if value == "Buffs" then
-                                info.disabled = buffAnchorPoint == "Debuffs"
-                            end
-                        end
-                    end
-                    local frameAnchor = CreateCustomDropDown("Anchor To", 100, tab, path .. aType .. "s.anchoredTo",
-                        anchorTable, nil, pointOnInitValueFunc)
-                    local auraAnchor = CreateCustomDropDown("AnchorPoint", 100, tab, path .. aType .. "s.anchor",
-                        srslylawlUI.auraSortMethodTable, function() srslylawlUI.SetAuraPointsAll(unit, "mainUnits") end)
-
-                    --disabling the auraanchor dropdown, should we anchor to other auratype
-                    local onChanged = function(self, newValue)
-                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                        if newValue ~= "Frame" then
-                            UIDropDownMenu_DisableDropDown(auraAnchor)
-                        else
-                            UIDropDownMenu_EnableDropDown(auraAnchor)
-                        end
-                    end
-                    frameAnchor.onChangeFunc = onChanged
-                    if srslylawlUI.GetSetting(path .. aType .. "s.anchoredTo") ~= "Frame" then
-                        UIDropDownMenu_DisableDropDown(auraAnchor)
-                    end
-                    local maxAuras = CreateCustomSlider("Max " .. typeCap .. "s", tab, 0, 40,
-                        path .. aType .. "s.max" .. typeCap .. "s", 1, 0, function()
-                        srslylawlUI.CreateBuffFrames(unitFrame, unit)
-                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                        srslylawlUI.HandleAuras(unitFrame, unit, nil, "configMaxAuras")
-                    end)
-                    local auraSize = CreateCustomSlider("Size", tab, 0, 200, path .. aType .. "s.size", 1, 0,
-                        function()
-                            srslylawlUI.HandleAuras(unitFrame, unit, nil, "configAuraSize")
-                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                        end)
-                    local scaledAuraSize = CreateCustomSlider("Scaled Size", tab, 0, 200, path .. aType .. "s.scaledSize"
-                        , 1, 0, function()
-                        srslylawlUI.HandleAuras(unitFrame, unit, nil, "configScaledAuraSize")
-                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                    end)
-                    if unit == "target" then
-                        if aType == "buff" then
-                            AddTooltip(scaledAuraSize, "Extra size of stealable/purgeable/dispellable buffs")
-                        else
-                            AddTooltip(scaledAuraSize, "Extra size of debuffs applied by yourself")
-                        end
-                    else
-                        if aType == "buff" then
-                            AddTooltip(scaledAuraSize, "Extra size of buffs applied by yourself")
-                        else
-                            AddTooltip(scaledAuraSize, "Extra size of debuffs applied by yourself")
-                        end
-                    end
-                    local xOffset = CreateCustomSlider("X Offset", tab, -500, 500, path .. aType .. "s.xOffset", 1, 0,
-                        function()
-                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                        end)
-                    local yOffset = CreateCustomSlider("Y Offset", tab, -500, 500, path .. aType .. "s.yOffset", 1, 0,
-                        function()
-                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                        end)
-                    auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, scaledAuraSize, maxAuras)
-                    anchor = auraControl
-
-                end
-
-                --combaticon
-                local combatIconControl = CreateConfigControl(tab, unitName .. " Combat Icon", nil, unit)
-                local combatIconEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "combatRestIcon.enabled",
-                    function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
-                local combatIconSize = CreateCustomSlider("Size", tab, 1, 200, path .. "combatRestIcon.size", 1, 0,
-                    function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
-                local combatIconAnchor = CreateCustomDropDown("Point", 100, tab, path .. "combatRestIcon.position.1",
-                    srslylawlUI.anchorTable, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
-                local combatIconX = CreateCustomSlider("X Offset", tab, -2000, 2000, path .. "combatRestIcon.position.2"
-                    , 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
-                local combatIconY = CreateCustomSlider("Y Offset", tab, -2000, 2000, path .. "combatRestIcon.position.3"
-                    , 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
-                combatIconControl:Add(combatIconEnabled, combatIconSize, combatIconAnchor, combatIconX, combatIconY)
-                combatIconControl:ChainToControl(anchor)
-                anchor = combatIconControl
-            end
-
-            if unit == "player" then
-                local portraitControl = CreateConfigControl(tab, unitName .. " Portrait", nil, unit)
-                local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "portrait.enabled",
-                    function() unitFrame:TogglePortrait() end)
-                local portraitPosition = CreateCustomDropDown("Position", 100, tab, path .. "portrait.position",
-                    { "LEFT", "RIGHT" }, function() unitFrame:TogglePortrait() end)
-                -- local portraitAnchor = CreateCustomDropDown("Anchor", 100, tab, path .. "portrait.anchor",
-                --     { "Frame", "Powerbar" }, function() unitFrame:TogglePortrait() end)
-                portraitControl:Add(portraitEnabled, portraitPosition)
-                portraitControl:ChainToControl(anchor)
-                anchor = portraitControl
-                local petControl = CreateConfigControl(tab, unitName .. " Pet Frame", nil, unit)
-                local petEnable = CreateSettingsCheckButton("Enable", tab, path .. "pet.enabled",
-                    function() srslylawlUI.Frame_ResetPetButton(unitFrame, unit .. "pet") end)
-                local petWidth = CreateCustomSlider("Width", tab, 1, 200, path .. "pet.width", 1, 0,
-                    function() srslylawlUI.Frame_ResetDimensions_Pet(unitFrame) end)
-                petControl:Add(petEnable, petWidth)
-                petControl:ChainToControl(anchor)
-                anchor = petControl
-                --powerbarsetup
-                local function SetPlayerPowerBarOptions()
-                    local specIndex = GetSpecialization()
-                    local specID = GetSpecializationInfo(specIndex)
-                    local isDruid = specID >= 102 and specID <= 105
-                    local currentStance = isDruid and GetShapeshiftFormID() or 0
-                    currentStance = currentStance or 0
-                    local barTable = srslylawlUI.mainUnits.player.unitFrame.BarHandler.bars
-                    local newTable = {}
-                    for i = 1, #barTable do
-                        table.insert(newTable, barTable[i])
-                    end
-                    cFrame.playerPowerBars = newTable
-                    if not cFrame.playerPowerBarControls then
-                        cFrame.playerPowerBarControls = {}
-                    end
-                    for i, frame in ipairs(cFrame.playerPowerBarControls) do
-                        frame.control:Hide()
-                    end
-                    local cAnchor = petControl
-                    local exists
-                    for i = 1, #newTable do
-                        exists = false
-                        local name = newTable[i].bar.name
-                        for _, v in ipairs(cFrame.playerPowerBarControls) do
-                            if v.name == name and v.spec == specID and v.stance == currentStance then
-                                exists = v
-                                break
-                            end
-                        end
-                        local p = "player.playerFrame.power.overrides." .. specID .. "." .. name
-                        if isDruid then
-                            local currentStance = GetShapeshiftFormID() or 0
-                            p = "player.playerFrame.power.overrides." .. specID .. "." .. currentStance .. "." .. name
-                        end
-                        if name == "CastBar" then
-                            p = "player.playerFrame.cast"
-                        end
-                        if not exists then
-                            local barControl = CreateConfigControl(tab, "Player " .. name, nil, unit)
-                            local barEnabled = CreateSettingsCheckButton("Disable", tab, p .. ".disabled", function()
-                                unitFrame:ReRegisterAll()
-                            end, true)
-                            local barHeight = CreatePowerBarSlider("Height", tab, name, specID, "height",
-                                newTable[i].height, function()
-                                unitFrame:ReRegisterAll()
-                            end)
-                            local barPriority = CreatePowerBarSlider("Order", tab, name, specID, "priority",
-                                newTable[i].priority, function()
-                                unitFrame:ReRegisterAll()
-                            end)
-                            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tab, p .. ".reversed"
-                                , function() unitFrame:ReRegisterAll() end, true)
-                            if name ~= "CastBar" then
-                                local barHide = CreateSettingsCheckButton("Show when inactive", tab,
-                                    p .. ".showWhenInactive", function() unitFrame:ReRegisterAll() end, true)
-                                barControl:Add(barEnabled, barHeight, barPriority, reverseFill, barHide)
-                                AddTooltip(barHide,
-                                    "Display bar even when it's idle, such as having full mana/energy, or combopoints/rage being empty")
-                            else
-                                barControl:Add(barEnabled, barHeight, barPriority, reverseFill)
-                            end
-                            barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
-                            table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls + 1,
-                                { name = newTable[i].bar.name, control = barControl, enabled = barEnabled,
-                                    height = barHeight, prio = barPriority, spec = specID, stance = currentStance })
-                            cAnchor = barControl
-                            anchor = barControl
-                            cFrame.lastPlayerPowerBarAnchor = barControl
-                        else
-                            exists.control:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
-                            cAnchor = exists.control
-                            anchor = exists.control
-                            exists.control:Show()
-                            cFrame.lastPlayerPowerBarAnchor = exists.control
-                            exists.enabled:SetChecked(srslylawlUI.GetSetting(p .. ".disabled", true) or false)
-                            exists.height:SetValueClean(srslylawlUI.GetSetting(p .. ".height", true) or
-                                newTable[i].height)
-                            exists.prio:SetValueClean(srslylawlUI.GetSetting(p .. ".priority", true) or
-                                newTable[i].priority)
-                        end
-                        if i == 1 and not cFrame.infoBox then
-                            cFrame.infoBox = CreateInfoBox(tab,
-                                "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings."
-                                , 280)
-                            cFrame.infoBox.bounds:SetPoint("TOPLEFT", petControl, "TOPRIGHT", 0, 8)
-                        elseif i == 2 and isDruid then
-                            --[[
-                            humanoid form - nil
-                            Aquatic Form - 4
-                            Bear Form - 5
-                            Cat Form - 1
-                            Flight Form - 29
-                            Moonkin Form - 31
-                            Swift Flight Form - 27
-                            Travel Form - 3
-                            Tree of Life - 2
-                        ]]
-                            local form = currentStance == 0 and "Humanoid" or currentStance == 1 and "Cat Form" or
-                                currentStance == 5 and "Bear Form" or currentStance == 31 and "Moonkin Form" or
-                                "Travel Form"
-                            if not cFrame.shapeShiftBox then
-                                cFrame.shapeShiftBox = CreateInfoBox(tab, "Settings for current shapeshift form: " ..
-                                    form, 150)
-                            else
-                                cFrame.shapeShiftBox:SetText("Settings for current shapeshift form: " .. form)
-                            end
-                            cFrame.shapeShiftBox.bounds:SetPoint("TOPLEFT", cFrame.infoBox.bounds, "TOPRIGHT", 0, 0)
-                        end
-                    end
-                    if cFrame.nextControlAfterPlayerPower then
-                        cFrame.nextControlAfterPlayerPower:AppendToControl(cFrame.lastPlayerPowerBarAnchor)
-                    end
-                end
-
-                tab:SetScript("OnShow", SetPlayerPowerBarOptions)
-                tab:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-                tab:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "player")
-                tab:SetScript("OnEvent", SetPlayerPowerBarOptions)
-                SetPlayerPowerBarOptions()
-                --should place bars again once spec/druidform changes
-            else
-                local powerBarControl = CreateConfigControl(tab, unitName .. " Powerbar", nil, unit)
-                local powerBarEnable = CreateSettingsCheckButton("Enable", tab, path .. "power.enabled",
-                    function() srslylawlUI.Frame_ResetUnitButton(unitFrame.unit, unit) end, true)
-                local powerBarWidth = CreateCustomSlider("Width", tab, 0, 100, path .. "power.width", 1, 0, function()
-                    srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
-                end)
-                local powerBarText = CreateSettingsCheckButton("Show Text", tab, path .. "power.text",
-                    function() srslylawlUI.Frame_ResetUnitButton(unitFrame.unit, unit) end)
-                local position = CreateCustomDropDown("Position", 100, tab, path .. "power.position", { "LEFT", "RIGHT" }
-                    , function()
-                    srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
-                end)
-                powerBarControl:Add(powerBarEnable, powerBarWidth, powerBarText, position)
-                powerBarControl:ChainToControl(anchor)
-                if unit == "targettarget" then
-                    anchor = powerBarControl
-                elseif unit == "target" or unit == "focus" then
-                    local castBarControl = CreateConfigControl(tab, unitName .. " CastBar", nil, unit)
-                    local castBarEnabled = CreateSettingsCheckButton("Disable", tab, path .. "cast.disabled",
-                        function()
-                            unitFrame:ReRegisterAll()
-                        end, true)
-                    local castBarHeight = CreateCustomSlider("Height", tab, 0, 100, path .. "cast.height", 1, 0,
-                        function()
-                            unitFrame:ReRegisterAll()
-                        end)
-                    local castBarPriority = CreateCustomSlider("Order", tab, 0, 10, path .. "cast.priority", 1, 0,
-                        function()
-                            unitFrame:ReRegisterAll()
-                        end)
-                    local castReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab,
-                        path .. "cast.reversed", function() unitFrame:ReRegisterAll() end, true)
-                    castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority, castReverseFill)
-                    castBarControl:ChainToControl(powerBarControl)
-                    local ccbarControl = CreateConfigControl(tab, unitName .. " CrowdControl", nil, unit)
-                    local ccbarEnabled = CreateSettingsCheckButton("Disable", tab, path .. "ccbar.disabled",
-                        function()
-                            unitFrame:ReRegisterAll()
-                        end, true)
-                    local ccbarHeight = CreateCustomSlider("Height", tab, 0, 100, path .. "ccbar.height", 1, 0,
-                        function()
-                            unitFrame:ReRegisterAll()
-                        end)
-                    local ccbarPriority = CreateCustomSlider("Order", tab, 0, 10, path .. "ccbar.priority", 1, 0,
-                        function()
-                            unitFrame:ReRegisterAll()
-                        end)
-                    local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tab,
-                        path .. "ccbar.reversed", function() unitFrame:ReRegisterAll() end, true)
-                    ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority, ccBarReverseFill)
-                    ccbarControl:ChainToControl(castBarControl)
-                    local portraitControl = CreateConfigControl(tab, unitName .. " Portrait", nil, unit)
-                    local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "portrait.enabled",
-                        function() unitFrame:TogglePortrait() end)
-                    local portraitPosition = CreateCustomDropDown("Position", 100, tab, path .. "portrait.position",
-                        { "LEFT", "RIGHT" }, function() unitFrame:TogglePortrait() end)
-                    local portraitAnchor = CreateCustomDropDown("Anchor", 100, tab, path .. "portrait.anchor",
-                        { "Frame", "Powerbar" }, function() unitFrame:TogglePortrait() end)
-                    portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
-                    portraitControl:ChainToControl(ccbarControl)
-
-                    local anchorT = unit == "target" and { "TargetFrame", "TargetFramePortrait" } or
-                        { "FocusFrame", "FocusFramePortrait" }
-
-                    local unitLevelControl = CreateConfigControl(tab, unitName .. " Level", nil, unit)
-                    local elements = CreateAnchoringPanel(tab, path .. "unitLevel.position", unitFrame.unitLevel, anchorT)
-                    local unitClassificationEnable = CreateSettingsCheckButton("Show Classification", unitLevelControl,
-                        path .. "unitLevel.showClassification",
-                        function()
-                            local show = srslylawlUI.GetSettingByUnit("unitLevel.showClassification", "mainUnits", unit)
-                            unitFrame.unitLevel.showClassification = show
-                            unitFrame:UpdateUnitLevel()
-                        end)
-                    AddTooltip(unitClassificationEnable,
-                        "Indicate if target is rare ('R'), elite ('E') or rareelite ('RE') by appending the respective letters to the level.")
-                    unitLevelControl:Add(unpack(elements))
-                    unitLevelControl:Add(unitClassificationEnable)
-                    unitLevelControl:ChainToControl(portraitControl)
-                    anchor = unitLevelControl
-                end
-            end
-        end
-
-        local h = 0
-        for _, v in pairs(tab.controls) do
-            h = h + v
-        end
-
-        tab:SetHeight(h)
-    end
-
     local function Tab_OnClick(self)
         local parent = self:GetParent()
         parent.selectedTab = self:GetID()
@@ -2044,7 +1638,7 @@ function srslylawlUI.CreateConfigWindow()
         return ScrollFrame
     end
 
-    local function CreateScrollFrameWithBGAndChild(parent)
+    local function CreateAuraTabsScrollFrame(parent)
         parent.borderFrame = CreateFrame("Frame", "$parent_BorderFrame", parent, "BackdropTemplate")
         parent.borderFrame:SetBackdrop({
             bgFile = "Interface/Tooltips/UI-Tooltip-Background",
@@ -2114,7 +1708,7 @@ function srslylawlUI.CreateConfigWindow()
             tab:SetScript("OnShow", Menu_OnShow(tab, key))
             tab:SetAttribute("spellList", key)
             tab:SetAttribute("auraType", "buffs")
-            CreateScrollFrameWithBGAndChild(tab)
+            CreateAuraTabsScrollFrame(tab)
         end
 
         CreateFrames(knownSpells, "known")
@@ -2137,7 +1731,7 @@ function srslylawlUI.CreateConfigWindow()
             tab:SetScript("OnShow", Menu_OnShow(tab, key))
             tab:SetAttribute("spellList", key)
             tab:SetAttribute("auraType", "debuffs")
-            CreateScrollFrameWithBGAndChild(tab)
+            CreateAuraTabsScrollFrame(tab)
             tab.borderFrame:SetBackdropColor(1, .5, .5, .4)
         end
 
@@ -2183,6 +1777,432 @@ function srslylawlUI.CreateConfigWindow()
         return ScrollFrame.child
     end
 
+    local function FillMainUnitFramesTab(player, target, targettarget, focus)
+        local cFrame = srslylawlUI_ConfigFrame
+
+        local anchor = player
+        local tabParent
+        for _, unit in pairs(srslylawlUI.mainUnitsTable) do
+            if unit == "target" then
+                anchor = target
+            elseif unit == "targettarget" then
+                anchor = targettarget
+            elseif unit == "focus" then
+                anchor = focus
+            end
+            tabParent = anchor
+            tabParent = SetupScrollingTabContent(tabParent)
+            anchor = tabParent
+            local unitName = unit:sub(1, 1):upper() .. unit:sub(2)
+            local playerFrameControl = CreateConfigControl(tabParent, unitName .. " Frame", nil, unit)
+            playerFrameControl.title:SetFont("Fonts\\FRIZQT__.TTF", 25, "")
+            local path = "player." .. unit .. "Frame."
+            local unitFrame = srslylawlUI.mainUnits[unit].unitFrame
+
+            playerFrameControl:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -15)
+
+            local enable = CreateSettingsCheckButton("Enable", tabParent, path .. "enabled", function(self)
+                local checked = self:GetChecked()
+                if checked then
+                    RegisterUnitWatch(unitFrame)
+                    if UnitExists(unit) then
+                        unitFrame:SetShown(checked)
+                    end
+                else
+                    UnregisterUnitWatch(unitFrame)
+                    unitFrame:SetShown(checked)
+                end
+
+            end)
+            local hpWidth = CreateCustomSlider("Width", tabParent, 1, 3000, path .. "hp.width", 1, 0,
+                function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
+            local hpHeight = CreateCustomSlider("Height", tabParent, 1, 2000, path .. "hp.height", 1, 0,
+                function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
+            local fontSize = CreateCustomSlider("FontSize", tabParent, 0.5, 100, path .. "hp.fontSize", 0.5, 1,
+                function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
+            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tabParent, path .. "hp.reversed",
+                srslylawlUI.Frame_UpdateMainHealthBarAlignment)
+
+            if unit == "targettarget" then
+                playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill)
+            else
+                local absorbHeight = CreateCustomSlider("Absorb Frame Height %", tabParent, 0.1, 1,
+                    path .. "hp.absorbHeightPercent", 0.05, 2, srslylawlUI.Main_HandleAuras_ALL)
+                playerFrameControl:Add(enable, hpWidth, hpHeight, fontSize, reverseFill, absorbHeight)
+            end
+
+            local playerPosControl = CreateConfigControl(tabParent, unitName .. " Frame Position", nil, unit)
+            playerPosControl:ChainToControl(playerFrameControl)
+            local aTable
+            if unit == "player" then
+                aTable = { "Screen", "TargetFrame" }
+            elseif unit == "target" then
+                aTable = { "Screen", "PlayerFrame" }
+            elseif unit == "focus" then
+                aTable = { "Screen", "PlayerFrame", "TargetFrame" }
+            end
+
+            local anchorElements = CreateAnchoringPanel(tabParent, path .. "position", unitFrame.unit, aTable)
+            playerPosControl:Add(unpack(anchorElements))
+
+            local raidIconControl = CreateConfigControl(tabParent, unitName .. " Raid Icon", nil, unit)
+            local raidEnable = CreateSettingsCheckButton("Enable", tabParent, path .. "raidIcon.enabled",
+                function(self) unitFrame.unit.RaidIcon:SetEnabled(self:GetChecked()) end)
+            local raidPos = CreateAnchoringPanel(tabParent, path .. "raidIcon.position", unitFrame.unit.RaidIcon, nil,
+                true)
+            local raidSize = CreateCustomSlider("Size", tabParent, 1, 100, path .. "raidIcon.size", 1, 0,
+                function() unitFrame.unit.RaidIcon:Resize() end)
+            raidIconControl:Add(raidEnable, raidSize, unpack(raidPos))
+            raidIconControl:ChainToControl(playerPosControl)
+            anchor = raidIconControl
+
+            if unit ~= "targettarget" then
+                for i = 1, 2 do
+                    local anchorTable = i == 1 and { "Frame", "Debuffs" } or { "Frame", "Buffs" }
+                    local aType = i == 1 and "buff" or "debuff"
+                    local typeCap = i == 1 and "Buff" or "Debuff"
+                    local auraControl = CreateConfigControl(tabParent, unitName .. " " .. typeCap .. " Frames", nil, unit)
+                    auraControl:ChainToControl(anchor)
+                    local pointOnInitValueFunc = function(info, value)
+                        if i == 1 then
+                            --Is Buff Anchor
+                            --Disable button if Debuff Anchor is anchored to buffs
+                            local debuffAnchorPoint = srslylawlUI.GetSetting(path .. "debuff" .. "s.anchoredTo", true)
+                            if value == "Debuffs" then
+                                info.disabled = debuffAnchorPoint == "Buffs"
+                            end
+                        else
+                            --Is Debuff Anchor
+                            --Disable button if Buff Anchor is anchored to debuffs
+                            local buffAnchorPoint = srslylawlUI.GetSetting(path .. "buff" .. "s.anchoredTo", true)
+                            if value == "Buffs" then
+                                info.disabled = buffAnchorPoint == "Debuffs"
+                            end
+                        end
+                    end
+                    local frameAnchor = CreateCustomDropDown("Anchor To", 100, tabParent, path .. aType .. "s.anchoredTo"
+                        ,
+                        anchorTable, nil, pointOnInitValueFunc)
+                    local auraAnchor = CreateCustomDropDown("AnchorPoint", 100, tabParent, path .. aType .. "s.anchor",
+                        srslylawlUI.auraSortMethodTable, function() srslylawlUI.SetAuraPointsAll(unit, "mainUnits") end)
+
+                    --disabling the auraanchor dropdown, should we anchor to other auratype
+                    local onChanged = function(self, newValue)
+                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        if newValue ~= "Frame" then
+                            UIDropDownMenu_DisableDropDown(auraAnchor)
+                        else
+                            UIDropDownMenu_EnableDropDown(auraAnchor)
+                        end
+                    end
+                    frameAnchor.onChangeFunc = onChanged
+                    if srslylawlUI.GetSetting(path .. aType .. "s.anchoredTo") ~= "Frame" then
+                        UIDropDownMenu_DisableDropDown(auraAnchor)
+                    end
+                    local maxAuras = CreateCustomSlider("Max " .. typeCap .. "s", tabParent, 0, 40,
+                        path .. aType .. "s.max" .. typeCap .. "s", 1, 0, function()
+                        srslylawlUI.CreateBuffFrames(unitFrame, unit)
+                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        srslylawlUI.HandleAuras(unitFrame, unit, nil, "configMaxAuras")
+                    end)
+                    local auraSize = CreateCustomSlider("Size", tabParent, 0, 200, path .. aType .. "s.size", 1, 0,
+                        function()
+                            srslylawlUI.HandleAuras(unitFrame, unit, nil, "configAuraSize")
+                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        end)
+                    local scaledAuraSize = CreateCustomSlider("Scaled Size", tabParent, 0, 200,
+                        path .. aType .. "s.scaledSize"
+                        , 1, 0, function()
+                        srslylawlUI.HandleAuras(unitFrame, unit, nil, "configScaledAuraSize")
+                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                    end)
+                    if unit == "target" then
+                        if aType == "buff" then
+                            AddTooltip(scaledAuraSize, "Extra size of stealable/purgeable/dispellable buffs")
+                        else
+                            AddTooltip(scaledAuraSize, "Extra size of debuffs applied by yourself")
+                        end
+                    else
+                        if aType == "buff" then
+                            AddTooltip(scaledAuraSize, "Extra size of buffs applied by yourself")
+                        else
+                            AddTooltip(scaledAuraSize, "Extra size of debuffs applied by yourself")
+                        end
+                    end
+                    local xOffset = CreateCustomSlider("X Offset", tabParent, -500, 500, path .. aType .. "s.xOffset", 1
+                        , 0,
+                        function()
+                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        end)
+                    local yOffset = CreateCustomSlider("Y Offset", tabParent, -500, 500, path .. aType .. "s.yOffset", 1
+                        , 0,
+                        function()
+                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        end)
+                    auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, scaledAuraSize, maxAuras)
+                    anchor = auraControl
+
+                end
+
+                --combaticon
+                local combatIconControl = CreateConfigControl(tabParent, unitName .. " Combat Icon", nil, unit)
+                local combatIconEnabled = CreateSettingsCheckButton("Enabled", tabParent,
+                    path .. "combatRestIcon.enabled",
+                    function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconSize = CreateCustomSlider("Size", tabParent, 1, 200, path .. "combatRestIcon.size", 1, 0
+                    ,
+                    function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconAnchor = CreateCustomDropDown("Point", 100, tabParent,
+                    path .. "combatRestIcon.position.1",
+                    srslylawlUI.anchorTable, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconX = CreateCustomSlider("X Offset", tabParent, -2000, 2000,
+                    path .. "combatRestIcon.position.2"
+                    , 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                local combatIconY = CreateCustomSlider("Y Offset", tabParent, -2000, 2000,
+                    path .. "combatRestIcon.position.3"
+                    , 1, 0, function() srslylawlUI.Frame_ResetCombatIcon(unitFrame) end)
+                combatIconControl:Add(combatIconEnabled, combatIconSize, combatIconAnchor, combatIconX, combatIconY)
+                combatIconControl:ChainToControl(anchor)
+                anchor = combatIconControl
+            end
+
+            if unit == "player" then
+                local portraitControl = CreateConfigControl(tabParent, unitName .. " Portrait", nil, unit)
+                local portraitEnabled = CreateSettingsCheckButton("Enabled", tabParent, path .. "portrait.enabled",
+                    function() unitFrame:TogglePortrait() end)
+                local portraitPosition = CreateCustomDropDown("Position", 100, tabParent, path .. "portrait.position",
+                    { "LEFT", "RIGHT" }, function() unitFrame:TogglePortrait() end)
+                -- local portraitAnchor = CreateCustomDropDown("Anchor", 100, tab, path .. "portrait.anchor",
+                --     { "Frame", "Powerbar" }, function() unitFrame:TogglePortrait() end)
+                portraitControl:Add(portraitEnabled, portraitPosition)
+                portraitControl:ChainToControl(anchor)
+                anchor = portraitControl
+                local petControl = CreateConfigControl(tabParent, unitName .. " Pet Frame", nil, unit)
+                local petEnable = CreateSettingsCheckButton("Enable", tabParent, path .. "pet.enabled",
+                    function() srslylawlUI.Frame_ResetPetButton(unitFrame, unit .. "pet") end)
+                local petWidth = CreateCustomSlider("Width", tabParent, 1, 200, path .. "pet.width", 1, 0,
+                    function() srslylawlUI.Frame_ResetDimensions_Pet(unitFrame) end)
+                petControl:Add(petEnable, petWidth)
+                petControl:ChainToControl(anchor)
+                anchor = petControl
+                --powerbarsetup
+                local function SetPlayerPowerBarOptions()
+                    local specIndex = GetSpecialization()
+                    local specID = GetSpecializationInfo(specIndex)
+                    local isDruid = specID >= 102 and specID <= 105
+                    local currentStance = isDruid and GetShapeshiftFormID() or 0
+                    currentStance = currentStance or 0
+                    local barTable = srslylawlUI.mainUnits.player.unitFrame.BarHandler.bars
+                    local newTable = {}
+                    for i = 1, #barTable do
+                        table.insert(newTable, barTable[i])
+                    end
+                    cFrame.playerPowerBars = newTable
+                    if not cFrame.playerPowerBarControls then
+                        cFrame.playerPowerBarControls = {}
+                    end
+                    for i, frame in ipairs(cFrame.playerPowerBarControls) do
+                        frame.control:Hide()
+                    end
+                    local cAnchor = petControl
+                    local exists
+                    for i = 1, #newTable do
+                        exists = false
+                        local name = newTable[i].bar.name
+                        for _, v in ipairs(cFrame.playerPowerBarControls) do
+                            if v.name == name and v.spec == specID and v.stance == currentStance then
+                                exists = v
+                                break
+                            end
+                        end
+                        local p = "player.playerFrame.power.overrides." .. specID .. "." .. name
+                        if isDruid then
+                            local currentStance = GetShapeshiftFormID() or 0
+                            p = "player.playerFrame.power.overrides." .. specID .. "." .. currentStance .. "." .. name
+                        end
+                        if name == "CastBar" then
+                            p = "player.playerFrame.cast"
+                        end
+                        if not exists then
+                            local barControl = CreateConfigControl(tabParent, "Player " .. name, nil, unit)
+                            local barEnabled = CreateSettingsCheckButton("Disable", tabParent, p .. ".disabled",
+                                function()
+                                    unitFrame:ReRegisterAll()
+                                end, true)
+                            local barHeight = CreatePowerBarSlider("Height", tabParent, name, specID, "height",
+                                newTable[i].height, function()
+                                unitFrame:ReRegisterAll()
+                            end)
+                            local barPriority = CreatePowerBarSlider("Order", tabParent, name, specID, "priority",
+                                newTable[i].priority, function()
+                                unitFrame:ReRegisterAll()
+                            end)
+                            local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tabParent,
+                                p .. ".reversed"
+                                , function() unitFrame:ReRegisterAll() end, true)
+                            if name ~= "CastBar" then
+                                local barHide = CreateSettingsCheckButton("Show when inactive", tabParent,
+                                    p .. ".showWhenInactive", function() unitFrame:ReRegisterAll() end, true)
+                                barControl:Add(barEnabled, barHeight, barPriority, reverseFill, barHide)
+                                AddTooltip(barHide,
+                                    "Display bar even when it's idle, such as having full mana/energy, or combopoints/rage being empty")
+                            else
+                                barControl:Add(barEnabled, barHeight, barPriority, reverseFill)
+                            end
+                            barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
+                            table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls + 1,
+                                { name = newTable[i].bar.name, control = barControl, enabled = barEnabled,
+                                    height = barHeight, prio = barPriority, spec = specID, stance = currentStance })
+                            cAnchor = barControl
+                            anchor = barControl
+                            cFrame.lastPlayerPowerBarAnchor = barControl
+                        else
+                            exists.control:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
+                            cAnchor = exists.control
+                            anchor = exists.control
+                            exists.control:Show()
+                            cFrame.lastPlayerPowerBarAnchor = exists.control
+                            exists.enabled:SetChecked(srslylawlUI.GetSetting(p .. ".disabled", true) or false)
+                            exists.height:SetValueClean(srslylawlUI.GetSetting(p .. ".height", true) or
+                                newTable[i].height)
+                            exists.prio:SetValueClean(srslylawlUI.GetSetting(p .. ".priority", true) or
+                                newTable[i].priority)
+                        end
+                        if i == 1 and not cFrame.infoBox then
+                            cFrame.infoBox = CreateInfoBox(tabParent,
+                                "Cast/Powerbar settings are saved per spec and druid shapeshift form. \nOnly currently active powerbars are shown here. \nSwitching spec and/or shapeshift form will update displayed settings."
+                                , 280)
+                            cFrame.infoBox.bounds:SetPoint("TOPLEFT", petControl, "TOPRIGHT", 0, 8)
+                        elseif i == 2 and isDruid then
+                            --[[
+                            humanoid form - nil
+                            Aquatic Form - 4
+                            Bear Form - 5
+                            Cat Form - 1
+                            Flight Form - 29
+                            Moonkin Form - 31
+                            Swift Flight Form - 27
+                            Travel Form - 3
+                            Tree of Life - 2
+                        ]]
+                            local form = currentStance == 0 and "Humanoid" or currentStance == 1 and "Cat Form" or
+                                currentStance == 5 and "Bear Form" or currentStance == 31 and "Moonkin Form" or
+                                "Travel Form"
+                            if not cFrame.shapeShiftBox then
+                                cFrame.shapeShiftBox = CreateInfoBox(tabParent,
+                                    "Settings for current shapeshift form: " ..
+                                    form, 150)
+                            else
+                                cFrame.shapeShiftBox:SetText("Settings for current shapeshift form: " .. form)
+                            end
+                            cFrame.shapeShiftBox.bounds:SetPoint("TOPLEFT", cFrame.infoBox.bounds, "TOPRIGHT", 0, 0)
+                        end
+                    end
+                    -- if cFrame.nextControlAfterPlayerPower then
+                    --     cFrame.nextControlAfterPlayerPower:AppendToControl(cFrame.lastPlayerPowerBarAnchor)
+                    -- end
+                end
+
+                tabParent:SetScript("OnShow", SetPlayerPowerBarOptions)
+                tabParent:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+                tabParent:RegisterEvent("UPDATE_SHAPESHIFT_FORM", "player")
+                tabParent:SetScript("OnEvent", SetPlayerPowerBarOptions)
+                SetPlayerPowerBarOptions()
+                --should place bars again once spec/druidform changes
+            else
+                local powerBarControl = CreateConfigControl(tabParent, unitName .. " Powerbar", nil, unit)
+                local powerBarEnable = CreateSettingsCheckButton("Enable", tabParent, path .. "power.enabled",
+                    function() srslylawlUI.Frame_ResetUnitButton(unitFrame.unit, unit) end, true)
+                local powerBarWidth = CreateCustomSlider("Width", tabParent, 0, 100, path .. "power.width", 1, 0,
+                    function()
+                        srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
+                    end)
+                local powerBarText = CreateSettingsCheckButton("Show Text", tabParent, path .. "power.text",
+                    function() srslylawlUI.Frame_ResetUnitButton(unitFrame.unit, unit) end)
+                local position = CreateCustomDropDown("Position", 100, tabParent, path .. "power.position",
+                    { "LEFT", "RIGHT" }
+                    , function()
+                    srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
+                end)
+                powerBarControl:Add(powerBarEnable, powerBarWidth, powerBarText, position)
+                powerBarControl:ChainToControl(anchor)
+                if unit == "targettarget" then
+                    anchor = powerBarControl
+                elseif unit == "target" or unit == "focus" then
+                    local castBarControl = CreateConfigControl(tabParent, unitName .. " CastBar", nil, unit)
+                    local castBarEnabled = CreateSettingsCheckButton("Disable", tabParent, path .. "cast.disabled",
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end, true)
+                    local castBarHeight = CreateCustomSlider("Height", tabParent, 0, 100, path .. "cast.height", 1, 0,
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                    local castBarPriority = CreateCustomSlider("Order", tabParent, 0, 10, path .. "cast.priority", 1, 0,
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                    local castReverseFill = CreateSettingsCheckButton("Reverse fill direction", tabParent,
+                        path .. "cast.reversed", function() unitFrame:ReRegisterAll() end, true)
+                    castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority, castReverseFill)
+                    castBarControl:ChainToControl(powerBarControl)
+                    local ccbarControl = CreateConfigControl(tabParent, unitName .. " CrowdControl", nil, unit)
+                    local ccbarEnabled = CreateSettingsCheckButton("Disable", tabParent, path .. "ccbar.disabled",
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end, true)
+                    local ccbarHeight = CreateCustomSlider("Height", tabParent, 0, 100, path .. "ccbar.height", 1, 0,
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                    local ccbarPriority = CreateCustomSlider("Order", tabParent, 0, 10, path .. "ccbar.priority", 1, 0,
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end)
+                    local ccBarReverseFill = CreateSettingsCheckButton("Reverse fill direction", tabParent,
+                        path .. "ccbar.reversed", function() unitFrame:ReRegisterAll() end, true)
+                    ccbarControl:Add(ccbarEnabled, ccbarHeight, ccbarPriority, ccBarReverseFill)
+                    ccbarControl:ChainToControl(castBarControl)
+                    local portraitControl = CreateConfigControl(tabParent, unitName .. " Portrait", nil, unit)
+                    local portraitEnabled = CreateSettingsCheckButton("Enabled", tabParent, path .. "portrait.enabled",
+                        function() unitFrame:TogglePortrait() end)
+                    local portraitPosition = CreateCustomDropDown("Position", 100, tabParent, path .. "portrait.position"
+                        ,
+                        { "LEFT", "RIGHT" }, function() unitFrame:TogglePortrait() end)
+                    local portraitAnchor = CreateCustomDropDown("Anchor", 100, tabParent, path .. "portrait.anchor",
+                        { "Frame", "Powerbar" }, function() unitFrame:TogglePortrait() end)
+                    portraitControl:Add(portraitEnabled, portraitPosition, portraitAnchor)
+                    portraitControl:ChainToControl(ccbarControl)
+
+                    local anchorT = unit == "target" and { "TargetFrame", "TargetFramePortrait" } or
+                        { "FocusFrame", "FocusFramePortrait" }
+
+                    local unitLevelControl = CreateConfigControl(tabParent, unitName .. " Level", nil, unit)
+                    local elements = CreateAnchoringPanel(tabParent, path .. "unitLevel.position", unitFrame.unitLevel,
+                        anchorT)
+                    local unitClassificationEnable = CreateSettingsCheckButton("Show Classification", unitLevelControl,
+                        path .. "unitLevel.showClassification",
+                        function()
+                            local show = srslylawlUI.GetSettingByUnit("unitLevel.showClassification", "mainUnits", unit)
+                            unitFrame.unitLevel.showClassification = show
+                            unitFrame:UpdateUnitLevel()
+                        end)
+                    AddTooltip(unitClassificationEnable,
+                        "Indicate if target is rare ('R'), elite ('E') or rareelite ('RE') by appending the respective letters to the level.")
+                    unitLevelControl:Add(unpack(elements))
+                    unitLevelControl:Add(unitClassificationEnable)
+                    unitLevelControl:ChainToControl(portraitControl)
+                    anchor = unitLevelControl
+                end
+            end
+        end
+        local h = 0
+        for _, v in pairs(tabParent.controls) do
+            h = h + v
+        end
+        tabParent:SetHeight(h)
+    end
+
     srslylawlUI_ConfigFrame = CreateFrame("Frame", "srslylawlUI_Config", UIParent, "SettingsFrameTemplate")
 
     local cFrame = srslylawlUI_ConfigFrame
@@ -2214,7 +2234,7 @@ function srslylawlUI.CreateConfigWindow()
 
     CreateSaveLoadButtons(cFrame)
 
-    local generalTab, playerFrames, partyFramesTab, buffsTab, debuffsTab = SetTabs(cFrame.body, "General",
+    local generalTab, mainUnitFrames, partyFramesTab, buffsTab, debuffsTab = SetTabs(cFrame.body, "General",
         "Player/Target/Focus Frames", "Party Frames", "Buffs", "Debuffs")
 
     -- Create General Tab
@@ -2229,9 +2249,21 @@ function srslylawlUI.CreateConfigWindow()
     local general = SetupScrollingTabContent(generalTab)
     FillGeneralTab(general)
 
-    -- Create Player Frames Tab
-    local player = SetupScrollingTabContent(playerFrames)
-    FillPlayerFramesTab(player)
+    -- Create Main Unit Frames Tab
+    mainUnitFrames:ClearAllPoints()
+    mainUnitFrames:SetPoint("TOP", cFrame.body, "TOP", 0, -35)
+    mainUnitFrames:SetPoint("BOTTOMLEFT", cFrame.body, "BOTTOMLEFT", 4, 4)
+    mainUnitFrames:SetPoint("BOTTOMRIGHT", cFrame.body, "BOTTOMRIGHT", -4, 2)
+    Mixin(mainUnitFrames, BackdropTemplateMixin)
+    mainUnitFrames:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        edgeSize = 10,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 }
+    })
+    mainUnitFrames:SetBackdropColor(0, 0, 0, .4)
+    local player, target, targettarget, focus = SetTabs(mainUnitFrames, "Player", "Target", "Target of Target", "Focus")
+    FillMainUnitFramesTab(player, target, targettarget, focus)
 
     -- Create Party Frames Tab
     local party = SetupScrollingTabContent(partyFramesTab)

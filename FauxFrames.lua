@@ -377,50 +377,63 @@ function srslylawlUI.ToggleFauxFrames(visible)
             srslylawlUI.CreateDebuffFrames(fauxFrame, unit)
 
             local timer = 0
-            fauxFrame:SetScript("OnUpdate", function(self, elapsed)
-                timer = timer + elapsed
-                if timer < .1 then return end
-                timer = 0
 
-                local buffFrames = srslylawlUI.mainFauxUnits[unit].buffFrames
-                local maxBuffs = srslylawlUI.GetSetting("player." .. unit .. "Frame.buffs.maxBuffs")
-                defaultSize = srslylawlUI.GetSetting("player." .. unit .. "Frame.buffs.size")
-                scaledSize = defaultSize + srslylawlUI.GetSetting("player." .. unit .. "Frame.buffs.scaledSize")
-                for i = 1, maxBuffs do
-                    local f = buffFrames[i]
-                    f.icon:SetTexture(135932)
-                    f.size = math.fmod(i + 1, 3) == 0 and scaledSize or defaultSize
-                    f:Show()
-                end
+            local function SetOnUpdate()
+                fauxFrame:SetScript("OnUpdate", function(self, elapsed)
+                    timer = timer + elapsed
+                    if timer < .1 then return end
+                    timer = 0
 
-                if unit == "player" then
-                    local petEnabled = srslylawlUI.GetSetting("player." .. unit .. "Frame.pet.enabled")
-                    local petWidth = srslylawlUI.GetSetting("player." .. unit .. "Frame.pet.width")
-                    fauxFrame.pet:SetShown(petEnabled)
-                    srslylawlUI.Utils_SetWidthPixelPerfect(fauxFrame.pet, petWidth)
-                end
+                    local buffFrames = srslylawlUI.mainFauxUnits[unit].buffFrames
+                    local maxBuffs = srslylawlUI.GetSetting("player." .. unit .. "Frame.buffs.maxBuffs")
+                    defaultSize = srslylawlUI.GetSetting("player." .. unit .. "Frame.buffs.size")
+                    scaledSize = defaultSize + srslylawlUI.GetSetting("player." .. unit .. "Frame.buffs.scaledSize")
+                    for i = 1, maxBuffs do
+                        local f = buffFrames[i]
+                        f.icon:SetTexture(135932)
+                        f.size = math.fmod(i + 1, 3) == 0 and scaledSize or defaultSize
+                        f:Show()
+                    end
 
-                for i = maxBuffs + 1, #buffFrames do
-                    buffFrames[i]:Hide()
-                end
+                    if unit == "player" then
+                        local petEnabled = srslylawlUI.GetSetting("player." .. unit .. "Frame.pet.enabled")
+                        local petWidth = srslylawlUI.GetSetting("player." .. unit .. "Frame.pet.width")
+                        fauxFrame.pet:SetShown(petEnabled)
+                        srslylawlUI.Frame_ResetDimensions_Pet(fauxFrame)
+                        srslylawlUI.Utils_SetWidthPixelPerfect(fauxFrame.pet, petWidth)
+                    end
 
-                local debuffFrames = srslylawlUI.mainFauxUnits[unit].debuffFrames
-                local maxDebuffs = srslylawlUI.GetSetting("player." .. unit .. "Frame.debuffs.maxDebuffs")
-                defaultSize = srslylawlUI.GetSetting("player." .. unit .. "Frame.debuffs.size")
-                scaledSize = defaultSize + srslylawlUI.GetSetting("player." .. unit .. "Frame.debuffs.scaledSize")
-                for i = 1, maxDebuffs do
-                    local f = debuffFrames[i]
-                    f.icon:SetTexture(136207)
-                    f.size = math.fmod(i + 1, 3) == 0 and scaledSize or defaultSize
-                    f:Show()
-                end
+                    for i = maxBuffs + 1, #buffFrames do
+                        buffFrames[i]:Hide()
+                    end
 
-                for i = maxDebuffs + 1, #debuffFrames do
-                    debuffFrames[i]:Hide()
-                end
+                    local debuffFrames = srslylawlUI.mainFauxUnits[unit].debuffFrames
+                    local maxDebuffs = srslylawlUI.GetSetting("player." .. unit .. "Frame.debuffs.maxDebuffs")
+                    defaultSize = srslylawlUI.GetSetting("player." .. unit .. "Frame.debuffs.size")
+                    scaledSize = defaultSize + srslylawlUI.GetSetting("player." .. unit .. "Frame.debuffs.scaledSize")
+                    for i = 1, maxDebuffs do
+                        local f = debuffFrames[i]
+                        f.icon:SetTexture(136207)
+                        f.size = math.fmod(i + 1, 3) == 0 and scaledSize or defaultSize
+                        f:Show()
+                    end
 
-                srslylawlUI.SetAuraPointsAll(unit, "mainFauxUnits")
+                    for i = maxDebuffs + 1, #debuffFrames do
+                        debuffFrames[i]:Hide()
+                    end
+
+                    srslylawlUI.SetAuraPointsAll(unit, "mainFauxUnits")
+                end)
+            end
+
+            fauxFrame:SetScript("OnShow", function()
+                SetOnUpdate()
             end)
+            fauxFrame:SetScript("OnHide", function()
+                fauxFrame:SetScript("OnUpdate", nil)
+            end)
+
+            SetOnUpdate()
         end
 
         srslylawlUI_FAUX_PartyHeader.initiated = true

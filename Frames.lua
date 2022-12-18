@@ -743,6 +743,7 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
         buttonFrame.unit.healthBar.rightText:Hide()
     else
         srslylawlUI.Frame_SetupPortrait(buttonFrame)
+        buttonFrame:TogglePortrait()
         buttonFrame.unit.CombatIcon:SetScript("OnUpdate", srslylawlUI.Frame_UpdateCombatIcon)
     end
 
@@ -2553,19 +2554,29 @@ function srslylawlUI.Frame_ResetDimensions_Pet(button)
         srslylawlUI.SortAfterCombat()
         return
     end
+    local unit = button:GetAttribute("unit")
     local unitsType = button:GetAttribute("unitsType")
-    if unitsType ~= "mainUnits" then
+    if unitsType ~= "mainUnits" and unitsType ~= "mainFauxUnits" then
         srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "TOPLEFT", button.unit, "TOPRIGHT", 1, 0)
         srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMRIGHT", button.unit, "BOTTOMRIGHT",
             srslylawlUI.GetSetting("party.pet.width"), 0)
         srslylawlUI.Utils_SetPointPixelPerfect(button.unit.CCDurBar, "BOTTOMLEFT", button.unit, "BOTTOMRIGHT",
             srslylawlUI.GetSetting("party.pet.width") + 4, 0)
     else
-        local unit = button:GetAttribute("unit")
         if unit == "player" then
             button.pet:ClearAllPoints()
-            srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "TOPRIGHT", button.unit, "TOPLEFT", -1, 0)
-            srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMLEFT", button.unit, "BOTTOMLEFT",
+            local parent = button.unit
+            --if player frame has portrait active and set to left, anchor to that instead
+            if srslylawlUI.GetSetting("player.playerFrame.portrait.enabled", true) and
+                srslylawlUI.GetSetting("player.playerFrame.portrait.position", true) == "LEFT" then
+                if unitsType == "mainFauxUnits" then
+                    parent = srslylawlUI.Frame_GetFrameByUnit("player", "mainUnits").portrait
+                else
+                    parent = button.portrait
+                end
+            end
+            srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "TOPRIGHT", parent, "TOPLEFT", -1, 0)
+            srslylawlUI.Utils_SetPointPixelPerfect(button.pet, "BOTTOMLEFT", parent, "BOTTOMLEFT",
                 -srslylawlUI.GetSetting("player." .. unit .. "Frame.pet.width") - 1, 0)
         end
     end

@@ -110,25 +110,21 @@ srslylawlUI.sortTimerActive = false
 local debugString = ""
 
 --[[ TODO:
-sort auras by enlarged optionally
+sort auras by enlarged(scaled) optionally
 raidicon sometimes missing after reload or roster change
 absorb frames duration fix for the new api weirdness
 effective health scale out of bar in grp scenario
-header visibility (party) does not properly reset after arena
 faux debuff frames (target) dont scale their size
-player portrait
 -- GRP PET 0 hp for some reason
-party anchoring infight will overlap frames
 castbar text size
 plus minus button for sliders
 let cc bar show multiple ccs
 totem bar
 powerbar fadeout instead of hide
 incoming ressurrection
-incoming summon
+incoming summon / summon accepted
 more sort methods?
 faux frames absorb auras
-some environment defensive buffs arent immediately recognized (amz etc) -- probably api limitation
 vehiclestuff
 alt powerbar
 ]]
