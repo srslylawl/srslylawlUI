@@ -101,6 +101,10 @@ srslylawlUI.defaultSettings = {
                 position = { "TOPLEFT", 10, 0 },
                 size = 32
             },
+            portrait = {
+                enabled = false,
+                position = "LEFT",
+            },
         },
         targetFrame = {
             enabled = true,

@@ -99,6 +99,7 @@ srslylawlUI.auraSortMethodTable = {
 srslylawlUI.FramesToAnchorTo = {
     "Screen",
     "PlayerFrame",
+    "PlayerFramePortrait",
     "TargetFrame",
     "TargetFramePortrait"
 }
@@ -109,8 +110,8 @@ srslylawlUI.sortTimerActive = false
 local debugString = ""
 
 --[[ TODO:
-
-raidicon sometimes missing after reload
+sort auras by enlarged optionally
+raidicon sometimes missing after reload or roster change
 absorb frames duration fix for the new api weirdness
 effective health scale out of bar in grp scenario
 header visibility (party) does not properly reset after arena
@@ -614,6 +615,8 @@ function srslylawlUI.TranslateFrameAnchor(anchor)
             return nil
         elseif anchor == "PlayerFrame" then
             return srslylawlUI.mainUnits.player.unitFrame.unit
+        elseif anchor == "PlayerFramePortrait" then
+            return srslylawlUI.mainUnits.player.unitFrame.portrait
         elseif anchor == "TargetFrame" then
             return srslylawlUI.mainUnits.target.unitFrame.unit
         elseif anchor == "TargetFramePortrait" then
@@ -626,6 +629,8 @@ function srslylawlUI.TranslateFrameAnchor(anchor)
     elseif type(anchor) == "table" then
         if anchor == srslylawlUI.mainUnits.player.unitFrame.unit then
             return "PlayerFrame"
+        elseif anchor == srslylawlUI.mainUnits.player.unitFrame.portrait then
+            return "PlayerFramePortrait"
         elseif anchor == srslylawlUI.mainUnits.target.unitFrame.unit then
             return "TargetFrame"
         elseif anchor == nil or UIParent then

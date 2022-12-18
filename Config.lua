@@ -1301,6 +1301,7 @@ function srslylawlUI.CreateConfigWindow()
                         end)
                     auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, scaledAuraSize, maxAuras)
                     anchor = auraControl
+
                 end
 
                 --combaticon
@@ -1321,6 +1322,16 @@ function srslylawlUI.CreateConfigWindow()
             end
 
             if unit == "player" then
+                local portraitControl = CreateConfigControl(tab, unitName .. " Portrait", nil, unit)
+                local portraitEnabled = CreateSettingsCheckButton("Enabled", tab, path .. "portrait.enabled",
+                    function() unitFrame:TogglePortrait() end)
+                local portraitPosition = CreateCustomDropDown("Position", 100, tab, path .. "portrait.position",
+                    { "LEFT", "RIGHT" }, function() unitFrame:TogglePortrait() end)
+                -- local portraitAnchor = CreateCustomDropDown("Anchor", 100, tab, path .. "portrait.anchor",
+                --     { "Frame", "Powerbar" }, function() unitFrame:TogglePortrait() end)
+                portraitControl:Add(portraitEnabled, portraitPosition)
+                portraitControl:ChainToControl(anchor)
+                anchor = portraitControl
                 local petControl = CreateConfigControl(tab, unitName .. " Pet Frame", nil, unit)
                 local petEnable = CreateSettingsCheckButton("Enable", tab, path .. "pet.enabled",
                     function() srslylawlUI.Frame_ResetPetButton(unitFrame, unit .. "pet") end)

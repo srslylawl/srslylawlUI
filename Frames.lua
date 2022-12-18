@@ -703,7 +703,6 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     buttonFrame.unit:SetScript("OnDragStop", srslylawlUI.PlayerFrame_OnDragStop)
     buttonFrame.unit:SetScript("OnHide", srslylawlUI.PlayerFrame_OnDragStop)
 
-
     if unit == "player" then
         RegisterUnitWatch(buttonFrame.pet)
         buttonFrame.pet:SetScript("OnShow", function(self)
@@ -740,15 +739,15 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
         buttonFrame.pet:Hide()
     end
 
-    if unit == "target" or unit == "focus" then
-        srslylawlUI.Frame_SetupPortrait(buttonFrame)
-        srslylawlUI.Frame_SetupTargetFocusFrame(buttonFrame)
-    end
-
     if unit == "targettarget" then
         buttonFrame.unit.healthBar.rightText:Hide()
     else
+        srslylawlUI.Frame_SetupPortrait(buttonFrame)
         buttonFrame.unit.CombatIcon:SetScript("OnUpdate", srslylawlUI.Frame_UpdateCombatIcon)
+    end
+
+    if unit == "target" or unit == "focus" then
+        srslylawlUI.Frame_SetupTargetFocusFrame(buttonFrame)
     end
 
     buttonFrame.PartyLeader:SetShown(UnitIsGroupLeader(unit))
@@ -2303,9 +2302,9 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         elseif event == "UNIT_PHASE" then
             srslylawlUI.DebugTrackCall("ResetHealth_4")
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
-        elseif event == "UNIT_PORTRAIT_UPDATE" and unit == "target" then
+        elseif event == "UNIT_PORTRAIT_UPDATE" and (unit == "target" or unit == "player") then
             self.portrait:PortraitUpdate()
-        elseif event == "UNIT_MODEL_CHANGED" and unit == "target" then
+        elseif event == "UNIT_MODEL_CHANGED" and (unit == "target" or unit == "player") then
             self.portrait:ModelUpdate()
         elseif event == "UNIT_FACTION" then
             self:UpdateUnitFaction()
