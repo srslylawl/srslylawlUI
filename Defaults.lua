@@ -104,6 +104,7 @@ srslylawlUI.defaultSettings = {
             portrait = {
                 enabled = false,
                 position = "LEFT",
+                anchor = "Frame"
             },
         },
         targetFrame = {

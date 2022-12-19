@@ -500,7 +500,6 @@ function srslylawlUI.FrameSetup()
 
     local header = CreateFrame("Frame", "srslylawlUI_PartyHeader", nil)
     header:SetSize(srslylawlUI.GetSetting("party.hp.width"), srslylawlUI.GetSetting("party.hp.height") * 5)
-    srslylawlUI.Frame_AnchorFromSettings(header, "party.header.position")
     header:Show()
     --Create Unit Frames
     local fauxHeader = CreateFrame("Frame", "srslylawlUI_FAUX_PartyHeader", nil)
@@ -588,12 +587,19 @@ function srslylawlUI.FrameSetup()
                 oldSetPoint(self, unpack(points))
             end
         end
-        srslylawlUI.Frame_AnchorFromSettings(frame.unit, "player." .. unit .. "Frame.position")
         srslylawlUI.Frame_InitialMainUnitConfig(frame)
     end
+    --Apply anchoring now that every frame exists
+    srslylawlUI.Frame_AnchorFromSettings(header, "party.header.position")
+    for _, unit in pairs(srslylawlUI.mainUnitsTable) do
+        local frame = srslylawlUI.Frame_GetFrameByUnit(unit, "mainUnits")
+        srslylawlUI.Frame_AnchorFromSettings(frame.unit, "player." .. unit .. "Frame.position")
+    end
+
     srslylawlUI.Frame_UpdatePartyHealthBarAlignment()
     srslylawlUI.Frame_UpdateMainHealthBarAlignment()
     srslylawlUI.Frame_UpdateVisibility()
+
 end
 
 --setup
@@ -774,8 +780,15 @@ function srslylawlUI.Frame_SetupPortrait(frame)
 
             function frame.portrait:ResetPosition()
                 local height = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
-                local anchor = srslylawlUI.GetSettingByUnit("portrait.anchor", unitsType, unit) == "Frame" and frame.unit
-                    or frame.unit.powerBar
+                local anchorSetting = srslylawlUI.GetSettingByUnit("portrait.anchor", unitsType, unit)
+                local anchor
+                if not anchorSetting then
+                    anchor = frame.unit
+                else
+                    if anchorSetting == "Frame" then anchor = frame.unit
+                    elseif anchorSetting == "Powerbar" then anchor = frame.unit.powerBar
+                    end
+                end
                 local position = srslylawlUI.GetSettingByUnit("portrait.position", unitsType, unit)
                 frame.portrait:ClearAllPoints()
                 if position == "LEFT" then

@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.51"
+local version = "1.52"
 
 
 srslylawlUI.loadedSettings = {}
@@ -239,7 +239,8 @@ function srslylawlUI.ToggleDebugMode()
             srslylawlUI.DebugFrameData = {}
             srslylawlUI.DebugTickCount = 0;
             srslylawlUI.DebugTimer = 0;
-            srslylawlUI.DebugCheckPoint = {};
+            srslylawlUI.DebugTimerData = {}
+            srslylawlUI.DebugCheckPoint = {}
             srslylawlUI.DebugFrame = CreateFrame("Frame", "SrslylawluiDebug")
             srslylawlUI.DebugFrame:SetScript("OnUpdate", function(self, elapsed)
                 srslylawlUI.DebugTickCount = srslylawlUI.DebugTickCount + 1;
@@ -292,9 +293,6 @@ end
 
 function srslylawlUI.DebugTrackTimeStop(nameString, checkPointVal)
     if not srslylawlUI.DebugMode then return end
-    if not srslylawlUI.DebugTimerData then
-        srslylawlUI.DebugTimerData = {}
-    end
 
     if not srslylawlUI.DebugTimerData[nameString] then
         srslylawlUI.DebugTimerData[nameString] = {
@@ -2428,4 +2426,4 @@ srslylawlUI_FirstMaxHealthEventFrame:SetScript("OnEvent", function(self, event, 
     end
 end)
 
-srslylawlUI.ToggleDebugMode()
+-- srslylawlUI.ToggleDebugMode()
