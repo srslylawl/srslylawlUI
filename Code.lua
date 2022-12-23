@@ -110,6 +110,7 @@ srslylawlUI.sortTimerActive = false
 local debugString = ""
 
 --[[ TODO:
+debuff icon (enlarged) stack text does not scale with size
 sort auras by enlarged(scaled) optionally
 raidicon sometimes missing after reload or roster change
 absorb frames duration fix for the new api weirdness
@@ -1283,6 +1284,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
 
     srslylawlUI.SetDebugCheckPoint()
     srslylawlUI.HandleAbsorbFrames(unit, unitsType)
+    srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
     srslylawlUI.DebugTrackTimeStop("HandleAbsorbFrames", "ABC")
     srslylawlUI.DebugTrackTimeStop("HandleAuras(General)")
 end
@@ -1331,7 +1333,7 @@ function srslylawlUI.ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, 
     end
 end
 
-function srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
+function srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
     local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(unit, unitsType)
     local width = srslylawlUI.Utils_PixelFromScreenToCode(buttonFrame.unit.healthBar:GetWidth())
     local maxHP = UnitHealthMax(unit)
@@ -1981,7 +1983,7 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
         end
     end
     -- make sure that our first absorb anchor moves with the bar fill amount
-    srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
+    -- srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
 end
 
 function srslylawlUI.HandleEffectiveHealth(unit, unitsType, trackedAurasOverride)

@@ -2260,6 +2260,7 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                 if unit ~= "targettarget" then
                     srslylawlUI.HandleAbsorbFrames(unit, unitsType)
                     srslylawlUI.HandleEffectiveHealth(unit, unitsType)
+                    srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
                     -- srslylawlUI.HandleAuras(self.unit, unit, nil, "UNIT_MAXHEALTH")
                 end
                 srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
@@ -2275,6 +2276,8 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             if unit ~= "targettarget" then
                 srslylawlUI.HandleAbsorbFrames(unit, unitsType)
                 srslylawlUI.HandleEffectiveHealth(unit, unitsType)
+                srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
+                -- print(unit .. "UNIT HEALTH")
                 -- srslylawlUI.HandleAuras(self.unit, unit, nil, "UNIT_HEALTH")
             end
         elseif event == "UNIT_DISPLAYPOWER" then
@@ -2537,7 +2540,7 @@ function srslylawlUI.Frame_ResetDimensions(button)
         srslylawlUI.Utils_SetHeightPixelPerfect(button.unit.powerBar, h)
 
         if unitsType ~= "fauxUnits" and unit ~= "targettarget" then
-            srslylawlUI.MoveAbsorbAnchorWithHealth(unit, unitsType)
+            srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
         end
 
         if not InCombatLockdown() then
