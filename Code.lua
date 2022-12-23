@@ -1306,7 +1306,6 @@ end
 function srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
     local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(unit, unitsType)
     local scaledWidth = srslylawlUI.Utils_PixelFromScreenToCode(buttonFrame.unit.healthBar:GetWidth())
-    local fullWidth = srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
     local maxHP = UnitHealthMax(unit)
     local pixelPerHp = scaledWidth / (maxHP ~= 0 and maxHP or 1)
     local playerCurrentHP = UnitHealth(unit)
@@ -1326,9 +1325,9 @@ function srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsTyp
 
     --overlap frame needs 1 additional pixel when healprediction is up
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFrames"][1], anchor1,
-        buttonFrame.unit.healthBar, anchor1, offset * direction, 0)
+        buttonFrame.unit.healthBar, anchor1, offset * direction - 1, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], anchor2,
-        buttonFrame.unit.healthBar, anchor1, (offset + mergeOffset) * direction, 0)
+        buttonFrame.unit.healthBar, anchor1, (offset + mergeOffset) * direction - 1, 0)
     local eHealthOffset = offset - srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset
     -- print("eHealth: " .. eHealthOffset)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], anchor1,

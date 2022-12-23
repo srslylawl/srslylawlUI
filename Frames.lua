@@ -1,3 +1,8 @@
+local function CalcAuraCountFontSize(size)
+    local fontSize = size / 2
+    return fontSize > 0 and fontSize or 1
+end
+
 function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
     local frameName = "srslylawlUI_" .. unit .. "Aura"
     local unitsType = buttonFrame:GetAttribute("unitsType")
@@ -6,9 +11,8 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
     local size = srslylawlUI.GetSettingByUnit("buffs.size", unitsType, unit)
     local texture = size >= 64 and srslylawlUI.textures.AuraBorder64 or srslylawlUI.textures.AuraBorder32
     local swipeTexture = size >= 64 and srslylawlUI.textures.AuraSwipe64 or srslylawlUI.textures.AuraSwipe32
-    local fontSize = size / 2
-    fontSize = fontSize > 0 and fontSize or 1
-    fontSize = srslylawlUI.Utils_PixelFromCodeToScreen(fontSize)
+    local fontSize = CalcAuraCountFontSize(size)
+
     for i = 1, maxBuffs do
         if not srslylawlUI[unitsType][unit].buffFrames[i] then --so we can call this function multiple times
             local f = CreateFrame("Button", frameName .. i, buttonFrame.unit, "CompactBuffTemplate")
@@ -19,11 +23,6 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
                 GameTooltip:SetUnitBuff(self:GetAttribute("unit"), self:GetID())
             end)
             f:SetScript("OnUpdate", nil)
-            -- f:SetScript("OnUpdate", function(self)
-            -- if GameTooltip:IsOwned(f) then
-            --     GameTooltip:SetUnitBuff(self:GetAttribute("unit"),self:GetID())
-            -- end
-            -- end)
             --shift-Right click blacklists spell
             f:SetScript("OnClick", function(self, button, down)
                 local id = self:GetID()
@@ -48,6 +47,13 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
             f.cooldown:SetSwipeTexture(swipeTexture)
             f.count:SetFont("Fonts\\FRIZQT__.TTF", fontSize, "OUTLINE")
             f.count:SetPoint("BOTTOMRIGHT")
+            local oldSetPoint = f.SetPoint
+            f.SetPoint = function(self, ...)
+                oldSetPoint(self, ...)
+                local x, y = self:GetSize()
+                local avg = (x + y) * .5
+                f.count:SetFont("Fonts\\FRIZQT__.TTF", CalcAuraCountFontSize(avg), "OUTLINE")
+            end
             srslylawlUI[unitsType][unit].buffFrames[i] = f
             f:Hide()
         end
@@ -88,12 +94,6 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
                 end
             end)
             f:SetScript("OnUpdate", nil)
-            -- f:SetScript("OnUpdate", function(self)
-            -- if GameTooltip:IsOwned(f) then
-            --     GameTooltip:SetUnitDebuff(self:GetAttribute("unit"),self:GetID())
-            -- end
-            -- end)
-
             --template creates a border thats not pixel perfect (yikes)
             f.border:ClearAllPoints()
             f.border:SetTexture(texture)
@@ -107,6 +107,13 @@ function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
 
             f.count:SetFont("Fonts\\FRIZQT__.TTF", fontSize, "OUTLINE")
             f.count:SetPoint("BOTTOMRIGHT")
+            local oldSetPoint = f.SetPoint
+            f.SetPoint = function(self, ...)
+                oldSetPoint(self, ...)
+                local x, y = self:GetSize()
+                local avg = (x + y) * .5
+                f.count:SetFont("Fonts\\FRIZQT__.TTF", CalcAuraCountFontSize(avg), "OUTLINE")
+            end
 
             srslylawlUI[unitsType][unit].debuffFrames[i] = f
             f:Hide()
