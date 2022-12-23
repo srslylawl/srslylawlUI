@@ -773,8 +773,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         return auraType
     end
 
-    local function TrackAura(source, spellId, count, name, index, absorb, icon, duration, expirationTime, auraType,
-                             verify)
+    local function TrackAura(source, spellId, count, name, index, absorb, icon, duration, expirationTime, auraType)
         if auraType == nil then error("auraType is nil") end
 
         local byAura = auraType .. "Auras"
@@ -789,19 +788,10 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             srslylawlUI[unitsType][unit][byAura][source][spellId] = aura
         end
 
-        local diff = 0
-        if verify then
-            if srslylawlUI[unitsType][unit][byIndex][index] ~= nil and
-                srslylawlUI[unitsType][unit][byIndex][index].expiration ~= nil then
-                diff = expirationTime - srslylawlUI[unitsType][unit][byIndex][index].expiration
-            end
-        end
-
-        local flagRefreshed = (diff > 0.01)
-
         if srslylawlUI[unitsType][unit][byIndex][index] == nil then
             srslylawlUI[unitsType][unit][byIndex][index] = {}
         end
+
         local t = srslylawlUI[unitsType][unit][byIndex][index]
         -- doing it this way since we dont want our tracked fragment to reset
         t["source"] = source
@@ -812,7 +802,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         t["icon"] = icon
         t["duration"] = duration
         t["expiration"] = expirationTime
-        t["wasRefreshed"] = flagRefreshed
         t["index"] = index -- double index here to make it easier to get it again for tooltip
         t["auraType"] = auraType
         t["stacks"] = count
@@ -865,8 +854,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             diff = expirationTime - srslylawlUI[unitsType][unit][byIndex][oldIndex].expiration
         end
 
-        local flagRefreshed = (diff > 0.1)
-
         if srslylawlUI[unitsType][unit][byIndex][currentIndex] == nil then
             srslylawlUI[unitsType][unit][byIndex][currentIndex] = {}
         end
@@ -879,18 +866,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         t["icon"] = icon
         t["duration"] = duration
         t["expiration"] = expirationTime
-        t["wasRefreshed"] = flagRefreshed
         t["index"] = currentIndex
         t["stacks"] = count
         t["auraType"] = auraType
-
-        --TODO: nil here
-        if srslylawlUI[unitsType][unit][byIndex] and srslylawlUI[unitsType][unit][byIndex][oldIndex] then
-            local tat = srslylawlUI[unitsType][unit][byIndex][oldIndex].trackedApplyTime
-            if tat then
-                t["trackedApplyTime"] = tat
-            end
-        end
 
         srslylawlUI[unitsType][unit][byIndex][oldIndex] = nil
     end
@@ -976,15 +954,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
                     end
                 end
             end
-            -- if updatedAuras.removedAuraInstanceIDs then
-            --     -- print("Removed Auras:")
-            --     for i, auraInstanceID in ipairs(updatedAuras.removedAuraInstanceIDs) do
-            --         if trackedTable[auraInstanceID] then
-            --             -- print(auraInstanceID .. " " .. tostring(trackedTable[auraInstanceID].name))
-            --             trackedTable[auraInstanceID] = nil
-            --         end
-            --     end
-            -- end
         end
         -- parse aura data
         -- buffs
@@ -1094,7 +1063,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
                             auraType)
                     else
                         -- aura is tracked and at same index, update that we verified that this frame
-                        TrackAura(source, spellId, count, name, i, absorb, icon, duration, expirationTime, auraType, true)
+                        TrackAura(source, spellId, count, name, i, absorb, icon, duration, expirationTime, auraType)
                     end
                 else
                     -- no aura is currently tracked for that index
@@ -1223,7 +1192,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
 
         local exists = unitbutton.CCDurBar.spellData ~= nil
         local differentSpell = exists and unitbutton.CCDurBar.spellData.ID ~= CCToDisplay.ID
-        local differentExpTime = exists and unitbutton.CCDurBar.spellData.expirationTime ~= CCToDisplay.expirationTime
+        local expTimeTolerance = .1
+        local differentExpTime = exists and
+            math.abs(unitbutton.CCDurBar.spellData.expirationTime - CCToDisplay.expirationTime) < expTimeTolerance
         local differentIndex = exists and unitbutton.CCDurBar.spellData.index ~= CCToDisplay.index
 
         --See if its already being displayed
@@ -1310,8 +1281,7 @@ function srslylawlUI.Party_HandleAuras_ALL()
     end
 end
 
-function srslylawlUI.ChangeAbsorbSegment(frame, barWidth, absorbAmount, height, isHealPrediction)
-    frame:SetAttribute("absorbAmount", absorbAmount)
+function srslylawlUI.ChangeAbsorbSegment(frame, barWidth, height, isHealPrediction)
     srslylawlUI.Utils_SetSizePixelPerfect(frame, barWidth, height)
     -- resize icon
     if isHealPrediction then
@@ -1335,31 +1305,34 @@ end
 
 function srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
     local buttonFrame = srslylawlUI.Frame_GetFrameByUnit(unit, unitsType)
-    local width = srslylawlUI.Utils_PixelFromScreenToCode(buttonFrame.unit.healthBar:GetWidth())
+    local scaledWidth = srslylawlUI.Utils_PixelFromScreenToCode(buttonFrame.unit.healthBar:GetWidth())
+    local fullWidth = srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
     local maxHP = UnitHealthMax(unit)
-    local pixelPerHp = width / (maxHP ~= 0 and maxHP or 1)
+    local pixelPerHp = scaledWidth / (maxHP ~= 0 and maxHP or 1)
     local playerCurrentHP = UnitHealth(unit)
     local baseAnchorOffset = playerCurrentHP * pixelPerHp
     local mergeOffset = 0
     local pixelOffset = 1
-    if srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].isMerged then
-        --offset by mergeamount
-        mergeOffset = srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].mergeAmount + pixelOffset
-    end
     local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
     local direction = 1
-    local offset = (baseAnchorOffset + pixelOffset)
     if buttonFrame.unit.healthBar.reversed then
         anchor1, anchor2 = "TOPRIGHT", "TOPLEFT"
         direction = -1
     end
+    local offset = baseAnchorOffset + pixelOffset
+    if srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].isMerged then
+        mergeOffset = srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1].mergeAmount
+    end
+
+    --overlap frame needs 1 additional pixel when healprediction is up
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFrames"][1], anchor1,
         buttonFrame.unit.healthBar, anchor1, offset * direction, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], anchor2,
-        buttonFrame.unit.healthBar, anchor1, (baseAnchorOffset + mergeOffset) * direction, 0)
+        buttonFrame.unit.healthBar, anchor1, (offset + mergeOffset) * direction, 0)
+    local eHealthOffset = offset - srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset
+    -- print("eHealth: " .. eHealthOffset)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], anchor1,
-        buttonFrame.unit.healthBar, anchor1,
-        (offset - srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset) * direction, 0)
+        buttonFrame.unit.healthBar, anchor1, eHealthOffset * direction, 0)
 end
 
 function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
@@ -1724,28 +1697,21 @@ function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
     srslylawlUI.Log(str .. " blacklisted, will no longer be shown.")
 end
 
-function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
-    local trackedAurasByIndex = trackedAurasOverride ~= nil and trackedAurasOverride or
-        srslylawlUI[unitsType][unit].trackedAurasByIndex
-    local height, width, currentBarLength
-    local barWidth
-    if unitsType == "partyUnits" then
-        height = srslylawlUI.GetSetting("party.hp.height") *
-            (srslylawlUI.GetSetting("party.hp.absorbHeightPercent") or .7)
-        width = srslylawlUI.GetSetting("party.hp.width")
-        barWidth = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar:
+function srslylawlUI.HandleAbsorbFrames(unit, unitsType)
+    local trackedAurasByIndex = srslylawlUI[unitsType][unit].trackedAurasByIndex
+    local heightMod = srslylawlUI.GetSettingByUnit("hp.absorbHeightPercent", unitsType, unit)
+    local height = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit) * heightMod
+    local unscaledBarWidth = srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
+    local scaledBarWidth = unitsType == "mainUnits" and unscaledBarWidth or
+        srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar:
             GetWidth())
-    elseif unitsType == "mainUnits" then
-        height = srslylawlUI.GetSetting("player." .. unit .. "Frame.hp.height") *
-            (srslylawlUI.GetSetting("player." .. unit .. "Frame.hp.absorbHeightPercent") or .7)
-        width = srslylawlUI.GetSetting("player." .. unit .. "Frame.hp.width")
-        barWidth = width
-    end
+
     local maxHp = UnitHealthMax(unit)
     maxHp = maxHp == 0 and 1 or maxHp
-    local pixelPerHp = barWidth / maxHp
+    local scaledPixelPerHp = scaledBarWidth / maxHp
+
     local playerCurrentHP = UnitHealth(unit)
-    currentBarLength = playerCurrentHP * pixelPerHp
+    local currentBarLength = playerCurrentHP * scaledPixelPerHp
     local totalAbsorbBarLength = 0
     local overlapBarIndex, curBarIndex, curBarOverlapIndex = 1, 1, 1 --overlapBarIndex 1 means we havent filled the bar up with absorbs, 2 means we are now overlaying absorbs over the healthbar
     local variousAbsorbAmount = 0 -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
@@ -1755,9 +1721,8 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
     local sortedAbsorbAuras, incomingHealWidth, variousFrameWidth, healAbsorbWidth
     local pixelSize = srslylawlUI.Utils_PixelFromCodeToScreen(1)
 
-    local function NewAbsorbSegment(amount, width, sType, oIndex, tAura)
+    local function NewAbsorbSegment(width, sType, oIndex, tAura)
         return {
-            ["amount"] = amount,
             ["width"] = width,
             ["tAura"] = tAura,
             ["sType"] = sType,
@@ -1789,11 +1754,11 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
             return
         end
         while absorbAmount > 0 do
-            barWidth = pixelPerHp * absorbAmount
+            barWidth = scaledPixelPerHp * absorbAmount
             --caching the index so we display the segment correctly
             local oIndex = overlapBarIndex
 
-            local pixelOverlap = (currentBarLength + barWidth) - width * overlapBarIndex
+            local pixelOverlap = (currentBarLength + barWidth) - unscaledBarWidth * overlapBarIndex
             --if we are already at overlapindex 2 and we have overlap, we are now at the left end of the bar
             --for now, ignore it and just let it stick out
 
@@ -1802,7 +1767,7 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
                 if overlapBarIndex == 1 and barWidth > 1 then
                     barWidth = barWidth - 1 --remove 1 for anchor spacing, if bar is smaller than 1 pixel it will be added to the last bar instead, thus no space necessary
                 end
-                absorbAmount = absorbAmount - barWidth / pixelPerHp
+                absorbAmount = absorbAmount - barWidth / scaledPixelPerHp
                 overlapBarIndex = overlapBarIndex + 1
             elseif pixelOverlap <= 0 then
                 absorbAmount = 0
@@ -1811,7 +1776,7 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
                 barWidth = 0
             end
 
-            local totalOverlap = (totalAbsorbBarLength + barWidth) - width
+            local totalOverlap = (totalAbsorbBarLength + barWidth) - unscaledBarWidth
             if totalOverlap > 0 then
                 barWidth = barWidth - totalOverlap
                 absorbAmount = 0
@@ -1821,7 +1786,7 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
 
             if srslylawlUI.Utils_PixelRound(barWidth, pixelSize) >= 1 then
                 currentBarLength = currentBarLength + barWidth + 1
-                absorbSegments[#absorbSegments + 1] = NewAbsorbSegment(absorbAmount, barWidth, sType, oIndex, tAura)
+                absorbSegments[#absorbSegments + 1] = NewAbsorbSegment(barWidth, sType, oIndex, tAura)
             else
                 if absorbSegments[#absorbSegments] then
                     absorbSegments[#absorbSegments].width = absorbSegments[#absorbSegments].width + barWidth
@@ -1831,24 +1796,14 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
         end
     end
 
-    local function SetupSegment(tAura, bar, absorbAmount, barWidth, height)
+    local function SetupSegment(tAura, bar, barWidth, height)
         local iconID = tAura.icon
         local duration = tAura.duration
         local expirationTime = tAura.expiration
         local currentBar = bar
-        srslylawlUI.ChangeAbsorbSegment(currentBar, barWidth, absorbAmount, height)
-        local t
-        if tAura.wasRefreshed or tAura["trackedApplyTime"] == nil then
-            -- we only want to refresh the expiration timer if the aura has actually just been reapplied
-            t = GetTime()
-            duration = expirationTime - t
-            tAura["trackedApplyTime"] = t
-        else
-            -- may display wrong time on certain auras that are still active if ui has just been reloaded, very niche case though
-            t = tAura["trackedApplyTime"]
-            duration = expirationTime - t
-        end
-        CooldownFrame_Set(currentBar.cooldown, t, duration, true)
+        srslylawlUI.ChangeAbsorbSegment(currentBar, barWidth, height)
+        local startTime = expirationTime - duration
+        CooldownFrame_Set(currentBar.cooldown, startTime, duration, true)
         if currentBar.wasHealthPrediction then
             currentBar.texture:SetTexture(srslylawlUI.textures.AbsorbFrame)
             currentBar.texture:SetVertexColor(1, 1, 1, 0.9)
@@ -1904,13 +1859,13 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
                 bar.texture:SetTexture(srslylawlUI.textures.HealthBar, ARTWORK)
                 bar.texture:SetVertexColor(.2, .9, .1, .9)
                 bar.wasHealthPrediction = true
-                srslylawlUI.ChangeAbsorbSegment(bar, segment.width, segment.amount, height, true)
+                srslylawlUI.ChangeAbsorbSegment(bar, segment.width, height, true)
                 bar:Show()
             elseif segment.sType == "healAbsorb" then
                 bar.texture:SetTexture(srslylawlUI.textures.HealthBar, ARTWORK)
                 bar.texture:SetVertexColor(.43, .01, .98, .9)
                 bar.wasHealthPrediction = true
-                srslylawlUI.ChangeAbsorbSegment(bar, segment.width, segment.amount, height, true)
+                srslylawlUI.ChangeAbsorbSegment(bar, segment.width, height, true)
                 bar:Show()
             elseif segment.sType == "various" then
                 if bar.wasHealthPrediction then
@@ -1918,10 +1873,10 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
                     bar.texture:SetVertexColor(1, 1, 1, 0.9)
                     bar.wasHealthPrediction = false
                 end
-                srslylawlUI.ChangeAbsorbSegment(bar, segment.width, segment.amount, height)
+                srslylawlUI.ChangeAbsorbSegment(bar, segment.width, height)
                 bar:Show()
             else
-                SetupSegment(segment.tAura, bar, segment.amount, segment.width, height)
+                SetupSegment(segment.tAura, bar, segment.width, height)
             end
             bar.hide = false
 
@@ -1936,7 +1891,7 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
     sortedAbsorbAuras = SortAbsorbBySpellIDDesc(trackedAurasByIndex)
 
     if incomingHeal ~= nil then
-        incomingHealWidth = floor(incomingHeal * pixelPerHp)
+        incomingHealWidth = floor(incomingHeal * scaledPixelPerHp)
         if incomingHealWidth > 2 then
             CalcSegment(incomingHeal, "incomingHeal", nil)
         end
@@ -1946,12 +1901,12 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
     for _, value in ipairs(sortedAbsorbAuras) do
         CalcSegment(value.absorb, "aura", value)
     end
-    variousFrameWidth = floor(variousAbsorbAmount * pixelPerHp)
+    variousFrameWidth = floor(variousAbsorbAmount * scaledPixelPerHp)
     if variousFrameWidth >= 2 then
         CalcSegment(variousAbsorbAmount, "various", nil)
     end
     if healAbsorb > 0 then
-        healAbsorbWidth = floor(healAbsorb * pixelPerHp)
+        healAbsorbWidth = floor(healAbsorb * scaledPixelPerHp)
 
         if healAbsorbWidth > 2 then
             CalcSegment(healAbsorb, "healAbsorb", nil)
@@ -1982,14 +1937,12 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType, trackedAurasOverride)
             bar:Hide()
         end
     end
-    -- make sure that our first absorb anchor moves with the bar fill amount
-    -- srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
 end
 
-function srslylawlUI.HandleEffectiveHealth(unit, unitsType, trackedAurasOverride)
+function srslylawlUI.HandleEffectiveHealth(unit, unitsType)
     local function FilterDefensives(trackedAuras)
         local sortedTable = {}
-        for index, aura in pairs(trackedAuras) do
+        for _, aura in pairs(trackedAuras) do
             if aura.auraType == "defensive" and srslylawlUI_Saved.buffs.known[aura.spellId].reductionAmount > 0 then
                 table.insert(sortedTable, aura)
             end
@@ -2003,10 +1956,7 @@ function srslylawlUI.HandleEffectiveHealth(unit, unitsType, trackedAurasOverride
         return sortedTable
     end
 
-    --Display effective health
-
-    local trackedAurasByIndex = trackedAurasOverride ~= nil and trackedAurasOverride or
-        srslylawlUI[unitsType][unit].trackedAurasByIndex
+    local trackedAurasByIndex = srslylawlUI[unitsType][unit].trackedAurasByIndex
 
     srslylawlUI[unitsType][unit].effectiveHealthSegments = FilterDefensives(trackedAurasByIndex)
     local effectiveHealthMod = 1
@@ -2022,33 +1972,42 @@ function srslylawlUI.HandleEffectiveHealth(unit, unitsType, trackedAurasOverride
     end
     local hasDefensive = effectiveHealthMod ~= 1
     local eHealth = -1
-    local hpBar = srslylawlUI.Frame_GetFrameByUnit(unit, unitsType).unit.healthBar
     local showFrames = false
-    if hasDefensive then
-        local width = srslylawlUI.Utils_PixelFromScreenToCode(hpBar:GetWidth()) --need to convert here since we will later reapply the pixel scaling
-        local height = srslylawlUI.Utils_PixelFromScreenToCode(hpBar:GetHeight())
-        local playerHealthMax = UnitHealthMax(unit)
-        playerHealthMax = playerHealthMax == 0 and 1 or playerHealthMax
-        local playerCurrentHP = UnitHealth(unit)
-        local pixelPerHp = width / playerHealthMax
-        local playerMissingHP = playerHealthMax - playerCurrentHP
-        local maxWidth = playerMissingHP * pixelPerHp - 1
-        local barWidth
-
-        eHealth = playerCurrentHP / effectiveHealthMod
-        local additionalHealth = eHealth - playerCurrentHP
-        barWidth = math.min(pixelPerHp * playerHealthMax, additionalHealth * pixelPerHp)
-        srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset = math.max(barWidth - maxWidth, 0)
-
-        showFrames = barWidth >= 2
-        if showFrames then
-            srslylawlUI.ChangeAbsorbSegment(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], barWidth, eHealth,
-                height)
-        end
-        srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:SetShown(showFrames)
-    else
+    if not hasDefensive then
         srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:Hide()
+        return
     end
+
+    local height = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
+    -- local hpBarWidth =
+    local unscaledBarWidth = srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
+    local scaledBarWidth = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar
+        :GetWidth())
+
+    local playerHealthMax = UnitHealthMax(unit)
+    playerHealthMax = playerHealthMax == 0 and 1 or playerHealthMax
+    local playerCurrentHP = UnitHealth(unit)
+    local pixelPerHp = scaledBarWidth / playerHealthMax
+
+    local playerMissingHP = playerHealthMax - playerCurrentHP
+
+    eHealth = playerCurrentHP / effectiveHealthMod
+    local additionalHealth = eHealth - playerCurrentHP
+
+    -- clamp bar size to total health bar size
+    local eHealthBarWidth = math.min(unscaledBarWidth, additionalHealth * pixelPerHp)
+
+    --offset the bar to the left so it does not go outside the frame
+    local maxEHealthBarWidth = unscaledBarWidth - (playerCurrentHP * pixelPerHp) - 1
+    local offset = math.max(eHealthBarWidth - maxEHealthBarWidth, 0)
+
+    srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset = offset
+
+    showFrames = eHealthBarWidth >= 2
+    if showFrames then
+        srslylawlUI.ChangeAbsorbSegment(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], eHealthBarWidth, height)
+    end
+    srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1]:SetShown(showFrames)
 end
 
 --Config
