@@ -25,7 +25,7 @@ srslylawlUI.defaultSettings = {
         },
         buffs = { anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 7, yOffset = -50, size = 27, scaledSize = 0,
             showCastByPlayer = true, maxBuffs = 5, maxDuration = 60, showDefensives = true, showInfiniteDuration = false,
-            showDefault = false, showLongDuration = false },
+            showDefault = false, showLongDuration = false, showAbsorbs = false },
         debuffs = { anchor = "RIGHTTOP", anchoredTo = "Frame", xOffset = 20, yOffset = 0, size = 40, scaledSize = 0,
             showCastByPlayer = true, maxDebuffs = 5, maxDuration = 180, showInfiniteDuration = false, showDefault = true,
             showLongDuration = false },
@@ -67,7 +67,7 @@ srslylawlUI.defaultSettings = {
             buffs = { anchor = "TOPRIGHT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 16, scaledSize = 10,
                 maxBuffs = 16,
                 showCastByPlayer = true, maxDuration = 60, showDefensives = true, showInfiniteDuration = true,
-                showDefault = true, showLongDuration = true
+                showDefault = true, showLongDuration = true, showAbsorbs = true
             },
             debuffs = { anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10,
                 maxDebuffs = 15,
@@ -117,7 +117,7 @@ srslylawlUI.defaultSettings = {
                 anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 16, scaledSize = 10,
                 maxBuffs = 24,
                 showCastByPlayer = true, maxDuration = 60, showDefensives = true, showInfiniteDuration = true,
-                showDefault = true, showLongDuration = true
+                showDefault = true, showLongDuration = true, showAbsorbs = true
             },
             debuffs = {
                 anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10,
@@ -192,7 +192,7 @@ srslylawlUI.defaultSettings = {
                 anchor = "TOPLEFT", anchoredTo = "Frame", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10,
                 maxBuffs = 21,
                 showCastByPlayer = true, maxDuration = 60, showDefensives = true, showInfiniteDuration = true,
-                showDefault = true, showLongDuration = true
+                showDefault = true, showLongDuration = true, showAbsorbs = true
             },
             debuffs = {
                 anchor = "BOTTOMLEFT", anchoredTo = "Buffs", xOffset = 0, yOffset = 0, size = 20, scaledSize = 10,

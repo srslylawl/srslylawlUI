@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.53"
+local version = "1.54"
 
 
 srslylawlUI.loadedSettings = {}
@@ -110,11 +110,7 @@ srslylawlUI.sortTimerActive = false
 local debugString = ""
 
 --[[ TODO:
-debuff icon (enlarged) stack text does not scale with size
-sort auras by enlarged(scaled) optionally
 raidicon sometimes missing after reload or roster change
-absorb frames duration fix for the new api weirdness
-effective health scale out of bar in grp scenario
 faux debuff frames (target) dont scale their size
 -- GRP PET 0 hp for some reason
 castbar text size
@@ -922,6 +918,36 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         buffFrame:Show();
     end
 
+    local function SetDebuff(debuffFrame, index, ...)
+        local name, icon, count, debuffType, duration, expirationTime, source,
+        isStealable, nameplateShowPersonal, spellId, canApplyAura,
+        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
+        local f = debuffFrame
+        -- print(name)
+        f.icon:SetTexture(icon)
+        if (count > 1) then
+            local countText = count;
+            if (count >= 100) then
+                countText = BUFF_STACKS_OVERFLOW;
+            end
+            f.count:Show();
+            f.count:SetText(countText);
+        elseif f then
+            f.count:Hide();
+        end
+        f:SetID(index)
+        local enabled = expirationTime and expirationTime ~= 0;
+        if enabled then
+            local startTime = expirationTime - duration;
+            CooldownFrame_Set(f.cooldown, startTime, duration, true);
+        else
+            CooldownFrame_Clear(f.cooldown);
+        end
+        local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
+        f.border:SetVertexColor(color.r, color.g, color.b);
+        f:Show()
+    end
+
     local function ParseAuras()
         local updateTable = {}
         local updateTableHasContent = false
@@ -994,8 +1020,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             --do nothing as main player will take care of it
         end
     end
-    -- print("HandleAuras " .. unit .. " " .. unitsType .. " " .. (tostring(dbgEventString)))
-    -- local trackedTable = srslylawlUI[unitsType][unit].aurasByInstanceID
     if doParse then
         srslylawlUI.SetDebugCheckPoint("Parse")
         ParseAuras()
@@ -1014,42 +1038,47 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
     local buffBaseColor = srslylawlUI.GetSetting("colors.buffBaseColor")
     local buffIsStealableColor = srslylawlUI.GetSetting("colors.buffIsStealableColor")
     local buffIsEnemyColor = srslylawlUI.GetSetting("colors.buffIsEnemyColor")
-    local currentBuffFrame = 1
+    local currentBuffFrameIndex = 1
     local maxBuffs = srslylawlUI.GetSettingByUnit("buffs.maxBuffs", unitsType, unit)
     local buffSize = srslylawlUI.GetSettingByUnit("buffs.size", unitsType, unit)
     local scaledBuffSize = buffSize + srslylawlUI.GetSettingByUnit("buffs.scaledSize", unitsType, unit)
+    local anyBuffIsScaled = false
     local size
     for i = 1, 40 do
         -- loop through all buffs and assign them to frames
-        local f = srslylawlUI[unitsType][unit].buffFrames[currentBuffFrame]
+        local buffData = srslylawlUI[unitsType][unit].buffData[currentBuffFrameIndex]
+        if not buffData then
+            buffData = {}
+            srslylawlUI[unitsType][unit].buffData[currentBuffFrameIndex] = buffData
+        end
+
+        local unitAuraData = { UnitAura(unit, i, "HELPFUL") }
+
         local name, icon, count, debuffType, duration, expirationTime, source,
         isStealable, nameplateShowPersonal, spellId, canApplyAura,
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
-        UnitAura(unit, i, "HELPFUL")
+        unpack(unitAuraData)
         if name then -- if aura on this index exists, assign it
-            if srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, UnitAura(unit, i, "HELPFUL")) and
-                currentBuffFrame <= maxBuffs then
-                SetBuff(f, i, UnitAura(unit, i))
+            if srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, unpack(unitAuraData)) and
+                currentBuffFrameIndex <= maxBuffs then
                 if isStealable then
-                    f.border:SetVertexColor(unpack(buffIsStealableColor))
+                    buffData.color = buffIsStealableColor
                     size = scaledBuffSize
                 elseif source and UnitIsEnemy(source, "player") then
-                    f.border:SetVertexColor(unpack(buffIsEnemyColor))
+                    buffData.color = buffIsEnemyColor
                     size = buffSize
                 elseif unitsType == "mainUnits" and source and UnitIsUnit(source, "player") and unit == "player" then
-                    f.border:SetVertexColor(unpack(buffBaseColor))
+                    buffData.color = buffBaseColor
                     size = scaledBuffSize
                 else
-                    f.border:SetVertexColor(unpack(buffBaseColor))
+                    buffData.color = buffBaseColor
                     size = buffSize
                 end
-                if size ~= f.size then
-                    f.size = size
-                    auraPointsChanged = true
-                end
-                f:SetID(i)
-                f:Show()
-                currentBuffFrame = currentBuffFrame + 1
+                buffData.index = i
+                buffData.isScaled = size > buffSize
+                if buffData.isScaled then anyBuffIsScaled = true end
+                buffData.size = size
+                currentBuffFrameIndex = currentBuffFrameIndex + 1
             end
             -- track auras, check if we care to track it
             local auraType = GetTypeOfAuraID(spellId)
@@ -1075,8 +1104,38 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
                 end
             end
         end
+        buffData.display = name ~= nil
     end
-    for i = currentBuffFrame, 40 do
+    local sortBuffsByScaledSize = scaledBuffSize ~= buffSize
+    local buffDataTable = {}
+    for i = 1, currentBuffFrameIndex - 1 do
+        local data = srslylawlUI[unitsType][unit].buffData[i]
+        if data and data.display then
+            table.insert(buffDataTable, srslylawlUI[unitsType][unit].buffData[i])
+        end
+    end
+    if anyBuffIsScaled and sortBuffsByScaledSize then
+        table.sort(buffDataTable, function(a, b)
+            if a.isScaled and not b.isScaled then return true end
+            if b.isScaled and not a.isScaled then return false end
+            return a.index < b.index
+        end)
+    end
+
+    for i = 1, #buffDataTable do
+        local f = srslylawlUI[unitsType][unit].buffFrames[i]
+        local buffData = buffDataTable[i]
+        if not buffData then print("No buffdata: " .. i .. " " .. currentBuffFrameIndex) end
+        if buffData and not buffData.color then print("No buffdata color: " .. i .. " " .. currentBuffFrameIndex) end
+        f.border:SetVertexColor(unpack(buffData.color))
+        if f.size ~= buffData.size then
+            f.size = buffData.size
+            auraPointsChanged = true
+        end
+        SetBuff(f, i, UnitAura(unit, i))
+    end
+
+    for i = currentBuffFrameIndex, 40 do
         local f = srslylawlUI[unitsType][unit].buffFrames[i]
         if f then
             f:Hide()
@@ -1089,16 +1148,21 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
 
     -- assign debuffs to frames
     local appliedCC = {}
-    currentDebuffFrame = 1
+    currentDebuffFrameIndex = 1
     local debuffSize = srslylawlUI.GetSettingByUnit("debuffs.size", unitsType, unit)
     local scaledDebuffSize = debuffSize + srslylawlUI.GetSettingByUnit("debuffs.scaledSize", unitsType, unit)
     local maxDebuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
+    local anyDebuffIsScaled = false
     for i = 1, 40 do
-        local f = srslylawlUI[unitsType][unit].debuffFrames[currentDebuffFrame]
+        local unitAuraInfo = { UnitAura(unit, i, "HARMFUL") }
+        local debuffData = srslylawlUI[unitsType][unit].debuffData[currentDebuffFrameIndex]
+        if not debuffData then
+            debuffData = {}
+            srslylawlUI[unitsType][unit].debuffData[currentDebuffFrameIndex] = debuffData
+        end
         local name, icon, count, debuffType, duration, expirationTime, source,
         isStealable, nameplateShowPersonal, spellId, canApplyAura,
-        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
-        UnitAura(unit, i, "HARMFUL")
+        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = unpack(unitAuraInfo)
         if name then -- if aura on this index exists, assign it
             --check if its CC
             if srslylawlUI_Saved.debuffs.known[spellId] ~= nil and
@@ -1115,46 +1179,49 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
                 }
                 table.insert(appliedCC, cc)
             end
-            if srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, UnitAura(unit, i, "HARMFUL")) and
-                currentDebuffFrame <= maxDebuffs then
-                f.icon:SetTexture(icon)
-                if (count > 1) then
-                    local countText = count;
-                    if (count >= 100) then
-                        countText = BUFF_STACKS_OVERFLOW;
-                    end
-                    f.count:Show();
-                    f.count:SetText(countText);
-                elseif f then
-                    f.count:Hide();
-                end
-                f:SetID(i)
-                local enabled = expirationTime and expirationTime ~= 0;
-                if enabled then
-                    local startTime = expirationTime - duration;
-                    CooldownFrame_Set(f.cooldown, startTime, duration, true);
-                else
-                    CooldownFrame_Clear(f.cooldown);
-                end
-                local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
-                f.border:SetVertexColor(color.r, color.g, color.b);
+            if srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, unpack(unitAuraInfo)) and
+                currentDebuffFrameIndex <= maxDebuffs then
+                debuffData.auraInfo = unitAuraInfo
+                local doScale = source and source == "player" and unitsType == "mainUnits"
+                size = doScale and scaledDebuffSize or debuffSize
+                if doScale then anyDebuffIsScaled = true end
+                debuffData.size = size
+                debuffData.isScaled = size > debuffSize
+                debuffData.index = i
 
-                if source and source == "player" and unitsType == "mainUnits" then
-                    size = scaledDebuffSize
-                else
-                    size = debuffSize
-                end
-
-                if f.size ~= size then
-                    f.size = size
-                    auraPointsChanged = true
-                end
-                f:Show()
-                currentDebuffFrame = currentDebuffFrame + 1
+                currentDebuffFrameIndex = currentDebuffFrameIndex + 1
             end
         end
+        debuffData.display = name ~= nil
     end
-    for i = currentDebuffFrame, 40 do
+
+    local sortDebuffsByScaledSize = scaledDebuffSize ~= debuffSize
+    local debuffDataTable = {}
+    for i = 1, currentDebuffFrameIndex - 1 do
+        local data = srslylawlUI[unitsType][unit].debuffData[i]
+        if data and data.display then
+            table.insert(debuffDataTable, srslylawlUI[unitsType][unit].debuffData[i])
+        end
+    end
+    if anyDebuffIsScaled and sortDebuffsByScaledSize then
+        table.sort(debuffDataTable, function(a, b)
+            if a.isScaled and not b.isScaled then return true end
+            if b.isScaled and not a.isScaled then return false end
+            return a.index < b.index
+        end)
+    end
+
+    for i = 1, #debuffDataTable do
+        local f = srslylawlUI[unitsType][unit].debuffFrames[i]
+        local debuffData = debuffDataTable[i]
+        if f.size ~= debuffData.size then
+            f.size = debuffData.size
+            auraPointsChanged = true
+        end
+        SetDebuff(f, i, unpack(debuffData.auraInfo))
+    end
+
+    for i = currentDebuffFrameIndex, 40 do
         local f = srslylawlUI[unitsType][unit].debuffFrames[i]
         if f then
             f:Hide()
@@ -1353,12 +1420,6 @@ function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
         return false
     end
 
-    if srslylawlUI_Saved.buffs.absorbs[spellId] then
-        --dont show absorb spells unless whitelisted
-
-        return isStealable and unit == "target"
-    end
-
     if srslylawlUI_Saved.buffs.defensives[spellId] then
         --its a defensive spell
         return srslylawlUI.GetSettingByUnit("buffs.showDefensives", unitsType, unit)
@@ -1369,6 +1430,13 @@ function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
     end
     if duration > srslylawlUI.GetSettingByUnit("buffs.maxDuration", unitsType, unit) then
         return srslylawlUI.GetSettingByUnit("buffs.showLongDuration", unitsType, unit)
+    end
+
+    if srslylawlUI_Saved.buffs.absorbs[spellId] then
+        --dont show absorb spells unless whitelisted
+
+        return isStealable and unit == "target" or
+            srslylawlUI.GetSettingByUnit("buffs.showAbsorbs", unitsType, unit)
     end
 
     if source == "player" and castByPlayer then
@@ -1890,8 +1958,8 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType)
     sortedAbsorbAuras = SortAbsorbBySpellIDDesc(trackedAurasByIndex)
 
     if incomingHeal ~= nil then
-        incomingHealWidth = floor(incomingHeal * scaledPixelPerHp)
-        if incomingHealWidth > 2 then
+        incomingHealWidth = floor(incomingHeal * scaledPixelPerHp) * pixelSize
+        if incomingHealWidth > 4 then
             CalcSegment(incomingHeal, "incomingHeal", nil)
         end
     end
@@ -1900,14 +1968,14 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType)
     for _, value in ipairs(sortedAbsorbAuras) do
         CalcSegment(value.absorb, "aura", value)
     end
-    variousFrameWidth = floor(variousAbsorbAmount * scaledPixelPerHp)
-    if variousFrameWidth >= 2 then
+    variousFrameWidth = floor(variousAbsorbAmount * scaledPixelPerHp) * pixelSize
+    if variousFrameWidth >= 4 then
         CalcSegment(variousAbsorbAmount, "various", nil)
     end
     if healAbsorb > 0 then
-        healAbsorbWidth = floor(healAbsorb * scaledPixelPerHp)
+        healAbsorbWidth = floor(healAbsorb * scaledPixelPerHp) * pixelSize
 
-        if healAbsorbWidth > 2 then
+        if healAbsorbWidth > 4 then
             CalcSegment(healAbsorb, "healAbsorb", nil)
         end
     end

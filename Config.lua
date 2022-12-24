@@ -898,7 +898,13 @@ function srslylawlUI.CreateConfigWindow()
                 function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
             AddTooltip(buffsLong, "Show/hide buffs with a base duration longer than 60 seconds")
 
-            buffVisibility:Add(buffsDefault, buffsDefensive, buffsPlayer, buffsInfinite, buffsLong)
+            local buffsAbsorbs = CreateSettingsCheckButton("Absorbs", tab, path .. "buffs.showAbsorbs",
+                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+            AddTooltip(buffsAbsorbs,
+                "Show/hide absorb effects as a regular buff (instead of only as an absorb aura overlay). If disabled, will still show as absorb aura overlay.")
+
+
+            buffVisibility:Add(buffsDefault, buffsDefensive, buffsPlayer, buffsInfinite, buffsLong, buffsAbsorbs)
 
             local debuffVisibility = CreateConfigControl(tab, cap .. " Debuff Visibility", nil, unit)
             debuffVisibility:ChainToControl(buffVisibility)

@@ -592,7 +592,6 @@ function srslylawlUI.PowerBar.CreatePowerPointBar(amount, parent, padding, power
                 visible = false
             end
         end
-        -- print(self:GetName() .. " update visible ? " .. (visible and "SHOW" or "HIDE") .. " " .. displayCount)
         PowerBarSetVisible(self, visible)
     end
 

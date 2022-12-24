@@ -6,6 +6,7 @@ end
 function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
     local frameName = "srslylawlUI_" .. unit .. "Aura"
     local unitsType = buttonFrame:GetAttribute("unitsType")
+    if not srslylawlUI[unitsType][unit].buffData then srslylawlUI[unitsType][unit].buffData = {} end
     local maxBuffs = srslylawlUI.GetSettingByUnit("buffs.maxBuffs", unitsType, unit)
     if unitsType == "fauxUnits" or unitsType == "mainFauxUnits" then maxBuffs = 40 end
     local size = srslylawlUI.GetSettingByUnit("buffs.size", unitsType, unit)
@@ -58,6 +59,7 @@ function srslylawlUI.CreateBuffFrames(buttonFrame, unit)
             f:Hide()
         end
     end
+
     for i = maxBuffs, 40 do
         if srslylawlUI[unitsType][unit].buffFrames[i] then
             srslylawlUI[unitsType][unit].buffFrames[i]:Hide()
@@ -68,6 +70,7 @@ end
 function srslylawlUI.CreateDebuffFrames(buttonFrame, unit)
     local frameName = "srslylawlUI_" .. unit .. "Debuff"
     local unitsType = buttonFrame:GetAttribute("unitsType")
+    if not srslylawlUI[unitsType][unit].debuffData then srslylawlUI[unitsType][unit].debuffData = {} end
     local maxBuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
     if unitsType == "fauxUnits" or unitsType == "mainFauxUnits" then maxBuffs = 40 end
     local size = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
@@ -2268,7 +2271,6 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                     srslylawlUI.HandleAbsorbFrames(unit, unitsType)
                     srslylawlUI.HandleEffectiveHealth(unit, unitsType)
                     srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
-                    -- srslylawlUI.HandleAuras(self.unit, unit, nil, "UNIT_MAXHEALTH")
                 end
                 srslylawlUI.Frame_ResetUnitButton(self.unit, unit)
             end
@@ -2284,8 +2286,6 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
                 srslylawlUI.HandleAbsorbFrames(unit, unitsType)
                 srslylawlUI.HandleEffectiveHealth(unit, unitsType)
                 srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsType)
-                -- print(unit .. "UNIT HEALTH")
-                -- srslylawlUI.HandleAuras(self.unit, unit, nil, "UNIT_HEALTH")
             end
         elseif event == "UNIT_DISPLAYPOWER" then
             srslylawlUI.Frame_ResetPowerBar(self.unit, unit)
