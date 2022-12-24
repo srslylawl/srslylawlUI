@@ -1059,8 +1059,10 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
         unpack(unitAuraData)
         if name then -- if aura on this index exists, assign it
-            if srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, unpack(unitAuraData)) and
-                currentBuffFrameIndex <= maxBuffs then
+            local shouldDisplay = srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, unpack(unitAuraData)) and
+                currentBuffFrameIndex <= maxBuffs
+            buffData.display = shouldDisplay
+            if shouldDisplay then
                 if isStealable then
                     buffData.color = buffIsStealableColor
                     size = scaledBuffSize
@@ -1103,8 +1105,9 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
                     UntrackAura(i)
                 end
             end
+        else
+            buffData.display = false
         end
-        buffData.display = name ~= nil
     end
     local sortBuffsByScaledSize = scaledBuffSize ~= buffSize
     local buffDataTable = {}
@@ -1125,14 +1128,12 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
     for i = 1, #buffDataTable do
         local f = srslylawlUI[unitsType][unit].buffFrames[i]
         local buffData = buffDataTable[i]
-        if not buffData then print("No buffdata: " .. i .. " " .. currentBuffFrameIndex) end
-        if buffData and not buffData.color then print("No buffdata color: " .. i .. " " .. currentBuffFrameIndex) end
         f.border:SetVertexColor(unpack(buffData.color))
         if f.size ~= buffData.size then
             f.size = buffData.size
             auraPointsChanged = true
         end
-        SetBuff(f, i, UnitAura(unit, i))
+        SetBuff(f, buffData.index, UnitAura(unit, buffData.index))
     end
 
     for i = currentBuffFrameIndex, 40 do
@@ -1179,8 +1180,10 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
                 }
                 table.insert(appliedCC, cc)
             end
-            if srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, unpack(unitAuraInfo)) and
-                currentDebuffFrameIndex <= maxDebuffs then
+            local shouldDisplay = srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, unpack(unitAuraInfo)) and
+                currentDebuffFrameIndex <= maxDebuffs
+            debuffData.display = shouldDisplay
+            if shouldDisplay then
                 debuffData.auraInfo = unitAuraInfo
                 local doScale = source and source == "player" and unitsType == "mainUnits"
                 size = doScale and scaledDebuffSize or debuffSize
@@ -1188,11 +1191,11 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
                 debuffData.size = size
                 debuffData.isScaled = size > debuffSize
                 debuffData.index = i
-
                 currentDebuffFrameIndex = currentDebuffFrameIndex + 1
             end
+        else
+            debuffData.display = false
         end
-        debuffData.display = name ~= nil
     end
 
     local sortDebuffsByScaledSize = scaledDebuffSize ~= debuffSize
@@ -1218,7 +1221,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             f.size = debuffData.size
             auraPointsChanged = true
         end
-        SetDebuff(f, i, unpack(debuffData.auraInfo))
+        SetDebuff(f, debuffData.index, unpack(debuffData.auraInfo))
     end
 
     for i = currentDebuffFrameIndex, 40 do
