@@ -923,7 +923,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         isStealable, nameplateShowPersonal, spellId, canApplyAura,
         isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
         local f = debuffFrame
-        -- print(name)
         f.icon:SetTexture(icon)
         if (count > 1) then
             local countText = count;

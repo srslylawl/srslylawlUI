@@ -8,27 +8,45 @@ function srslylawlUI.ToggleFauxFrames(visible)
 
     if not srslylawlUI_FAUX_PartyHeader.initiated then
         local class = select(2, UnitClass("player")) or "WARRIOR"
-        local health = UnitHealthMax("player")
+        local playerHealthMax = UnitHealthMax("player")
         local _, powerToken = UnitPowerType("player")
-        local fauxUnit = {
-            ["class"] = class,
-            ["hpmax"] = health,
-            ["hp"] = ceil(health / 1.5),
-            ["mana"] = 1,
-            ["powerToken"] = powerToken,
-            ["CCIcon"] = 132298,
-            ["CCColor"] = "none",
-            ["CCMaxDur"] = 6,
-            ["pethp"] = 1
+
+        local debuffs = {
+            { debuffType = "Curse", textureId = 136139 },
+            { debuffType = "Disease", textureId = 252996 },
+            { debuffType = "Magic", textureId = 136139 },
+            { debuffType = "Poison", textureId = 132290 },
+            { debuffType = "none", textureId = 132302 }
         }
+        local buffs = {
+            { stealable = false, textureId = 136097 }, -- barkskin
+            { stealable = true, textureId = 136081 }, -- rejuvenation
+            { stealable = true, textureId = 135953 }, -- renew
+            { stealable = false, textureId = 135893 }, -- devotion aura
+            { stealable = true, textureId = 136089 }, -- earth shield
+            { stealable = true, textureId = 135987 }, -- pw: fortitude
+            { stealable = false, textureId = 606550 }, -- soothing mist
+            { stealable = true, textureId = 135932 } -- arcane intellect
+        }
+
         for i, unit in pairs(srslylawlUI.partyUnitsTable) do
             local frame = _G["srslylawlUI_FAUX_PartyHeader_" .. unit]
+            local fauxUnit = {
+                ["class"] = class,
+                ["mana"] = 1,
+                ["hpMaxMod"] = 1,
+                ["hpCurrMod"] = 1,
+                ["powerToken"] = powerToken,
+                ["CCIcon"] = 132298,
+                ["CCColor"] = "none",
+                ["CCMaxDur"] = 6,
+                ["pethp"] = 1,
+            }
 
             if unit == "party1" then
                 fauxUnit.class = "WARLOCK"
-                fauxUnit.hpmax = ceil(fauxUnit.hpmax * 0.95)
-                fauxUnit.hp = ceil(fauxUnit.hpmax)
                 fauxUnit.mana = 1
+                fauxUnit.hpMaxMod = .95
                 fauxUnit.powerToken = "MANA"
                 fauxUnit.CCIcon = 136071 --poly
                 fauxUnit.CCColor = "Magic"
@@ -36,8 +54,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 fauxUnit.pethp = .8
             elseif unit == "party2" then
                 fauxUnit.class = "ROGUE"
-                fauxUnit.hpmax = ceil(fauxUnit.hpmax * 0.90)
-                fauxUnit.hp = ceil(fauxUnit.hpmax * 0.6)
+                fauxUnit.hpMaxMod = .90
+                fauxUnit.hpCurrMod = .6
                 fauxUnit.mana = 0.4
                 fauxUnit.powerToken = "ENERGY"
                 fauxUnit.CCIcon = 132310 -- sap
@@ -46,8 +64,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 fauxUnit.pethp = .5
             elseif unit == "party3" then
                 fauxUnit.class = "MAGE"
-                fauxUnit.hpmax = ceil(fauxUnit.hpmax)
-                fauxUnit.hp = ceil(fauxUnit.hpmax * 0.3)
+                fauxUnit.hpMaxMod = .85
+                fauxUnit.hpCurrMod = .75
                 fauxUnit.mana = 0.8
                 fauxUnit.powerToken = "MANA"
                 fauxUnit.CCIcon = 136183 -- fear
@@ -56,8 +74,7 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 fauxUnit.pethp = .2
             elseif unit == "party4" then
                 fauxUnit.class = "SHAMAN"
-                fauxUnit.hpmax = ceil(fauxUnit.hpmax * 0.2)
-                fauxUnit.hp = ceil(fauxUnit.hpmax)
+                fauxUnit.hpMaxMod = .2
                 fauxUnit.mana = 0.3
                 fauxUnit.powerToken = "MANA"
                 fauxUnit.CCIcon = 458230 -- silence
@@ -65,7 +82,6 @@ function srslylawlUI.ToggleFauxFrames(visible)
                 fauxUnit.CCMaxDur = 4
                 fauxUnit.pethp = .6
             end
-            frame:SetAttribute("hpMax", fauxUnit.hpmax)
 
             local function AddTooltip(frame, text)
                 local function OnEnter(self)
@@ -107,8 +123,10 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame.unit.CCDurBar.statusBar:SetStatusBarColor(color.r, color.g, color.b)
 
             color = RAID_CLASS_COLORS[fauxUnit.class]
-
-            local hp = (srslylawlUI.ShortenNumber(fauxUnit.hp) .. " " .. ceil(fauxUnit.hp / fauxUnit.hpmax * 100) .. "%"
+            playerHealthMax = UnitHealthMax("player")
+            local hpMax = playerHealthMax * fauxUnit.hpMaxMod
+            local hpCurr = hpMax * fauxUnit.hpCurrMod
+            local hp = (srslylawlUI.ShortenNumber(hpCurr) .. " " .. ceil(hpCurr / hpMax * 100) .. "%"
                 )
 
             local powerToken = fauxUnit.powerToken
@@ -125,8 +143,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
             frame.pet.healthBar:SetValue(fauxUnit.pethp)
             frame.unit.healthBar.leftText:SetText(unit)
             frame.unit.healthBar.rightText:SetText(hp)
-            frame.unit.healthBar:SetMinMaxValues(0, fauxUnit.hpmax)
-            frame.unit.healthBar:SetValue(fauxUnit.hp)
+            frame.unit.healthBar:SetMinMaxValues(0, hpMax)
+            frame.unit.healthBar:SetValue(hpCurr)
             frame.unit.CombatIcon.texture:SetTexCoord(0.5, 1, 0, .5)
             frame.unit.CombatIcon.texture:Show()
 
@@ -140,7 +158,8 @@ function srslylawlUI.ToggleFauxFrames(visible)
             for i = 1, 40 do
                 local f = frames[i]
                 if f then
-                    f.icon:SetTexture(135932)
+                    local buff = buffs[(i % #buffs) + 1]
+                    f.icon:SetTexture(buff.textureId)
                     frame.buffs[i] = f
                 end
             end
@@ -150,7 +169,10 @@ function srslylawlUI.ToggleFauxFrames(visible)
             for i = 1, 40 do
                 local f = frames[i]
                 if f then
-                    f.icon:SetTexture(136207)
+                    local debuff = debuffs[(i % 5) + 1]
+                    f.icon:SetTexture(debuff.textureId)
+                    local color = DebuffTypeColor[debuff.debuffType]
+                    f.border:SetVertexColor(color.r, color.g, color.b);
                     frame.debuffs[i] = f
                 end
             end
@@ -225,14 +247,15 @@ function srslylawlUI.ToggleFauxFrames(visible)
                         end
                         local h = srslylawlUI.GetSetting("party.hp.height")
                         local lowerCap = srslylawlUI.GetSetting("party.hp.minWidthPercent")
-                        local health = UnitHealthMax("player")
-                        local pixelPerHp = srslylawlUI.GetSetting("party.hp.width") / health
-                        local minWidth = floor(health * pixelPerHp * lowerCap)
-                        local scaledWidth = (self:GetAttribute("hpMax") * pixelPerHp)
+                        playerHealthMax = UnitHealthMax("player")
+                        local partyHpWidth = srslylawlUI.GetSetting("party.hp.width")
+                        local pixelPerHp = partyHpWidth / playerHealthMax
+                        local minWidth = floor(playerHealthMax * pixelPerHp * lowerCap)
+                        local hpMax = fauxUnit.hpMaxMod * playerHealthMax
+                        local hpCurr = fauxUnit.hpCurrMod * hpMax
+                        local scaledWidth = (hpMax * pixelPerHp)
                         scaledWidth = scaledWidth < minWidth and minWidth or scaledWidth
-                        -- srslylawlUI.Utils_SetSizePixelPerfect(self, srslylawlUI.GetSetting("party.hp.width")+2, h+2)
-                        srslylawlUI.Utils_SetSizePixelPerfect(self.unit, srslylawlUI.GetSetting("party.hp.width"), h)
-                        -- srslylawlUI.Utils_SetSizePixelPerfect(self.unit.auraAnchor, scaledWidth, h)
+                        srslylawlUI.Utils_SetSizePixelPerfect(self.unit, partyHpWidth, h)
                         srslylawlUI.Utils_SetSizePixelPerfect(self.unit.healthBar, scaledWidth, h)
                         srslylawlUI.Utils_SetHeightPixelPerfect(self.unit.powerBar, h)
                         srslylawlUI.Utils_SetHeightPixelPerfect(self.pet.healthBar, h)
@@ -390,8 +413,9 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     scaledSize = defaultSize + srslylawlUI.GetSetting("player." .. unit .. "Frame.buffs.scaledSize")
                     for i = 1, maxBuffs do
                         local f = buffFrames[i]
-                        f.icon:SetTexture(135932)
-                        f.size = math.fmod(i + 1, 3) == 0 and scaledSize or defaultSize
+                        local buff = buffs[(i % #buffs) + 1]
+                        f.icon:SetTexture(buff.textureId)
+                        f.size = i < (maxBuffs / 3 - 2) and scaledSize or defaultSize
                         f:Show()
                     end
 
@@ -411,10 +435,14 @@ function srslylawlUI.ToggleFauxFrames(visible)
                     local maxDebuffs = srslylawlUI.GetSetting("player." .. unit .. "Frame.debuffs.maxDebuffs")
                     defaultSize = srslylawlUI.GetSetting("player." .. unit .. "Frame.debuffs.size")
                     scaledSize = defaultSize + srslylawlUI.GetSetting("player." .. unit .. "Frame.debuffs.scaledSize")
+
                     for i = 1, maxDebuffs do
                         local f = debuffFrames[i]
-                        f.icon:SetTexture(136207)
-                        f.size = math.fmod(i + 1, 3) == 0 and scaledSize or defaultSize
+                        local debuff = debuffs[(i % 5) + 1]
+                        f.icon:SetTexture(debuff.textureId)
+                        local color = DebuffTypeColor[debuff.debuffType]
+                        f.border:SetVertexColor(color.r, color.g, color.b);
+                        f.size = i < 4 and scaledSize or defaultSize
                         f:Show()
                     end
 
