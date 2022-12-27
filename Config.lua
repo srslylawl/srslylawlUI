@@ -1916,7 +1916,7 @@ function srslylawlUI.CreateConfigWindow()
                             srslylawlUI.HandleAuras(unitFrame, unit, nil, "configAuraSize")
                             srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
                         end)
-                    local scaledAuraSize = CreateCustomSlider("Scaled Size", tabParent, 0, 200,
+                    local scaledAuraSize = CreateCustomSlider("Scaled Extra Size", tabParent, 0, 200,
                         path .. aType .. "s.scaledSize"
                         , 1, 0, function()
                         srslylawlUI.HandleAuras(unitFrame, unit, nil, "configScaledAuraSize")

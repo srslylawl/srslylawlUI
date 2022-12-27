@@ -111,7 +111,6 @@ local debugString = ""
 
 --[[ TODO:
 raidicon sometimes missing after reload or roster change
-faux debuff frames (target) dont scale their size
 -- GRP PET 0 hp for some reason
 castbar text size
 plus minus button for sliders
