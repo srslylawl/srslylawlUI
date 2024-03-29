@@ -235,6 +235,13 @@ local function CreateCustomFrames(buttonFrame, unit)
 
         local class = UnitClassBase(unit)
         local color = { GetClassColor(class) }
+        if srslylawlUI.isClassic then
+            if class == "SHAMAN" then
+                color[1] = 0;
+                color[2] = 0.44;
+                color[3] = 0.87;
+            end
+        end
         color[4] = 0.7
         f.texture:SetVertexColor(unpack(color))
         f:Hide()
@@ -1011,8 +1018,8 @@ function srslylawlUI.CreateCastBar(parent, unit)
             else
                 -- has pushback, display it
                 self.StatusBar.Timer:SetText("|cffff0000" ..
-                    "+" ..
-                    srslylawlUI.Utils_DecimalRound(self.pushback, 1) ..
+                    "-" ..
+                    srslylawlUI.Utils_DecimalRound(abs(self.pushback), 1) ..
                     "|r" .. " " .. srslylawlUI.Utils_DecimalRound(self.elapsed, 1))
             end
         elseif self.isEmpower then
@@ -1285,9 +1292,15 @@ function srslylawlUI.CreateCastBar(parent, unit)
                 return
             end
 
-            isEmpower = numChargeStages > 0;
-            if not isEmpower then
-                isChannelled = true
+            --NIL
+            if not srslylawlUI.isClassic then
+                isEmpower = numChargeStages > 0;
+                if not isEmpower then
+                    isChannelled = true
+                end
+            else
+                isEmpower = false;
+                isChannelled = true;
             end
             channelOrEmpower = true
         end
@@ -2468,7 +2481,7 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
         local online = UnitIsConnected(unit)
         local inRange = UnitInRange(unit)
         local differentPhase = srslylawlUI.isClassic and not UnitInPhase(unit) or
-        not srslylawlUI.isClassic and UnitPhaseReason(unit)
+            not srslylawlUI.isClassic and UnitPhaseReason(unit)
         if dead or not online then
             -- set bar color to grey and fill bar
             SBColor[1], SBColor[2], SBColor[3] = 0.3, 0.3, 0.3
@@ -2506,6 +2519,14 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
         SBColor = { UnitSelectionColor(unit, true) }
         if not UnitPlayerControlled(unit) and UnitIsTapDenied(unit) and UnitCanAttack("player", unit) then
             SBColor = { 0.5, 0.5, 0.5, 1 }
+        end
+    end
+
+    if srslylawlUI.isClassic then
+        if class == "SHAMAN" then
+            SBColor[1] = 0;
+            SBColor[2] = 0.44;
+            SBColor[3] = 0.87;
         end
     end
 
@@ -3032,19 +3053,19 @@ function srslylawlUI.Frame_ResizeHealthBarScale()
 end
 
 function srslylawlUI.Frame_ReadyCheck(button, state)
-    local rc = button.ReadyCheck
-
     if state == "end" then
         --hide
         button.ReadyCheck:SetScript("OnUpdate", function(self, elapsed)
-            local alpha = self:GetAlpha()
-            alpha = alpha - elapsed * 0.1
+            local alpha = self.alphaVal or 5;
+            alpha = alpha - elapsed * 0.5
+            self.alphaVal = alpha;
             if alpha <= 0 then
                 self:Hide()
                 self:SetScript("OnUpdate", nil)
                 return
             else
-                self:SetAlpha(alpha)
+                local actualAlpha = alpha < 1 and alpha or 1
+                self:SetAlpha(actualAlpha)
             end
         end)
     elseif state == "start" then

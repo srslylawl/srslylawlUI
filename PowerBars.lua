@@ -6,7 +6,7 @@ srslylawlUI.PowerBar.Type = {
     ResourceBar = 2,
     Special = 3
 }
-
+--1288 NIL
 srslylawlUI.PowerBar.ClassicBarTypeTable = {
     [1] = 0,  --Warrior
     [2] = 0,  --Paladin
@@ -15,6 +15,7 @@ srslylawlUI.PowerBar.ClassicBarTypeTable = {
     [5] = 0,  --Priest
     [7] = 0,  --Shaman
     [8] = 0,  --Mage
+    [9] = 0,  -- Warlock
     [11] = 3, --Druid
 }
 
@@ -83,6 +84,18 @@ srslylawlUI.PowerBar.SpecBarTypeTable = {
     [72] = 0,   --Fury
     [73] = 0,   --Protection
     [1446] = 0, --Initial Warrior (no spec)
+}
+
+srslylawlUI.PowerBar.ClassicClassToPowerType = {
+    [1] = "Rage",        --Warrior
+    [2] = "Mana",        --Paladin
+    [3] = "Mana",        --Hunter
+    [4] = "ComboPoints", --Rogue
+    [5] = "Mana",        --Priest
+    [7] = "Mana",        --Shaman
+    [8] = "Mana",        --Mage
+    [9] = "Mana",        -- Warlock
+    --[11] = 3, --Druid
 }
 
 srslylawlUI.PowerBar.SpecToPowerType = {
@@ -803,7 +816,11 @@ function srslylawlUI.PowerBar.SetColorByToken(bar, powerToken)
 end
 
 function srslylawlUI.PowerBar.GetPowerToken()
-    return srslylawlUI.PowerBar.SpecToPowerType[srslylawlUI.GetSpecID()]
+    if srslylawlUI.isClassic then
+        return srslylawlUI.PowerBar.ClassicClassToPowerType[select(3, UnitClass("player"))]
+    else
+        return srslylawlUI.PowerBar.SpecToPowerType[srslylawlUI.GetSpecID()]
+    end
 end
 
 function srslylawlUI.PowerBar.GetBar(parent, type, token)
@@ -995,7 +1012,7 @@ function srslylawlUI.PowerBar.UpdateMax(parent, powerToken)
 end
 
 function srslylawlUI.GetSpecID()
-    if srslylawlUI.isClassic then return false end
+    if srslylawlUI.isClassic then return -1 end
 
     local specIndex = GetSpecialization()
     return GetSpecializationInfo(specIndex)

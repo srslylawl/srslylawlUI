@@ -11,6 +11,7 @@ srslylawlUI = srslylawlUI or {}
 ]]
 
 local version = "1.55"
+--rdycheck never goes away on player
 
 
 srslylawlUI.loadedSettings = {}
@@ -1331,7 +1332,8 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             local function updateBar(self, elapsed)
                 timer = timer + elapsed
                 local aurainfo = srslylawlUI.GetUnitAura(unit, self.spellData.index, "HARMFUL");
-                if aurainfo == nil or auraInfo.expirationTime == nil then return end
+                --aurainfo nIl
+                if aurainfo == nil or aurainfo.expirationTime == nil then return end
                 if timer >= updateInterval then
                     if aurainfo.duration == 0 then
                         self.statusBar:SetValue(1)
@@ -2383,7 +2385,14 @@ local function Initialize()
             Hide(TargetFrame)
         end
         if not showParty then
-            Hide(PartyFrame)
+            if srslylawlUI.isClassic then
+                Hide(PartyMemberFrame1)
+                Hide(PartyMemberFrame2)
+                Hide(PartyMemberFrame3)
+                Hide(PartyMemberFrame4)
+            else
+                Hide(PartyFrame)
+            end
         end
         if not showCastbar then
             Hide(PlayerCastingBarFrame)
