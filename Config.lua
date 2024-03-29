@@ -622,15 +622,21 @@ function srslylawlUI.CreateConfigWindow()
         local function OnEnter(self)
             srslylawlUI.customTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, 0)
             srslylawlUI.customTooltip:ClearLines()
-            -- srslylawlUI.customTooltip:AddSpellByID(id)
-            AddSpellByIDToToolTip(srslylawlUI.customTooltip, id)
+            if srslylawlUI.isClassic then
+                srslylawlUI.customTooltip:AddSpellByID(id)
+            else
+                AddSpellByIDToToolTip(srslylawlUI.customTooltip, id)
+            end
         end
 
         local function OnUpdate(self)
             if srslylawlUI.customTooltip:IsOwned(self) then
                 srslylawlUI.customTooltip:ClearLines()
-                -- srslylawlUI.customTooltip:AddSpellByID(id)
-                AddSpellByIDToToolTip(srslylawlUI.customTooltip, id)
+                if srslylawlUI.isClassic then
+                    srslylawlUI.customTooltip:AddSpellByID(id)
+                else
+                    AddSpellByIDToToolTip(srslylawlUI.customTooltip, id)
+                end
             end
         end
 
@@ -704,13 +710,14 @@ function srslylawlUI.CreateConfigWindow()
 
     local function CreateCheckButton(name, parent)
         local nameWithoutSpace = name:gsub(" ", "_")
+        local txt = srslylawlUI.isClassic and "Text" or "text"
         local bounds = CreateFrame("Frame", "$parent_" .. nameWithoutSpace .. "_Bounds", parent)
         local checkButton = CreateFrame("CheckButton", "$parent_Button", bounds, "UICheckButtonTemplate")
         checkButton.bounds = bounds
         checkButton:SetPoint("LEFT", bounds, "LEFT", 0, 0)
-        checkButton.text:SetTextColor(1, 1, 1, 1)
-        checkButton.text:SetText(name)
-        local w = checkButton:GetWidth() + checkButton.text:GetStringWidth()
+        checkButton[txt]:SetTextColor(1, 1, 1, 1)
+        checkButton[txt]:SetText(name)
+        local w = checkButton:GetWidth() + checkButton[txt]:GetStringWidth()
         local h = checkButton:GetHeight()
         bounds:SetSize(w, h + 10)
 
@@ -724,13 +731,14 @@ function srslylawlUI.CreateConfigWindow()
     local function CreateSettingsCheckButton(name, parent, valuePath, funcOnChanged, canBeNil)
         local nameWithoutSpace = name:gsub(" ", "_")
         local bounds = CreateFrame("Frame", "$parent_" .. nameWithoutSpace .. "_Bounds", parent)
+        local txt = srslylawlUI.isClassic and "Text" or "text"
         local checkButton = CreateFrame("CheckButton", "$parent_Button", bounds, "UICheckButtonTemplate")
         checkButton.bounds = bounds
         checkButton:SetPoint("LEFT", bounds, "LEFT", 0, 0)
-        checkButton.text:SetTextColor(1, 1, 1, 1)
+        checkButton[txt]:SetTextColor(1, 1, 1, 1)
         table.insert(srslylawlUI.ConfigElements.CheckButtons, checkButton)
-        checkButton.text:SetText(name)
-        local w = checkButton:GetWidth() + checkButton.text:GetStringWidth()
+        checkButton[txt]:SetText(name)
+        local w = checkButton:GetWidth() + checkButton[txt]:GetStringWidth()
         local h = checkButton:GetHeight()
         bounds:SetSize(w, h + 10)
         checkButton:SetChecked(srslylawlUI.GetSetting(valuePath, canBeNil))
@@ -836,11 +844,19 @@ function srslylawlUI.CreateConfigWindow()
         AddTooltip(showParty, "Show Frames while in a Party")
 
         local showPlayer = CreateSettingsCheckButton("Show Player", tab, "party.visibility.showPlayer",
-            function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() srslylawlUI.Frame_ResizeHealthBarScale() end)
+            function()
+                srslylawlUI.Frame_UpdateVisibility()
+                srslylawlUI.SortPartyFrames()
+                srslylawlUI.Frame_ResizeHealthBarScale()
+            end)
         AddTooltip(showPlayer, "Show Player as Party Member (recommended)")
 
         local showSolo = CreateSettingsCheckButton("Solo", tab, "party.visibility.showSolo",
-            function() srslylawlUI.Frame_UpdateVisibility() srslylawlUI.SortPartyFrames() srslylawlUI.Frame_ResizeHealthBarScale() end)
+            function()
+                srslylawlUI.Frame_UpdateVisibility()
+                srslylawlUI.SortPartyFrames()
+                srslylawlUI.Frame_ResizeHealthBarScale()
+            end)
         AddTooltip(showSolo, "Show Party with Player as sole member while not in a group (implies Show Player)")
 
         local showArena = CreateSettingsCheckButton("Arena", tab, "party.visibility.showArena",
@@ -873,7 +889,10 @@ function srslylawlUI.CreateConfigWindow()
             buffVisibility:AppendToControl(anchor)
 
             local buffsDefault = CreateSettingsCheckButton("Default", tab, path .. "buffs.showDefault",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             if unit == "party" then
                 AddTooltip(buffsDefault,
                     "Show/hide all buffs per default, except if they are in/excluded by another setting.\n\nRecommended: Hiding all per default, while showing defensives and whitelisted auras.")
@@ -882,24 +901,39 @@ function srslylawlUI.CreateConfigWindow()
                     "Show/hide all buffs per default, except if they are in/excluded by another setting.")
             end
             local buffsDefensive = CreateSettingsCheckButton("Defensives", tab, path .. "buffs.showDefensives",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             AddTooltip(buffsDefensive, "Show/hide buffs categorized as Defensives")
 
             local buffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, path .. "buffs.showCastByPlayer",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             AddTooltip(buffsPlayer, "Show/hide buffs that have been applied by the Player")
 
             local buffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab, path ..
                 "buffs.showInfiniteDuration",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             AddTooltip(buffsInfinite, "Show/hide buffs with no expiration time")
 
             local buffsLong = CreateSettingsCheckButton("Long Duration", tab, path .. "buffs.showLongDuration",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             AddTooltip(buffsLong, "Show/hide buffs with a base duration longer than 60 seconds")
 
             local buffsAbsorbs = CreateSettingsCheckButton("Absorbs", tab, path .. "buffs.showAbsorbs",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             AddTooltip(buffsAbsorbs,
                 "Show/hide absorb effects as a regular buff (instead of only as an absorb aura overlay). If disabled, will still show as absorb aura overlay.")
 
@@ -910,21 +944,33 @@ function srslylawlUI.CreateConfigWindow()
             debuffVisibility:ChainToControl(buffVisibility)
 
             local debuffsDefault = CreateSettingsCheckButton("Default", tab, path .. "debuffs.showDefault",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             AddTooltip(debuffsDefault,
                 "Show/hide all debuffs per default, except if they are in/excluded by another setting.\n\nRecommended: Showing all per default, while hiding infinite duration auras")
 
             local debuffsPlayer = CreateSettingsCheckButton("Cast by Player", tab, path .. "debuffs.showCastByPlayer",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             AddTooltip(debuffsPlayer, "Show/hide debuffs that have been applied by the Player")
 
             local debuffsInfinite = CreateSettingsCheckButton("Infinite Duration", tab,
                 path .. "debuffs.showInfiniteDuration",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             AddTooltip(debuffsInfinite, "Show/hide debuffs with no expiration time")
 
             local debuffsLong = CreateSettingsCheckButton("Long Duration", tab, path .. "debuffs.showLongDuration",
-                function() srslylawlUI.Party_HandleAuras_ALL() srslylawlUI.Main_HandleAuras_ALL() end)
+                function()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                    srslylawlUI.Main_HandleAuras_ALL()
+                end)
             AddTooltip(debuffsLong, "Show/hide buffs with a base duration longer than 180 seconds")
 
             debuffVisibility:Add(debuffsDefault, debuffsPlayer, debuffsInfinite, debuffsLong)
@@ -995,11 +1041,14 @@ function srslylawlUI.CreateConfigWindow()
         --raidIcon
         local raidIconControl = CreateConfigControl(tab, "Party Raid Icon", nil, "party")
         local raidEnable = CreateSettingsCheckButton("Enable", tab, path .. "raidIcon.enabled",
-            function(self) for _, unit in pairs(srslylawlUI.partyUnits) do unit.unitFrame.unit.RaidIcon:SetEnabled(self:
-                        GetChecked())
+            function(self)
+                for _, unit in pairs(srslylawlUI.partyUnits) do
+                    unit.unitFrame.unit.RaidIcon:SetEnabled(self:
+                    GetChecked())
                 end
             end)
-        local raidAnchor = CreateCustomDropDown("Point", 100, tab, path .. "raidIcon.position.1", srslylawlUI.anchorTable
+        local raidAnchor = CreateCustomDropDown("Point", 100, tab, path .. "raidIcon.position.1", srslylawlUI
+            .anchorTable
             , srslylawlUI.Frame_Party_ResetDimensions_ALL)
         local raidX = CreateCustomSlider("X Offset", tab, -2000, 2000, path .. "raidIcon.position.2", 1, 0,
             srslylawlUI.Frame_Party_ResetDimensions_ALL)
@@ -1016,7 +1065,9 @@ function srslylawlUI.CreateConfigWindow()
         local powerBarWidth = CreateCustomSlider("Width", tab, 1, 100, path .. "power.width", 1, 0,
             srslylawlUI.Frame_Party_ResetDimensions_ALL)
         local showText = CreateSettingsCheckButton("Show Text", tab, "party.power.text",
-            function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.Frame_ResetUnitButton(srslylawlUI
+            function()
+                for _, unit in pairs(srslylawlUI.partyUnitsTable) do
+                    srslylawlUI.Frame_ResetUnitButton(srslylawlUI
                         .partyUnits[unit].unitFrame.unit, unit)
                 end
             end)
@@ -1026,7 +1077,9 @@ function srslylawlUI.CreateConfigWindow()
         local petBars = CreateConfigControl(tab, "Party Pet", nil, "party")
         petBars:ChainToControl(powerBars, "RIGHT")
         local petEnable = CreateSettingsCheckButton("Enable", tab, path .. "pet.enabled",
-            function() for _, unit in pairs(srslylawlUI.partyUnitsTable) do srslylawlUI.srslylawlUI.Frame_ResetPetButton(srslylawlUI
+            function()
+                for _, unit in pairs(srslylawlUI.partyUnitsTable) do
+                    srslylawlUI.srslylawlUI.Frame_ResetPetButton(srslylawlUI
                         .partyUnits[unit].unitFrame.unit, unit)
                 end
             end)
@@ -1081,7 +1134,7 @@ function srslylawlUI.CreateConfigWindow()
                 end
             end
             local frameAnchor = CreateCustomDropDown("Anchor To", 100, tab, path .. aType .. "s.anchoredTo", anchorTable
-                , nil, pointOnInitValueFunc)
+            , nil, pointOnInitValueFunc)
             local auraAnchor = CreateCustomDropDown("AnchorPoint", 100, tab, path .. aType .. "s.anchor",
                 srslylawlUI.auraSortMethodTable, function() ResetAuraAll() end)
             --disabling the auraanchor dropdown, should we anchor to other auratype
@@ -1099,12 +1152,12 @@ function srslylawlUI.CreateConfigWindow()
             end
             local maxAuras = CreateCustomSlider("Max " .. typeCap .. "s", tab, 0, 40, path ..
                 aType .. "s.max" .. typeCap .. "s", 1, 0, function()
-                for _, unit in pairs(srslylawlUI.partyUnitsTable) do
-                    srslylawlUI.CreateBuffFrames(srslylawlUI.partyUnits[unit].unitFrame, unit)
-                end
-                ResetAuraAll()
-                srslylawlUI.Party_HandleAuras_ALL()
-            end)
+                    for _, unit in pairs(srslylawlUI.partyUnitsTable) do
+                        srslylawlUI.CreateBuffFrames(srslylawlUI.partyUnits[unit].unitFrame, unit)
+                    end
+                    ResetAuraAll()
+                    srslylawlUI.Party_HandleAuras_ALL()
+                end)
             local auraSize = CreateCustomSlider("Size", tab, 0, 200, path .. aType .. "s.size", 1, 0, function()
                 srslylawlUI.Party_HandleAuras_ALL()
                 ResetAuraAll()
@@ -1248,7 +1301,6 @@ function srslylawlUI.CreateConfigWindow()
                     spellId ..
                     " no longer recognized by WoW client. Might have been removed - removing from saved variables.")
             else
-
                 local spell = { name = name, spellId = spellId, icon = icon }
                 if tostring(spellId) == tostring(filter) then
                     exactMatch = spell
@@ -1385,7 +1437,8 @@ function srslylawlUI.CreateConfigWindow()
 
                 attributePanel.DefensiveAmount = CreateCustomEditBox(attributePanel, "Reduction Amount")
                 attributePanel.DefensiveAmount:SetNumeric(true)
-                attributePanel.DefensiveAmount.bounds:SetPoint("LEFT", attributePanel.isDefensive.text, "RIGHT")
+                attributePanel.DefensiveAmount.bounds:SetPoint("LEFT",
+                    srslylawlUI.isClassic and attributePanel.isDefensive.Text or attributePanel.isDefensive.text, "RIGHT")
                 attributePanel.DefensiveAmount:SetScript("OnEnterPressed", function(self)
                     local amount = self:GetNumber();
                     local id = self.bounds:GetParent():GetAttribute("spellId")
@@ -1504,7 +1557,8 @@ function srslylawlUI.CreateConfigWindow()
             attributePanel.isDefensive:SetChecked(srslylawlUI_Saved.buffs.known[spellId].isDefensive)
             attributePanel.isAbsorb:SetChecked(srslylawlUI_Saved.buffs.known[spellId].isAbsorb)
             attributePanel.DefensiveAmount:SetNumber(srslylawlUI_Saved[auraType].known[spellId].reductionAmount or 0)
-            attributePanel.AutoDetectDefensiveAmount:SetChecked(srslylawlUI_Saved[auraType].known[spellId].autoDetectAmount
+            attributePanel.AutoDetectDefensiveAmount:SetChecked(srslylawlUI_Saved[auraType].known[spellId]
+                .autoDetectAmount
                 ~= false)
         elseif auraType == "debuffs" then
             --dropdown cctype
@@ -1517,7 +1571,8 @@ function srslylawlUI.CreateConfigWindow()
                     local info = UIDropDownMenu_CreateInfo()
                     local checkFunc = function(self)
                         return self.value ==
-                            srslylawlUI.Utils_CCTableTranslation(srslylawlUI_Saved[auraType].known[spellId].crowdControlType)
+                            srslylawlUI.Utils_CCTableTranslation(srslylawlUI_Saved[auraType].known[spellId]
+                                .crowdControlType)
                     end
                     info.func = self.SetValue
                     for k, v in pairs(srslylawlUI.crowdControlTable) do
@@ -1551,7 +1606,6 @@ function srslylawlUI.CreateConfigWindow()
                 parentTab:Hide()
                 parentTab:Show()
             end
-
         end
         SetEnableButtons(attributePanel, auraType, autoDetect)
     end
@@ -1818,7 +1872,6 @@ function srslylawlUI.CreateConfigWindow()
                     UnregisterUnitWatch(unitFrame)
                     unitFrame:SetShown(checked)
                 end
-
             end)
             local hpWidth = CreateCustomSlider("Width", tabParent, 1, 3000, path .. "hp.width", 1, 0,
                 function() srslylawlUI.Frame_ResetDimensions(unitFrame) end)
@@ -1907,10 +1960,10 @@ function srslylawlUI.CreateConfigWindow()
                     end
                     local maxAuras = CreateCustomSlider("Max " .. typeCap .. "s", tabParent, 0, 40,
                         path .. aType .. "s.max" .. typeCap .. "s", 1, 0, function()
-                        srslylawlUI.CreateBuffFrames(unitFrame, unit)
-                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                        srslylawlUI.HandleAuras(unitFrame, unit, nil, "configMaxAuras")
-                    end)
+                            srslylawlUI.CreateBuffFrames(unitFrame, unit)
+                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                            srslylawlUI.HandleAuras(unitFrame, unit, nil, "configMaxAuras")
+                        end)
                     local auraSize = CreateCustomSlider("Size", tabParent, 0, 200, path .. aType .. "s.size", 1, 0,
                         function()
                             srslylawlUI.HandleAuras(unitFrame, unit, nil, "configAuraSize")
@@ -1919,9 +1972,9 @@ function srslylawlUI.CreateConfigWindow()
                     local scaledAuraSize = CreateCustomSlider("Scaled Extra Size", tabParent, 0, 200,
                         path .. aType .. "s.scaledSize"
                         , 1, 0, function()
-                        srslylawlUI.HandleAuras(unitFrame, unit, nil, "configScaledAuraSize")
-                        srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
-                    end)
+                            srslylawlUI.HandleAuras(unitFrame, unit, nil, "configScaledAuraSize")
+                            srslylawlUI.SetAuraPointsAll(unit, "mainUnits")
+                        end)
                     if unit == "target" then
                         if aType == "buff" then
                             AddTooltip(scaledAuraSize, "Extra size of stealable/purgeable/dispellable buffs")
@@ -1947,7 +2000,6 @@ function srslylawlUI.CreateConfigWindow()
                         end)
                     auraControl:Add(frameAnchor, auraAnchor, xOffset, yOffset, auraSize, scaledAuraSize, maxAuras)
                     anchor = auraControl
-
                 end
 
                 --combaticon
@@ -1993,9 +2045,17 @@ function srslylawlUI.CreateConfigWindow()
                 anchor = petControl
                 --powerbarsetup
                 local function SetPlayerPowerBarOptions()
-                    local specIndex = GetSpecialization()
-                    local specID = GetSpecializationInfo(specIndex)
-                    local isDruid = specID >= 102 and specID <= 105
+                    local specIndex, specID, isDruid
+                    local classID
+                    if not srslylawlUI.isClassic then
+                        specIndex = GetSpecialization()
+                        specID = GetSpecializationInfo(specIndex)
+                        isDruid = specID >= 102 and specID <= 105
+                    else
+                        classID = select(3, UnitClass("player"))
+                        isDruid = classID == 11;
+                        specID = classID
+                    end
                     local currentStance = isDruid and GetShapeshiftFormID() or 0
                     currentStance = currentStance or 0
                     local barTable = srslylawlUI.mainUnits.player.unitFrame.BarHandler.bars
@@ -2037,12 +2097,12 @@ function srslylawlUI.CreateConfigWindow()
                                 end, true)
                             local barHeight = CreatePowerBarSlider("Height", tabParent, name, specID, "height",
                                 newTable[i].height, function()
-                                unitFrame:ReRegisterAll()
-                            end)
+                                    unitFrame:ReRegisterAll()
+                                end)
                             local barPriority = CreatePowerBarSlider("Order", tabParent, name, specID, "priority",
                                 newTable[i].priority, function()
-                                unitFrame:ReRegisterAll()
-                            end)
+                                    unitFrame:ReRegisterAll()
+                                end)
                             local reverseFill = CreateSettingsCheckButton("Reverse fill direction", tabParent,
                                 p .. ".reversed"
                                 , function() unitFrame:ReRegisterAll() end, true)
@@ -2057,8 +2117,15 @@ function srslylawlUI.CreateConfigWindow()
                             end
                             barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
                             table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls + 1,
-                                { name = newTable[i].bar.name, control = barControl, enabled = barEnabled,
-                                    height = barHeight, prio = barPriority, spec = specID, stance = currentStance })
+                                {
+                                    name = newTable[i].bar.name,
+                                    control = barControl,
+                                    enabled = barEnabled,
+                                    height = barHeight,
+                                    prio = barPriority,
+                                    spec = specID,
+                                    stance = currentStance
+                                })
                             cAnchor = barControl
                             anchor = barControl
                             cFrame.lastPlayerPowerBarAnchor = barControl
@@ -2128,8 +2195,8 @@ function srslylawlUI.CreateConfigWindow()
                 local position = CreateCustomDropDown("Position", 100, tabParent, path .. "power.position",
                     { "LEFT", "RIGHT" }
                     , function()
-                    srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
-                end)
+                        srslylawlUI.Frame_ResetDimensions_PowerBar(unitFrame)
+                    end)
                 powerBarControl:Add(powerBarEnable, powerBarWidth, powerBarText, position)
                 powerBarControl:ChainToControl(anchor)
                 if unit == "targettarget" then
@@ -2291,7 +2358,7 @@ function srslylawlUI.CreateConfigWindow()
 
     -- Buffs Tab buttons
     local knownBuffs, absorbs, defensives, whiteList, blackList =
-    SetTabs(buffsTab, "Encountered", "Absorbs", "Defensives", "Whitelist", "Blacklist")
+        SetTabs(buffsTab, "Encountered", "Absorbs", "Defensives", "Whitelist", "Blacklist")
     AddTooltip(knownBuffs.tabButton, "List of all encountered buffs")
     AddTooltip(absorbs.tabButton, "Buffs with absorb effects, will be shown as segments")
     AddTooltip(defensives.tabButton, "Buffs with damage reduction effects, will increase your effective health")

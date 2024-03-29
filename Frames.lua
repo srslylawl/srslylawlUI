@@ -728,16 +728,17 @@ function srslylawlUI.Frame_InitialMainUnitConfig(buttonFrame)
     buttonFrame.unit:SetScript("OnDragStop", srslylawlUI.PlayerFrame_OnDragStop)
     buttonFrame.unit:SetScript("OnHide", srslylawlUI.PlayerFrame_OnDragStop)
 
+    buttonFrame.unit:SetScript("OnEnter", function(self)
+        local unit = self:GetParent():GetAttribute("unit")
+        GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
+        GameTooltip:SetUnit(unit)
+    end)
+
     if unit == "player" then
         RegisterUnitWatch(buttonFrame.pet)
         buttonFrame.pet:SetScript("OnShow", function(self)
             local unit = self:GetParent():GetAttribute("unit")
             srslylawlUI.Frame_ResetPetButton(buttonFrame, unit .. "pet")
-        end)
-        buttonFrame.unit:SetScript("OnEnter", function(self)
-            local unit = self:GetParent():GetAttribute("unit")
-            GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
-            GameTooltip:SetUnit(unit)
         end)
         buttonFrame.pet:SetScript("OnEnter", function(self)
             local unit = self:GetParent():GetAttribute("unit")
@@ -1504,8 +1505,10 @@ function srslylawlUI.CreateCastBar(parent, unit)
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
-    cBar:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_START", unit)
-    cBar:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_STOP", unit)
+    if not srslylawlUI.isClassic then
+        cBar:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_START", unit)
+        cBar:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_STOP", unit)
+    end
 
 
     cBar:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", unit)
@@ -1610,15 +1613,16 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
             disabled = srslylawlUI.GetSettingByUnit("ccbar.disabled", unitsType, unit)
             reversed = srslylawlUI.GetSettingByUnit("ccbar.reversed", unitsType, unit)
         elseif unit == "player" then
-            local specIndex = GetSpecialization()
-            local specID = GetSpecializationInfo(specIndex)
-
             local path
-            if specID < 102 or specID > 105 then -- not druid
-                path = "player.playerFrame.power.overrides." .. specID .. "." .. bar.name .. "."
-            else
-                local currentStance = GetShapeshiftFormID()
-                --[[
+            if not srslylawlUI.isClassic then
+                local specIndex = GetSpecialization()
+                local specID = GetSpecializationInfo(specIndex)
+
+                if specID < 102 or specID > 105 then -- not druid
+                    path = "player.playerFrame.power.overrides." .. specID .. "." .. bar.name .. "."
+                else
+                    local currentStance = GetShapeshiftFormID()
+                    --[[
                     humanoid form - nil
                     Aquatic Form - 4
                     Bear Form - 5
@@ -1629,8 +1633,31 @@ function srslylawlUI.BarHandler_Create(frame, barParent)
                     Travel Form - 3
                     Tree of Life - 2
                 ]]
-                if currentStance == nil then currentStance = 0 end
-                path = "player.playerFrame.power.overrides." .. specID .. "." .. currentStance .. "." .. bar.name .. "."
+                    if currentStance == nil then currentStance = 0 end
+                    path = "player.playerFrame.power.overrides." ..
+                        specID .. "." .. currentStance .. "." .. bar.name .. "."
+                end
+            else
+                local classID = select(3, UnitClass("player"))
+                if classID ~= 11 then --not druid
+                    path = "player.playerFrame.power.overrides." .. classID .. "." .. bar.name .. "."
+                else
+                    local currentStance = GetShapeshiftFormID()
+                    --[[
+                    humanoid form - nil
+                    Aquatic Form - 4
+                    Bear Form - 5
+                    Cat Form - 1
+                    Flight Form - 29
+                    Moonkin Form - 31
+                    Swift Flight Form - 27
+                    Travel Form - 3
+                    Tree of Life - 2
+                ]]
+                    if currentStance == nil then currentStance = 0 end
+                    path = "player.playerFrame.power.overrides." ..
+                        specID .. "." .. currentStance .. "." .. bar.name .. "."
+                end
             end
             priority = srslylawlUI.GetSetting(path .. "priority", true) or priority
             height = srslylawlUI.GetSetting(path .. "height", true) or height
@@ -1980,10 +2007,10 @@ function srslylawlUI.Frame_UpdateVisibility()
 
     if srslylawlUI_FAUX_PartyHeader:IsShown() then return end
 
-    local isInArena = C_PvP.IsArena()
-    local isInBG = C_PvP.IsBattleground()
+    local isInArena = not srslylawlUI.isClassic and C_PvP.IsArena() or false
+    local isInBG = not srslylawlUI.isClassic and C_PvP.IsBattleground() or UnitInBattleground("player") ~= nil
     local isInGroup = IsInGroup() and not IsInRaid()
-    local isInRaid = IsInRaid() and not C_PvP.IsArena()
+    local isInRaid = IsInRaid() and not isInArena
 
     if isInGroup then
         UpdateHeaderVisible(srslylawlUI.GetSetting("party.visibility.showParty"))
@@ -2162,10 +2189,12 @@ function srslylawlUI.RegisterEvents(buttonFrame)
         buttonFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", unit)
         buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
         buttonFrame:RegisterUnitEvent("UNIT_CONNECTION", unit)
-        buttonFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", unit)
+        if not srslylawlUI.isClassic then
+            buttonFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", unit)
+            buttonFrame:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", unit)
+        end
         buttonFrame:RegisterUnitEvent("UNIT_AURA", unit)
         buttonFrame:RegisterUnitEvent("UNIT_HEAL_PREDICTION", unit)
-        buttonFrame:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", unit)
         buttonFrame:RegisterUnitEvent("UNIT_PHASE", unit)
         buttonFrame:RegisterUnitEvent("READY_CHECK_CONFIRM", unit)
         buttonFrame:RegisterUnitEvent("UNIT_POWER_FREQUENT", unit)
@@ -2438,7 +2467,8 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
         local dead = UnitIsDeadOrGhost(unit)
         local online = UnitIsConnected(unit)
         local inRange = UnitInRange(unit)
-        local differentPhase = UnitPhaseReason(unit)
+        local differentPhase = srslylawlUI.isClassic and not UnitInPhase(unit) or
+        not srslylawlUI.isClassic and UnitPhaseReason(unit)
         if dead or not online then
             -- set bar color to grey and fill bar
             SBColor[1], SBColor[2], SBColor[3] = 0.3, 0.3, 0.3
@@ -2449,14 +2479,18 @@ function srslylawlUI.Frame_ResetHealthBar(button, unit)
             end
         elseif differentPhase then
             local phaseReason
-            if differentPhase == Enum.PhaseReason.WarMode then
-                phaseReason = "diff War Mode"
-            elseif differentPhase == Enum.PhaseReason.ChromieTime then
-                phaseReason = "Timewalking Campaign"
-            elseif differentPhase == Enum.PhaseReason.Phasing then
+            if srslylawlUI.isClassic then
                 phaseReason = "different Phase"
-            elseif differentPhase == Enum.PhaseReason.Sharding then
-                phaseReason = "different Shard"
+            else
+                if differentPhase == Enum.PhaseReason.WarMode then
+                    phaseReason = "diff War Mode"
+                elseif differentPhase == Enum.PhaseReason.ChromieTime then
+                    phaseReason = "Timewalking Campaign"
+                elseif differentPhase == Enum.PhaseReason.Phasing then
+                    phaseReason = "different Phase"
+                elseif differentPhase == Enum.PhaseReason.Sharding then
+                    phaseReason = "different Shard"
+                end
             end
             rightText = phaseReason
         end

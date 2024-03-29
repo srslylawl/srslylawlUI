@@ -7,108 +7,119 @@ srslylawlUI.PowerBar.Type = {
     Special = 3
 }
 
+srslylawlUI.PowerBar.ClassicBarTypeTable = {
+    [1] = 0,  --Warrior
+    [2] = 0,  --Paladin
+    [3] = 0,  --Hunter
+    [4] = 1,  --Rogue
+    [5] = 0,  --Priest
+    [7] = 0,  --Shaman
+    [8] = 0,  --Mage
+    [11] = 3, --Druid
+}
+
 srslylawlUI.PowerBar.SpecBarTypeTable = {
     --DK
-    [250] = 1, --Blood
-    [251] = 1, --Frost
-    [252] = 1, --Unholy
+    [250] = 1,  --Blood
+    [251] = 1,  --Frost
+    [252] = 1,  --Unholy
     [1455] = 1, --Initial DK (no spec)
     --DH
-    [577] = 0, --Havoc
-    [581] = 0, --Vengeance
+    [577] = 0,  --Havoc
+    [581] = 0,  --Vengeance
     [1456] = 0, --Initial DH (no spec)
     --Druid
-    [102] = 3, --Balance
-    [103] = 3, --Feral
-    [104] = 3, --Guardian
-    [105] = 3, --Restoration
+    [102] = 3,  --Balance
+    [103] = 3,  --Feral
+    [104] = 3,  --Guardian
+    [105] = 3,  --Restoration
     [1447] = 3, --Initial Druid (no spec)
     --Evoker
     [1465] = 1, --Initial Evoker (no spec)
     [1467] = 1, --Devastation
     [1468] = 1, --Preservation
     --Hunter
-    [253] = 0, --BM
-    [254] = 0, --Marksmanship
-    [255] = 0, --Survival
+    [253] = 0,  --BM
+    [254] = 0,  --Marksmanship
+    [255] = 0,  --Survival
     [1448] = 0, --Initial Hunter (no spec)
     --Mage
-    [62] = 1, --Arcane
-    [63] = 0, --Fire
-    [64] = 0, --Frost
+    [62] = 1,   --Arcane
+    [63] = 0,   --Fire
+    [64] = 0,   --Frost
     [1449] = 0, --Initial Mage (no spec)
     --Monk
-    [268] = 2, --Brewmaster
-    [269] = 1, --Windwalker
-    [270] = 0, --Mistweaver
+    [268] = 2,  --Brewmaster
+    [269] = 1,  --Windwalker
+    [270] = 0,  --Mistweaver
     [1450] = 0, --Initial Monk (no spec)
     --Paladin
-    [65] = 1, --Holy
-    [66] = 1, --Protection
-    [70] = 1, --Retribution
+    [65] = 1,   --Holy
+    [66] = 1,   --Protection
+    [70] = 1,   --Retribution
     [1451] = 1, --Initial
     --Priest
-    [256] = 0, --Discipline
-    [257] = 0, --Holy
-    [258] = 2, --Shadow
+    [256] = 0,  --Discipline
+    [257] = 0,  --Holy
+    [258] = 2,  --Shadow
     [1452] = 0, --Initial Priest
     --Rogue
-    [259] = 1, --Assassination
-    [260] = 1, --Outlaw
-    [261] = 1, --Subtlety
+    [259] = 1,  --Assassination
+    [260] = 1,  --Outlaw
+    [261] = 1,  --Subtlety
     [1453] = 1, --Initial
     --Shaman
-    [262] = 2, --Elemental
-    [263] = 0, --Enhancement
-    [264] = 0, --Restoration
+    [262] = 2,  --Elemental
+    [263] = 0,  --Enhancement
+    [264] = 0,  --Restoration
     [1444] = 0, --Initial
     --Warlock
-    [265] = 1, --Affliction
-    [266] = 1, --Demonology
-    [267] = 1, --Destruction
+    [265] = 1,  --Affliction
+    [266] = 1,  --Demonology
+    [267] = 1,  --Destruction
     [1454] = 1, --Initial Warlock (no spec)
     --Warrior
-    [71] = 0, --Arms
-    [72] = 0, --Fury
-    [73] = 0, --Protection
+    [71] = 0,   --Arms
+    [72] = 0,   --Fury
+    [73] = 0,   --Protection
     [1446] = 0, --Initial Warrior (no spec)
 }
 
 srslylawlUI.PowerBar.SpecToPowerType = {
     --DK
-    [250] = "Runes", --Blood
-    [251] = "Runes", --Frost
-    [252] = "Runes", --Unholy
-    [1455] = "Runes", --Initial
+    [250] = "Runes",        --Blood
+    [251] = "Runes",        --Frost
+    [252] = "Runes",        --Unholy
+    [1455] = "Runes",       --Initial
     --Evoker
-    [1465] = "Essence", --Initial
-    [1467] = "Essence", --Devastation
-    [1468] = "Essence", --Preservation
+    [1465] = "Essence",     --Initial
+    [1467] = "Essence",     --Devastation
+    [1468] = "Essence",     --Preservation
     --Mage
     [62] = "ArcaneCharges", --Arcane
     --Monk
-    [268] = "Stagger", --Brewmaster
-    [269] = "Chi", --Windwalker
+    [268] = "Stagger",      --Brewmaster
+    [269] = "Chi",          --Windwalker
     --Paladin
-    [65] = "HolyPower", --Holy
-    [66] = "HolyPower", --Protection
-    [70] = "HolyPower", --Retribution
-    [1451] = "HolyPower", --Initial
+    [65] = "HolyPower",     --Holy
+    [66] = "HolyPower",     --Protection
+    [70] = "HolyPower",     --Retribution
+    [1451] = "HolyPower",   --Initial
     --Priest
-    [258] = "Mana", --Shadow
+    [258] = "Mana",         --Shadow
     --Rogue
-    [259] = "ComboPoints", --Assassination
-    [260] = "ComboPoints", --Outlaw
-    [261] = "ComboPoints", --Subtlety
+    [259] = "ComboPoints",  --Assassination
+    [260] = "ComboPoints",  --Outlaw
+    [261] = "ComboPoints",  --Subtlety
     [1453] = "ComboPoints", --Initial
     --Shaman
-    [262] = "Mana", --Elemental
-    [263] = 0, --Enhancement
+    [262] = "Mana",         --Elemental
+    [263] = 0,              --Enhancement
     --Warlock
-    [265] = "SoulShards", --Affliction
-    [266] = "SoulShards", --Demonology
-    [267] = "SoulShards", --Destruction
-    [1454] = "SoulShards", --Initial
+    [265] = "SoulShards",   --Affliction
+    [266] = "SoulShards",   --Demonology
+    [267] = "SoulShards",   --Destruction
+    [1454] = "SoulShards",  --Initial
 }
 
 srslylawlUI.PowerBar.EventToTokenTable = {
@@ -294,7 +305,10 @@ local function SpecIDIsDK(specID)
 end
 
 function srslylawlUI.PowerBar.CreatePowerPointBar(amount, parent, padding, powerToken, specID)
-    if amount < 1 then error("Param1 'Amount' must be 1 or higher") return end
+    if amount < 1 then
+        error("Param1 'Amount' must be 1 or higher")
+        return
+    end
     -- local frame = CreateFrame("Frame", "$parent_PointResourceBar_" .. powerToken, parent)
     local frame = srslylawlUI.CreatePointBar(parent, amount, padding, "$parent_PointResourceBar_" .. powerToken)
     frame:SetAttribute("type", "pointBar")
@@ -490,7 +504,6 @@ function srslylawlUI.PowerBar.CreatePowerPointBar(amount, parent, padding, power
             for i = 1, self.desiredButtonCount do
                 self.pointFrames[i]:SetShown(i <= pointsToDisplay)
             end
-
         end
 
         local visible = true
@@ -756,7 +769,6 @@ function srslylawlUI.PowerBar.Set(parent, unit)
                 self:SoulshardUpdate()
             end)
         end
-
     elseif barType == srslylawlUI.PowerBar.Type.Special then
         --player is druid
         srslylawlUI.PowerBar.SetupDruidBars(parent, unit)
@@ -765,13 +777,18 @@ function srslylawlUI.PowerBar.Set(parent, unit)
 end
 
 function srslylawlUI.PowerBar.GetType()
-    local specIndex = GetSpecialization()
-    local specID = GetSpecializationInfo(specIndex)
-    if not specID then
-        srslylawlUI.Log("Error getting Unit spec")
-        return
+    if not srslylawlUI.isClassic then
+        local specIndex = GetSpecialization()
+        local specID = GetSpecializationInfo(specIndex)
+        if not specID then
+            srslylawlUI.Log("Error getting Unit spec")
+            return
+        end
+        return srslylawlUI.PowerBar.SpecBarTypeTable[specID]
+    else
+        local classID = select(3, UnitClass("player"))
+        return srslylawlUI.PowerBar.ClassicBarTypeTable[classID]
     end
-    return srslylawlUI.PowerBar.SpecBarTypeTable[specID]
 end
 
 function srslylawlUI.PowerBar.SetColorByToken(bar, powerToken)
@@ -978,6 +995,8 @@ function srslylawlUI.PowerBar.UpdateMax(parent, powerToken)
 end
 
 function srslylawlUI.GetSpecID()
+    if srslylawlUI.isClassic then return false end
+
     local specIndex = GetSpecialization()
     return GetSpecializationInfo(specIndex)
 end

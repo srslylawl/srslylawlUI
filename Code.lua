@@ -125,6 +125,8 @@ vehiclestuff
 alt powerbar
 ]]
 
+srslylawlUI.isClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC;
+
 --Utils
 function srslylawlUI.Log(text, ...)
     local str = ""
@@ -787,20 +789,36 @@ end
 --Auras
 function srslylawlUI.TryGetAuraText(isBuff, index, unit)
     --sometimes an aura does not have a text at some calls
-    srslylawlUI.SetDebugCheckPoint("AuraText")
-    local data = isBuff and C_TooltipInfo.GetUnitBuff(unit, index) or C_TooltipInfo.GetUnitDebuff(unit, index)
-    TooltipUtil.SurfaceArgs(data)
-    for _, line in ipairs(data.lines) do
-        TooltipUtil.SurfaceArgs(line)
-    end
+    if not srslylawlUI.isClassic then
+        srslylawlUI.SetDebugCheckPoint("AuraText")
+        local data = isBuff and C_TooltipInfo.GetUnitBuff(unit, index) or C_TooltipInfo.GetUnitDebuff(unit, index)
+        TooltipUtil.SurfaceArgs(data)
+        for _, line in ipairs(data.lines) do
+            TooltipUtil.SurfaceArgs(line)
+        end
 
-    local text
-    if data.lines[2] then
-        text = data.lines[2].leftText
-    end
+        local text
+        if data.lines[2] then
+            text = data.lines[2].leftText
+        end
 
-    srslylawlUI.DebugTrackTimeStop("GetAuraTextNew", "AuraText")
-    return text
+        srslylawlUI.DebugTrackTimeStop("GetAuraTextNew", "AuraText")
+        return text
+    else
+        if not srslylawlUI.tooltipTextGrabber then
+            srslylawlUI.tooltipTextGrabber = CreateFrame("GameTooltip", "srslylawl_TooltipTextGrabber", UIParent,
+                "GameTooltipTemplate")
+        end
+        srslylawlUI.tooltipTextGrabber:SetOwner(srslylawlUI_PartyHeader, "ANCHOR_NONE")
+        if isBuff then
+            srslylawlUI.tooltipTextGrabber:SetUnitBuff(unit, index)
+        else
+            srslylawlUI.tooltipTextGrabber:SetUnitDebuff(unit, index)
+        end
+        local n2 = srslylawl_TooltipTextGrabberTextLeft2:GetText()
+        srslylawlUI.tooltipTextGrabber:Hide()
+        return n2
+    end
 end
 
 function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
@@ -1570,6 +1588,7 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
         local keyWordAbsorb = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.absorbs) and
             ((absorb ~= nil) and (absorb > 1))
         local keyWordDefensive = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.defensive)
+
         local keyWordImmunity = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.immunity)
         local autoDetectDisabled = isKnown and srslylawlUI_Saved.buffs.known[spellId].autoDetect ~= nil and
             srslylawlUI_Saved.buffs.known[spellId].autoDetect == false
@@ -1822,7 +1841,7 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType)
     local variousAbsorbAmount = 0 -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
     local absorbSegments = {}
     local incomingHeal = UnitGetIncomingHeals(unit)
-    local healAbsorb = UnitGetTotalHealAbsorbs(unit)
+    local healAbsorb = srslylawlUI.isClassic and 0 or UnitGetTotalHealAbsorbs(unit)
     local sortedAbsorbAuras, incomingHealWidth, variousFrameWidth, healAbsorbWidth
     local pixelSize = srslylawlUI.Utils_PixelFromCodeToScreen(1)
 
@@ -2049,7 +2068,9 @@ function srslylawlUI.HandleEffectiveHealth(unit, unitsType)
     local function FilterDefensives(trackedAuras)
         local sortedTable = {}
         for _, aura in pairs(trackedAuras) do
-            if aura.auraType == "defensive" and srslylawlUI_Saved.buffs.known[aura.spellId].reductionAmount > 0 then
+            local amt = srslylawlUI_Saved.buffs.known[aura.spellId] and
+                srslylawlUI_Saved.buffs.known[aura.spellId].reductionAmount or 0
+            if aura.auraType == "defensive" and amt > 0 then
                 table.insert(sortedTable, aura)
             end
         end
@@ -2328,6 +2349,7 @@ local function Initialize()
         srslylawlUI.HiddenFrameAnchor = CreateFrame("Frame")
         srslylawlUI.HiddenFrameAnchor:Hide()
         local function Hide(frame)
+            if not frame then return end
             frame:SetScript("OnEvent", nil)
             frame:UnregisterAllEvents()
 
@@ -2362,10 +2384,6 @@ local function Initialize()
         end
         if not showParty then
             Hide(PartyFrame)
-            -- for i = 1, MAX_PARTY_MEMBERS do
-            --     srslylawlUI.Log(i);
-            --     Hide(_G["PartyFrame"])
-            -- end
         end
         if not showCastbar then
             Hide(PlayerCastingBarFrame)
