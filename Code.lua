@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.54"
+local version = "1.55"
 
 
 srslylawlUI.loadedSettings = {}
@@ -193,7 +193,8 @@ end
 
 function srslylawlUI.Utils_GetTableLength(t)
     local count = 0
-    if t == nil then return 0
+    if t == nil then
+        return 0
     end
     for _ in pairs(t) do count = count + 1 end
     return count
@@ -262,7 +263,6 @@ function srslylawlUI.ToggleDebugMode()
                 end
 
                 srslylawlUI.DebugTimerData = {} --reset
-
             end)
         end
     end
@@ -366,7 +366,6 @@ function srslylawlUI.PrintFrameDebug()
             " total: " .. v.total .. " avg total: " .. v.avgTotal .. " highest: " .. v.maxCalls .. " /f")
     end
     print("____________________________________")
-
 end
 
 function srslylawlUI.Debug_Reset()
@@ -377,17 +376,28 @@ function srslylawlUI.Debug_Reset()
 end
 
 function srslylawlUI.Utils_CCTableTranslation(string)
-    if string == "stuns" then return "stun"
-    elseif string == "incaps" then return "incapacitate"
-    elseif string == "disorients" then return "disorient"
-    elseif string == "silences" then return "silence"
-    elseif string == "roots" then return "root"
-    elseif string == "root" then return "roots"
-    elseif string == "silence" then return "silences"
-    elseif string == "disorient" then return "disorients"
-    elseif string == "incapacitate" then return "incaps"
-    elseif string == "stun" then return "stuns"
-    else return "none"
+    if string == "stuns" then
+        return "stun"
+    elseif string == "incaps" then
+        return "incapacitate"
+    elseif string == "disorients" then
+        return "disorient"
+    elseif string == "silences" then
+        return "silence"
+    elseif string == "roots" then
+        return "root"
+    elseif string == "root" then
+        return "roots"
+    elseif string == "silence" then
+        return "silences"
+    elseif string == "disorient" then
+        return "disorients"
+    elseif string == "incapacitate" then
+        return "incaps"
+    elseif string == "stun" then
+        return "stuns"
+    else
+        return "none"
     end
 end
 
@@ -677,8 +687,49 @@ function srslylawlUI.Debug()
     srslylawlUI.DebugWindow:Show()
 end
 
-function srslylawlUI.GetPartyHealth()
+function srslylawlUI.GetUnitAura(unit, index, filter)
+    local auraInfo
 
+    local legacy = false
+
+    if legacy then
+        local name, icon, count, debuffType, duration, expirationTime, source,
+        isStealable, nameplateShowPersonal, spellId, canApplyAura,
+        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = UnitAura(unit, index, filter);
+
+        if name then
+            auraInfo = {}
+            auraInfo.name = name;
+            auraInfo.spellId = spellId;
+            auraInfo.sourceUnit = source;
+            auraInfo.icon = icon;
+            auraInfo.isStealable = isStealable;
+            auraInfo.points = {};
+            table.insert(auraInfo.points, absorb)
+            auraInfo.timeMod = timeMod;
+            auraInfo.applications = count;
+            auraInfo.auraInstanceID = index;
+            auraInfo.canApplyAura = canApplyAura;
+            auraInfo.duration = duration;
+            auraInfo.isBossAura = isBossDebuff;
+            auraInfo.nameplateShowAll = nameplateShowAll;
+            auraInfo.nameplateShowPersonal = nameplateShowPersonal;
+            auraInfo.isFromPlayerOrPlayerPet = castByPlayer;
+            auraInfo.dispelName = debuffType;
+            auraInfo.expirationTime = expirationTime;
+        end
+    else
+        auraInfo = C_UnitAuras.GetAuraDataByIndex(unit, index, filter)
+    end
+
+    if auraInfo then
+        auraInfo.absorb = auraInfo.points[1]
+    end
+
+    return auraInfo
+end
+
+function srslylawlUI.GetPartyHealth()
     local nameStringSortedByHealthDesc = {}
     local hasUnknownMember = false
 
@@ -719,7 +770,8 @@ function srslylawlUI.GetPartyHealth()
         end
     end
 
-    table.sort(nameStringSortedByHealthDesc, function(a, b) return a.maxHealth > b.maxHealth
+    table.sort(nameStringSortedByHealthDesc, function(a, b)
+        return a.maxHealth > b.maxHealth
     end)
     averageHP = floor(averageHP / memberCount)
 
@@ -768,19 +820,19 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         return auraType
     end
 
-    local function TrackAura(source, spellId, count, name, index, absorb, icon, duration, expirationTime, auraType)
+    local function TrackAura(auraInfo, index, auraType)
         if auraType == nil then error("auraType is nil") end
 
         local byAura = auraType .. "Auras"
         local byIndex = "trackedAurasByIndex"
 
-        if source == nil then source = "unknown" end
+        if auraInfo.sourceUnit == nil then auraInfo.sourceUnit = "unknown" end
 
-        local aura = { ["name"] = name, ["index"] = index }
-        if srslylawlUI[unitsType][unit][byAura][source] == nil then
-            srslylawlUI[unitsType][unit][byAura][source] = { [spellId] = aura }
+        local aura = { ["name"] = auraInfo.name, ["index"] = index }
+        if srslylawlUI[unitsType][unit][byAura][auraInfo.sourceUnit] == nil then
+            srslylawlUI[unitsType][unit][byAura][auraInfo.sourceUnit] = { [auraInfo.spellId] = aura }
         else
-            srslylawlUI[unitsType][unit][byAura][source][spellId] = aura
+            srslylawlUI[unitsType][unit][byAura][auraInfo.sourceUnit][auraInfo.spellId] = aura
         end
 
         if srslylawlUI[unitsType][unit][byIndex][index] == nil then
@@ -789,17 +841,17 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
 
         local t = srslylawlUI[unitsType][unit][byIndex][index]
         -- doing it this way since we dont want our tracked fragment to reset
-        t["source"] = source
-        t["name"] = name
-        t["spellId"] = spellId
+        t["source"] = auraInfo.sourceUnit
+        t["name"] = auraInfo.name
+        t["spellId"] = auraInfo.spellId
         t["checkedThisEvent"] = true
-        t["absorb"] = absorb
-        t["icon"] = icon
-        t["duration"] = duration
-        t["expiration"] = expirationTime
+        t["absorb"] = auraInfo.absorb
+        t["icon"] = auraInfo.icon
+        t["duration"] = auraInfo.duration
+        t["expiration"] = auraInfo.expirationTime
         t["index"] = index -- double index here to make it easier to get it again for tooltip
         t["auraType"] = auraType
-        t["stacks"] = count
+        t["stacks"] = auraInfo.applications
     end
 
     local function UntrackAura(index)
@@ -832,37 +884,36 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         if t == 0 then srslylawlUI[unitsType][unit][byAura][src] = nil end
     end
 
-    local function ChangeTrackingIndex(name, source, count, spellId, currentIndex, absorb, icon, duration, expirationTime
-                                       , auraType)
+    local function ChangeTrackingIndex(auraInfo, currentIndex, auraType)
         -- srslylawlUI.Log("index changed " .. name)
         local byAura = auraType .. "Auras"
         local byIndex = "trackedAurasByIndex"
-        local oldIndex = srslylawlUI[unitsType][unit][byAura][source][spellId].index
+        local oldIndex = srslylawlUI[unitsType][unit][byAura][auraInfo.sourceUnit][auraInfo.spellId].index
         assert(oldIndex ~= nil)
         -- assign to current
-        srslylawlUI[unitsType][unit][byAura][source][spellId].index = currentIndex
+        srslylawlUI[unitsType][unit][byAura][auraInfo.sourceUnit][auraInfo.spellId].index = currentIndex
 
         -- flag for timer refresh
         local diff = 0
         if srslylawlUI[unitsType][unit][byIndex][oldIndex] ~= nil and
             srslylawlUI[unitsType][unit][byIndex][oldIndex].expiration ~= nil then
-            diff = expirationTime - srslylawlUI[unitsType][unit][byIndex][oldIndex].expiration
+            diff = auraInfo.expirationTime - srslylawlUI[unitsType][unit][byIndex][oldIndex].expiration
         end
 
         if srslylawlUI[unitsType][unit][byIndex][currentIndex] == nil then
             srslylawlUI[unitsType][unit][byIndex][currentIndex] = {}
         end
         local t = srslylawlUI[unitsType][unit][byIndex][currentIndex]
-        t["source"] = source
-        t["name"] = name
-        t["spellId"] = spellId
+        t["source"] = auraInfo.sourceUnit
+        t["name"] = auraInfo.name
+        t["spellId"] = auraInfo.spellId
         t["checkedThisEvent"] = true
-        t["absorb"] = absorb
-        t["icon"] = icon
-        t["duration"] = duration
-        t["expiration"] = expirationTime
+        t["absorb"] = auraInfo.absorb
+        t["icon"] = auraInfo.icon
+        t["duration"] = auraInfo.duration
+        t["expiration"] = auraInfo.expirationTime
         t["index"] = currentIndex
-        t["stacks"] = count
+        t["stacks"] = auraInfo.applications
         t["auraType"] = auraType
 
         srslylawlUI[unitsType][unit][byIndex][oldIndex] = nil
@@ -882,23 +933,21 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         return srslylawlUI[unitsType][unit].trackedAurasByIndex[index] ~= nil
     end
 
-    local function ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
+    local function ProcessAuraTracking(auraInfo, i, auraType)
         if IsAuraBeingTrackedAtOtherIndex(source, spellId, auraType) then
             -- aura is being tracked but at another index, change that
-            ChangeTrackingIndex(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
+            ChangeTrackingIndex(auraInfo, i, auraType)
         else
             -- aura is not tracked at all, track it!
-            TrackAura(source, spellId, count, name, i, absorb, icon, duration,
-                expirationTime, auraType)
+            TrackAura(auraInfo, i, auraType)
         end
     end
 
-    local function SetBuff(buffFrame, index, ...)
-        local name, icon, count, debuffType, duration, expirationTime, unitCaster, canStealOrPurge, _, spellId, canApplyAura = ...;
-        buffFrame.icon:SetTexture(icon);
-        if (count > 1) then
-            local countText = count;
-            if (count >= 100) then
+    local function SetBuff(buffFrame, index, auraInfo)
+        buffFrame.icon:SetTexture(auraInfo.icon);
+        if (auraInfo.applications > 1) then
+            local countText = auraInfo.applications;
+            if (auraInfo.applications >= 100) then
                 countText = BUFF_STACKS_OVERFLOW;
             end
             buffFrame.count:Show();
@@ -907,25 +956,22 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             buffFrame.count:Hide();
         end
         buffFrame:SetID(index);
-        local enabled = expirationTime and expirationTime ~= 0;
+        local enabled = auraInfo.expirationTime and auraInfo.expirationTime ~= 0;
         if enabled then
-            local startTime = expirationTime - duration;
-            CooldownFrame_Set(buffFrame.cooldown, startTime, duration, true);
+            local startTime = auraInfo.expirationTime - auraInfo.duration;
+            CooldownFrame_Set(buffFrame.cooldown, startTime, auraInfo.duration, true);
         else
             CooldownFrame_Clear(buffFrame.cooldown);
         end
         buffFrame:Show();
     end
 
-    local function SetDebuff(debuffFrame, index, ...)
-        local name, icon, count, debuffType, duration, expirationTime, source,
-        isStealable, nameplateShowPersonal, spellId, canApplyAura,
-        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
+    local function SetDebuff(debuffFrame, index, auraInfo)
         local f = debuffFrame
-        f.icon:SetTexture(icon)
-        if (count > 1) then
-            local countText = count;
-            if (count >= 100) then
+        f.icon:SetTexture(auraInfo.icon)
+        if (auraInfo.applications > 1) then
+            local countText = auraInfo.applications;
+            if (auraInfo.applications >= 100) then
                 countText = BUFF_STACKS_OVERFLOW;
             end
             f.count:Show();
@@ -934,14 +980,14 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             f.count:Hide();
         end
         f:SetID(index)
-        local enabled = expirationTime and expirationTime ~= 0;
+        local enabled = auraInfo.expirationTime and auraInfo.expirationTime ~= 0;
         if enabled then
-            local startTime = expirationTime - duration;
-            CooldownFrame_Set(f.cooldown, startTime, duration, true);
+            local startTime = auraInfo.expirationTime - auraInfo.duration;
+            CooldownFrame_Set(f.cooldown, startTime, auraInfo.duration, true);
         else
             CooldownFrame_Clear(f.cooldown);
         end
-        local color = DebuffTypeColor[debuffType] or DebuffTypeColor["none"];
+        local color = DebuffTypeColor[auraInfo.dispelName] or DebuffTypeColor["none"];
         f.border:SetVertexColor(color.r, color.g, color.b);
         f:Show()
     end
@@ -982,27 +1028,20 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         -- parse aura data
         -- buffs
         for i = 1, 40 do
-            local name, icon, count, debuffType, duration, expirationTime, source,
-            isStealable, nameplateShowPersonal, spellId, canApplyAura,
-            isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
-            UnitAura(unit, i, "HELPFUL")
-            local doRemember = doFullUpdate or (updateTableHasContent and updateTable[spellId])
-            if name and doRemember then
-                srslylawlUI.Auras_RememberBuff(i, unit)
+            local auraInfo = srslylawlUI.GetUnitAura(unit, i, "HELPFUL")
+            if auraInfo ~= nil then
+                local doRemember = doFullUpdate or (updateTableHasContent and updateTable[auraInfo.spellId])
+                if doRemember then srslylawlUI.Auras_RememberBuff(i, unit) end
             end
         end
         --debuffs
         for i = 1, 40 do
-            local name, icon, count, debuffType, duration, expirationTime, source,
-            isStealable, nameplateShowPersonal, spellId, canApplyAura,
-            isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
-            UnitAura(unit, i, "HARMFUL")
-            local doRemember = doFullUpdate or (updateTableHasContent and updateTable[spellId])
-            if name and doRemember then
-                srslylawlUI.Auras_RememberDebuff(spellId, i, unit)
+            local auraInfo = srslylawlUI.GetUnitAura(unit, i, "HARMFUL")
+            if auraInfo ~= nil then
+                local doRemember = doFullUpdate or (updateTableHasContent and updateTable[auraInfo.spellId])
+                if doRemember then srslylawlUI.Auras_RememberDebuff(auraInfo.spellId, i, unit) end
             end
         end
-
     end
 
     if not srslylawlUI[unitsType][unit].aurasByInstanceID then
@@ -1050,24 +1089,19 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             srslylawlUI[unitsType][unit].buffData[currentBuffFrameIndex] = buffData
         end
 
-        local unitAuraData = { UnitAura(unit, i, "HELPFUL") }
-
-        local name, icon, count, debuffType, duration, expirationTime, source,
-        isStealable, nameplateShowPersonal, spellId, canApplyAura,
-        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb =
-        unpack(unitAuraData)
-        if name then -- if aura on this index exists, assign it
-            local shouldDisplay = srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, unpack(unitAuraData)) and
+        local auraInfo = srslylawlUI.GetUnitAura(unit, i, "HELPFUL")
+        if auraInfo ~= nil then -- if aura on this index exists, assign it
+            local shouldDisplay = srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, auraInfo) and
                 currentBuffFrameIndex <= maxBuffs
             buffData.display = shouldDisplay
             if shouldDisplay then
-                if isStealable then
+                if auraInfo.isStealable then
                     buffData.color = buffIsStealableColor
                     size = scaledBuffSize
-                elseif source and UnitIsEnemy(source, "player") then
+                elseif auraInfo.sourceUnit and UnitIsEnemy(auraInfo.sourceUnit, "player") then
                     buffData.color = buffIsEnemyColor
                     size = buffSize
-                elseif unitsType == "mainUnits" and source and UnitIsUnit(source, "player") and unit == "player" then
+                elseif unitsType == "mainUnits" and auraInfo.sourceUnit and UnitIsUnit(auraInfo.sourceUnit, "player") and unit == "player" then
                     buffData.color = buffBaseColor
                     size = scaledBuffSize
                 else
@@ -1081,22 +1115,21 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
                 currentBuffFrameIndex = currentBuffFrameIndex + 1
             end
             -- track auras, check if we care to track it
-            local auraType = GetTypeOfAuraID(spellId)
+            local auraType = GetTypeOfAuraID(auraInfo.spellId)
 
             if auraType ~= nil then
                 if AuraIsBeingTrackedAtIndex(i) then
-                    if srslylawlUI[unitsType][unit].trackedAurasByIndex[i]["spellId"] ~= spellId then
+                    if srslylawlUI[unitsType][unit].trackedAurasByIndex[i]["spellId"] ~= auraInfo.spellId then
                         -- different spell is being tracked
                         UntrackAura(i)
-                        ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime,
-                            auraType)
+                        ProcessAuraTracking(auraInfo, i, auraType)
                     else
                         -- aura is tracked and at same index, update that we verified that this frame
-                        TrackAura(source, spellId, count, name, i, absorb, icon, duration, expirationTime, auraType)
+                        TrackAura(auraInfo, i, auraType)
                     end
                 else
                     -- no aura is currently tracked for that index
-                    ProcessAuraTracking(name, source, count, spellId, i, absorb, icon, duration, expirationTime, auraType)
+                    ProcessAuraTracking(auraInfo, i, auraType)
                 end
             else
                 if AuraIsBeingTrackedAtIndex(i) then
@@ -1131,7 +1164,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             f.size = buffData.size
             auraPointsChanged = true
         end
-        SetBuff(f, buffData.index, UnitAura(unit, buffData.index))
+        SetBuff(f, buffData.index, srslylawlUI.GetUnitAura(unit, buffData.index))
     end
 
     for i = currentBuffFrameIndex, 40 do
@@ -1153,37 +1186,37 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
     local maxDebuffs = srslylawlUI.GetSettingByUnit("debuffs.maxDebuffs", unitsType, unit)
     local anyDebuffIsScaled = false
     for i = 1, 40 do
-        local unitAuraInfo = { UnitAura(unit, i, "HARMFUL") }
+        local unitAuraInfo = srslylawlUI.GetUnitAura(unit, i, "HARMFUL")
         local debuffData = srslylawlUI[unitsType][unit].debuffData[currentDebuffFrameIndex]
         if not debuffData then
             debuffData = {}
             srslylawlUI[unitsType][unit].debuffData[currentDebuffFrameIndex] = debuffData
         end
-        local name, icon, count, debuffType, duration, expirationTime, source,
-        isStealable, nameplateShowPersonal, spellId, canApplyAura,
-        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = unpack(unitAuraInfo)
-        if name then -- if aura on this index exists, assign it
+
+        if unitAuraInfo then -- if aura on this index exists, assign it
             --check if its CC
+            local spellId = unitAuraInfo.spellId
             if srslylawlUI_Saved.debuffs.known[spellId] ~= nil and
                 srslylawlUI_Saved.debuffs.known[spellId].crowdControlType ~= "none" and
                 srslylawlUI_Saved.debuffs.blackList[spellId] == nil then
                 local cc = {
                     ["ID"] = spellId,
                     ["index"] = i,
-                    ["expirationTime"] = expirationTime,
-                    ["icon"] = icon,
-                    ["debuffType"] = debuffType,
+                    ["expirationTime"] = unitAuraInfo.expirationTime,
+                    ["icon"] = unitAuraInfo.icon,
+                    ["debuffType"] = unitAuraInfo.dispelName,
                     ["ccType"] = srslylawlUI_Saved.debuffs.known[spellId].crowdControlType,
-                    ["remaining"] = expirationTime - GetTime()
+                    ["remaining"] = unitAuraInfo.expirationTime - GetTime()
                 }
                 table.insert(appliedCC, cc)
             end
-            local shouldDisplay = srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, unpack(unitAuraInfo)) and
+            local shouldDisplay = srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, unitAuraInfo) and
                 currentDebuffFrameIndex <= maxDebuffs
             debuffData.display = shouldDisplay
             if shouldDisplay then
                 debuffData.auraInfo = unitAuraInfo
-                local doScale = source and source == "player" and unitsType == "mainUnits"
+                local doScale = unitAuraInfo.sourceUnit and unitAuraInfo.sourceUnit == "player" and
+                    unitsType == "mainUnits"
                 size = doScale and scaledDebuffSize or debuffSize
                 if doScale then anyDebuffIsScaled = true end
                 debuffData.size = size
@@ -1219,7 +1252,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             f.size = debuffData.size
             auraPointsChanged = true
         end
-        SetDebuff(f, debuffData.index, unpack(debuffData.auraInfo))
+        SetDebuff(f, debuffData.index, debuffData.auraInfo)
     end
 
     for i = currentDebuffFrameIndex, 40 do
@@ -1279,15 +1312,15 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
 
             local function updateBar(self, elapsed)
                 timer = timer + elapsed
-                _, _, _, _, duration, expirationTime = UnitAura(unit, self.spellData.index, "HARMFUL")
-                if expirationTime == nil then return end
+                local aurainfo = srslylawlUI.GetUnitAura(unit, self.spellData.index, "HARMFUL");
+                if aurainfo == nil or auraInfo.expirationTime == nil then return end
                 if timer >= updateInterval then
-                    if duration == 0 then
+                    if aurainfo.duration == 0 then
                         self.statusBar:SetValue(1)
                         self.timer:SetText("")
                     else
-                        remaining = expirationTime - GetTime()
-                        local fill = remaining / duration
+                        remaining = aurainfo.expirationTime - GetTime()
+                        local fill = remaining / aurainfo.duration
                         self.statusBar:SetValue(fill)
                         timerstring = tostring(remaining)
                         timerstring = timerstring:match("%d+%p?%d")
@@ -1304,7 +1337,6 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
             --just update data
             unitbutton.CCDurBar.spellData = CCToDisplay
         end
-
     end
     if unitbutton.CCDurBar then
         unitbutton.CCDurBar:SetShown(displayCC)
@@ -1402,10 +1434,17 @@ function srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsTyp
         buttonFrame.unit.healthBar, anchor1, eHealthOffset * direction, 0)
 end
 
-function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
-    local name, icon, count, debuffType, duration, expirationTime, source,
-    isStealable, nameplateShowPersonal, spellId, canApplyAura,
-    isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
+function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, auraInfo)
+    local isStealable = auraInfo.isStealable;
+    local duration = auraInfo.duration;
+    local spellId = auraInfo.spellId;
+    local castByPlayer = auraInfo.isFromPlayerOrPlayerPet;
+    local source = auraInfo.sourceUnit;
+
+    --aurainfo nil here?
+    if not duration then
+        error("no duration" .. unitsType .. unit .. " " .. auraInfo.name)
+    end
 
     local function NotDefault(bool)
         return bool ~= srslylawlUI.GetSettingByUnit("buffs.showDefault", unitsType, unit)
@@ -1451,21 +1490,20 @@ function srslylawlUI.Auras_ShouldDisplayBuff(unitsType, unit, ...)
     return srslylawlUI.GetSettingByUnit("buffs.showDefault", unitsType, unit)
 end
 
-function srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, ...)
-    local name, icon, count, debuffType, duration, expirationTime, source,
-    isStealable, nameplateShowPersonal, spellId, canApplyAura,
-    isBossDebuff, castByPlayer, nameplateShowAll, timeMod, absorb = ...
+function srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, auraInfo)
+    local castByPlayer = auraInfo.isFromPlayerOrPlayerPet;
+    local source = auraInfo.sourceUnit;
 
     local function NotDefault(bool)
         return bool ~= srslylawlUI.GetSettingByUnit("debuffs.showDefault", unitsType, unit)
     end
 
-    if srslylawlUI_Saved.debuffs.whiteList[spellId] then
+    if srslylawlUI_Saved.debuffs.whiteList[auraInfo.spellId] then
         --always show whitelisted spells
         return true
     end
 
-    if srslylawlUI_Saved.debuffs.blackList[spellId] then
+    if srslylawlUI_Saved.debuffs.blackList[auraInfo.spellId] then
         --never show blacklisted spells
         return false
     end
@@ -1477,14 +1515,14 @@ function srslylawlUI.Auras_ShouldDisplayDebuff(unitsType, unit, ...)
         end
     end
 
-    if duration == 0 then
+    if auraInfo.duration == 0 then
         local b = srslylawlUI.GetSettingByUnit("debuffs.showInfiniteDuration", unitsType, unit)
         if NotDefault(b) then
             return b
         end
     end
 
-    if duration > srslylawlUI.GetSettingByUnit("debuffs.maxDuration", unitsType, unit) then
+    if auraInfo.duration > srslylawlUI.GetSettingByUnit("debuffs.maxDuration", unitsType, unit) then
         local b = srslylawlUI.GetSettingByUnit("debuffs.showLongDuration", unitsType, unit)
         if NotDefault(b) then
             return b
@@ -1512,10 +1550,11 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
 
     local function ProcessID(buffIndex, unit)
         srslylawlUI.SetDebugCheckPoint()
-        local spellName, icon, stacks, debuffType, duration, expirationTime, source,
-        isStealable, nameplateShowPersonal, spellId, canApplyAura,
-        isBossDebuff, castByPlayer, nameplateShowAll, timeMod, arg1 =
-        UnitAura(unit, buffIndex, "HELPFUL")
+        local auraInfo = srslylawlUI.GetUnitAura(unit, buffIndex, "HELPFUL");
+        local absorb = auraInfo.absorb;
+        local stacks = auraInfo.applications;
+
+        local spellId = auraInfo.spellId;
 
         local isKnown = srslylawlUI_Saved.buffs.known[spellId] ~= nil
         local buffText = srslylawlUI.TryGetAuraText(true, buffIndex, unit)
@@ -1529,7 +1568,7 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
         end
         local buffLower = buffText ~= nil and string.lower(buffText) or ""
         local keyWordAbsorb = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.absorbs) and
-            ((arg1 ~= nil) and (arg1 > 1))
+            ((absorb ~= nil) and (absorb > 1))
         local keyWordDefensive = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.defensive)
         local keyWordImmunity = srslylawlUI.Utils_StringHasKeyWord(buffLower, srslylawlUI.keyPhrases.immunity)
         local autoDetectDisabled = isKnown and srslylawlUI_Saved.buffs.known[spellId].autoDetect ~= nil and
@@ -1539,7 +1578,7 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             return
         end
         local spell = {
-            name = spellName,
+            name = auraInfo.spellName,
             text = buffText,
             isAbsorb = keyWordAbsorb,
             isDefensive = keyWordDefensive or keyWordImmunity
@@ -1556,7 +1595,6 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
 
             srslylawlUI_Saved.buffs.absorbs[spellId] = spell
         elseif keyWordImmunity then
-
             spell.reductionAmount = 100
 
             if not srslylawlUI_Saved.buffs.defensives[spellId] then
@@ -1606,7 +1644,6 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             -- Add spell to known spell list
             srslylawlUI_Saved.buffs.known[spellId] = spell
         end
-
     end
 
     ProcessID(buffIndex, unit)
@@ -1734,7 +1771,6 @@ function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
 end
 
 function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
-
     srslylawlUI_Saved[auraType].known[spellId] = nil
     local link = GetSpellLink(spellId)
 
@@ -1772,7 +1808,7 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType)
     local unscaledBarWidth = srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
     local scaledBarWidth = unitsType == "mainUnits" and unscaledBarWidth or
         srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar:
-            GetWidth())
+        GetWidth())
 
     local maxHp = UnitHealthMax(unit)
     maxHp = maxHp == 0 and 1 or maxHp
@@ -1781,7 +1817,8 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType)
     local playerCurrentHP = UnitHealth(unit)
     local currentBarLength = playerCurrentHP * scaledPixelPerHp
     local totalAbsorbBarLength = 0
-    local overlapBarIndex, curBarIndex, curBarOverlapIndex = 1, 1, 1 --overlapBarIndex 1 means we havent filled the bar up with absorbs, 2 means we are now overlaying absorbs over the healthbar
+    local overlapBarIndex, curBarIndex, curBarOverlapIndex = 1, 1,
+        1                         --overlapBarIndex 1 means we havent filled the bar up with absorbs, 2 means we are now overlaying absorbs over the healthbar
     local variousAbsorbAmount = 0 -- some absorbs are too small to display, so we group them together and display them if they reach a certain amount
     local absorbSegments = {}
     local incomingHeal = UnitGetIncomingHeals(unit)
@@ -1833,7 +1870,8 @@ function srslylawlUI.HandleAbsorbFrames(unit, unitsType)
             if pixelOverlap > 0 and overlapBarIndex < 3 then
                 barWidth = barWidth - pixelOverlap
                 if overlapBarIndex == 1 and barWidth > 1 then
-                    barWidth = barWidth - 1 --remove 1 for anchor spacing, if bar is smaller than 1 pixel it will be added to the last bar instead, thus no space necessary
+                    barWidth = barWidth -
+                        1 --remove 1 for anchor spacing, if bar is smaller than 1 pixel it will be added to the last bar instead, thus no space necessary
                 end
                 absorbAmount = absorbAmount - barWidth / scaledPixelPerHp
                 overlapBarIndex = overlapBarIndex + 1
@@ -2284,7 +2322,6 @@ local function Initialize()
                 srslylawlUI.ToggleConfigVisible(true)
             end
         end
-
     end
 
     local function HideBlizzardFrames()
@@ -2345,8 +2382,11 @@ local function Initialize()
                 local name = "Boss" .. i .. "TargetFrame"
                 local frame = _G[name]
 
-                if frame then Hide(frame)
-                else srslylawlUI.Log("Error: Unable to hide Blizzard Frame " .. name .. ", as it does not exist.") end
+                if frame then
+                    Hide(frame)
+                else
+                    srslylawlUI.Log("Error: Unable to hide Blizzard Frame " .. name .. ", as it does not exist.")
+                end
             end
         end
 
