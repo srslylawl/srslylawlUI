@@ -11,8 +11,6 @@ srslylawlUI = srslylawlUI or {}
 ]]
 
 local version = "1.55"
---rdycheck never goes away on player
-
 
 srslylawlUI.loadedSettings = {}
 srslylawlUI.buffs = {
