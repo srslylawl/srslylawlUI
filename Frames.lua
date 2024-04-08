@@ -2189,12 +2189,8 @@ function srslylawlUI.RegisterEvents(buttonFrame)
 
 
     if unit ~= "targettarget" then
-        if buttonFrame.pet ~= nil and unit ~= "target" and unit ~= "focus" then
-            buttonFrame:RegisterUnitEvent("UNIT_PET", unit)
-        end
-
-        buttonFrame:RegisterUnitEvent("UNIT_HEALTH", unit, "pet")
-        buttonFrame:RegisterUnitEvent("UNIT_MAXHEALTH", unit, "pet")
+        buttonFrame:RegisterUnitEvent("UNIT_HEALTH", unit)
+        buttonFrame:RegisterUnitEvent("UNIT_MAXHEALTH", unit)
         buttonFrame:RegisterUnitEvent("UNIT_DISPLAYPOWER", unit)
         buttonFrame:RegisterUnitEvent("UNIT_MAXPOWER", unit)
         buttonFrame:RegisterUnitEvent("UNIT_NAME_UPDATE", unit)
@@ -2202,6 +2198,21 @@ function srslylawlUI.RegisterEvents(buttonFrame)
         buttonFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", unit)
         buttonFrame:RegisterUnitEvent("UNIT_THREAT_SITUATION_UPDATE", unit)
         buttonFrame:RegisterUnitEvent("UNIT_CONNECTION", unit)
+
+        if buttonFrame.pet ~= nil and unit ~= "target" and unit ~= "focus" then
+            buttonFrame:RegisterUnitEvent("UNIT_PET", unit)
+            buttonFrame.pet:RegisterUnitEvent("UNIT_HEALTH", unit .. "pet")
+            buttonFrame.pet:RegisterUnitEvent("UNIT_MAXHEALTH", unit .. "pet")
+
+            buttonFrame.pet:SetScript("OnEvent", function(self, event, arg1, arg2)
+                local unitPet = unit .. "pet";
+                local health = UnitHealth(unitPet)
+                local maxHealth = UnitHealthMax(unitPet)
+                self.healthBar:SetMinMaxValues(0, maxHealth)
+                self.healthBar:SetValue(health)
+            end)
+        end
+
         if not srslylawlUI.isClassic then
             buttonFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", unit)
             buttonFrame:RegisterUnitEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", unit)
@@ -2229,6 +2240,8 @@ function srslylawlUI.RegisterEvents(buttonFrame)
 end
 
 function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
+    local unit = self:GetAttribute("unit")
+    -- print(unit .. " " .. event .. " " .. tostring(arg1) .. " " .. tostring(arg2))
     local function UpdatePowerBar(unit, unitsType, token)
         if unit == "player" and unitsType == "mainUnits" then
             srslylawlUI.PowerBar.Update(self, token)
@@ -2237,7 +2250,6 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
         end
     end
 
-    local unit = self:GetAttribute("unit")
     srslylawlUI.DebugTrackCall("OnEvent (General) " .. unit)
     srslylawlUI.DebugTrackCall("OnEvent " ..
         unit ..
@@ -2391,13 +2403,6 @@ function srslylawlUI_Frame_OnEvent(self, event, arg1, arg2)
             srslylawlUI.DebugTrackCall("ResetHealth_6")
             srslylawlUI.Frame_ResetHealthBar(self.unit, unit)
         end
-    elseif arg1 and UnitIsUnit(unit .. "pet", arg1) then
-        if event == "UNIT_MAXHEALTH" then
-            self.pet.healthBar:SetMinMaxValues(0, UnitHealthMax(arg1))
-            self.pet.healthBar:SetValue(UnitHealth(arg1))
-        elseif event == "UNIT_HEALTH" then
-            self.pet.healthBar:SetValue(UnitHealth(arg1))
-        end
     end
 end
 
@@ -2452,7 +2457,7 @@ function srslylawlUI.Frame_ResetPetButton(button, unit)
 
     if show then
         local health = UnitHealth(unit)
-        local maxHealth = UnitHealth(unit)
+        local maxHealth = UnitHealthMax(unit)
         button.pet.healthBar:SetMinMaxValues(0, maxHealth)
         button.pet.healthBar:SetValue(health)
     end
