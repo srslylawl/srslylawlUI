@@ -964,7 +964,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         buffFrame.icon:SetTexture(auraInfo.icon);
         if (auraInfo.applications > 1) then
             local countText = auraInfo.applications;
-            if (auraInfo.applications >= 100) then
+            if (auraInfo.applications >= 9999) then
                 countText = BUFF_STACKS_OVERFLOW;
             end
             buffFrame.count:Show();
@@ -988,7 +988,7 @@ function srslylawlUI.HandleAuras(unitbutton, unit, updatedAuras, dbgEventString)
         f.icon:SetTexture(auraInfo.icon)
         if (auraInfo.applications > 1) then
             local countText = auraInfo.applications;
-            if (auraInfo.applications >= 100) then
+            if (auraInfo.applications >= 9999) then
                 countText = BUFF_STACKS_OVERFLOW;
             end
             f.count:Show();
