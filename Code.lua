@@ -1432,6 +1432,7 @@ function srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsTyp
     local pixelOffset = 1
     local anchor1, anchor2 = "TOPLEFT", "TOPRIGHT"
     local direction = 1
+
     if buttonFrame.unit.healthBar.reversed then
         anchor1, anchor2 = "TOPRIGHT", "TOPLEFT"
         direction = -1
@@ -1446,8 +1447,8 @@ function srslylawlUI.MoveAbsorbAndEffectiveHealthAnchorWithHealth(unit, unitsTyp
         buttonFrame.unit.healthBar, anchor1, offset * direction - 1, 0)
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["absorbFramesOverlap"][1], anchor2,
         buttonFrame.unit.healthBar, anchor1, (offset + mergeOffset) * direction - 1, 0)
-    local eHealthOffset = offset - srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset
-    -- print("eHealth: " .. eHealthOffset)
+    local leftoffset = srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset
+    local eHealthOffset = offset - leftoffset
     srslylawlUI.Utils_SetPointPixelPerfect(srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1], anchor1,
         buttonFrame.unit.healthBar, anchor1, eHealthOffset * direction, 0)
 end
@@ -2108,24 +2109,26 @@ function srslylawlUI.HandleEffectiveHealth(unit, unitsType)
     local height = srslylawlUI.GetSettingByUnit("hp.height", unitsType, unit)
     -- local hpBarWidth =
     local unscaledBarWidth = srslylawlUI.GetSettingByUnit("hp.width", unitsType, unit)
-    local scaledBarWidth = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar
-        :GetWidth())
-
+    -- local scaledBarWidth = srslylawlUI.Utils_PixelFromScreenToCode(srslylawlUI[unitsType][unit].unitFrame.unit.healthBar
+    --     :GetWidth())
     local playerHealthMax = UnitHealthMax(unit)
     playerHealthMax = playerHealthMax == 0 and 1 or playerHealthMax
     local playerCurrentHP = UnitHealth(unit)
-    local pixelPerHp = scaledBarWidth / playerHealthMax
+    local unscaledPixelperHp = unscaledBarWidth / playerHealthMax
 
-    local playerMissingHP = playerHealthMax - playerCurrentHP
+
 
     eHealth = playerCurrentHP / effectiveHealthMod
     local additionalHealth = eHealth - playerCurrentHP
+    local additionalHealthBarWidth = (unscaledPixelperHp * additionalHealth)
 
     -- clamp bar size to total health bar size
-    local eHealthBarWidth = math.min(unscaledBarWidth, additionalHealth * pixelPerHp)
+    local eHealthBarWidth = math.min(unscaledBarWidth, additionalHealthBarWidth)
 
     --offset the bar to the left so it does not go outside the frame
-    local maxEHealthBarWidth = unscaledBarWidth - (playerCurrentHP * pixelPerHp) - 1
+    local currentHpWith = playerCurrentHP * unscaledPixelperHp;
+
+    local maxEHealthBarWidth = unscaledBarWidth - currentHpWith - 1
     local offset = math.max(eHealthBarWidth - maxEHealthBarWidth, 0)
 
     srslylawlUI[unitsType][unit]["effectiveHealthFrames"][1].offset = offset
