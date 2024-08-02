@@ -1,7 +1,7 @@
 ## Title: |cff4D00FFsrslylawlUI|r
-## Version: 1.56
+## Version: 1.57
 ## Author: srslylawl
-## Interface: 100206
+## Interface: 110002
 ## Notes: /srsui or /srslylawlui to open settings
 ## X-Category: UnitFrame
 ## SavedVariables: srslylawlUI_Saved

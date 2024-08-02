@@ -3,14 +3,14 @@ srslylawlUI = srslylawlUI or {}
 --[[
 #############################################################
 #                                                           #
-#                  Created by Andreas S. G.                 #
+#                  Created by Andreas Salvator G.           #
 #                  Discord: srslylawl#5257                  #
 #                  BNET: INSANITY#22914                     #
 #                                                           #
 #############################################################
 ]]
 
-local version = "1.56"
+local version = "1.57"
 
 srslylawlUI.loadedSettings = {}
 srslylawlUI.buffs = {
@@ -1603,7 +1603,7 @@ function srslylawlUI.Auras_RememberBuff(buffIndex, unit)
             isAbsorb = keyWordAbsorb,
             isDefensive = keyWordDefensive or keyWordImmunity
         }
-        local link = GetSpellLink(spellId)
+        local link = C_Spell.GetSpellLink(spellId)
 
         if keyWordAbsorb then
             if (srslylawlUI_Saved.buffs.absorbs[spellId] == nil) then
@@ -1722,7 +1722,7 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
             text = debuffText,
             crowdControlType = CCType
         }
-        local link = GetSpellLink(spellId)
+        local link = C_Spell.GetSpellLink(spellId)
 
         if CCType ~= "none" then
             if srslylawlUI_Saved.debuffs.known[spellId] == nil then
@@ -1765,7 +1765,7 @@ function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
         return
     end
 
-    local link = GetSpellLink(spellId)
+    local link = C_Spell.GetSpellLink(spellId)
 
     local isKnown = srslylawlUI_Saved[auraType].known[spellId] ~= nil
 
@@ -1792,7 +1792,7 @@ end
 
 function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
     srslylawlUI_Saved[auraType].known[spellId] = nil
-    local link = GetSpellLink(spellId)
+    local link = C_Spell.GetSpellLink(spellId)
 
     for k, category in pairs(srslylawlUI_Saved[auraType]) do
         if category[spellId] ~= nil then

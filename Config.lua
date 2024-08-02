@@ -2390,5 +2390,9 @@ function srslylawlUI.CreateConfigWindow()
 
 
     srslylawlUI.ToggleConfigVisible(true)
-    InterfaceOptions_AddCategory(srslylawlUI_ConfigFrame)
+    -- local category = Settings.RegisterCanvasLayoutCategory(srslylawlUI_ConfigFrame, "srslylawlUI")
+    -- Settings.RegisterAddOnCategory(category) -> this only makes it show up in menu if the config has been opened once before, would need to be called on startup
+
+
+    -- InterfaceOptions_AddCategory(srslylawlUI_ConfigFrame) -> removed
 end
