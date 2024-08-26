@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.57"
+local version = "1.58"
 
 srslylawlUI.loadedSettings = {}
 srslylawlUI.buffs = {
@@ -110,7 +110,6 @@ local debugString = ""
 
 --[[ TODO:
 raidicon sometimes missing after reload or roster change
--- GRP PET 0 hp for some reason
 castbar text size
 plus minus button for sliders
 let cc bar show multiple ccs
@@ -791,11 +790,6 @@ function srslylawlUI.TryGetAuraText(isBuff, index, unit)
     if not srslylawlUI.isClassic then
         srslylawlUI.SetDebugCheckPoint("AuraText")
         local data = isBuff and C_TooltipInfo.GetUnitBuff(unit, index) or C_TooltipInfo.GetUnitDebuff(unit, index)
-        TooltipUtil.SurfaceArgs(data)
-        for _, line in ipairs(data.lines) do
-            TooltipUtil.SurfaceArgs(line)
-        end
-
         local text
         if data.lines[2] then
             text = data.lines[2].leftText

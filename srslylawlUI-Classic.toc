@@ -1,5 +1,5 @@
 ## Title: |cff4D00FFsrslylawlUI|r
-## Version: 1.57
+## Version: 1.58
 ## Author: srslylawl
 ## Interface: 11502
 ## Notes: /srsui or /srslylawlui to open settings
