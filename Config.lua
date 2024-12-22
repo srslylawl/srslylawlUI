@@ -1293,14 +1293,20 @@ function srslylawlUI.CreateConfigWindow()
         local sortedSpellList = {}
         local exactMatch = nil
         for spellId, _ in pairs(spellList) do
-            local name, _, icon = GetSpellInfo(spellId)
-            if name == nil then
+            local spellInfo = C_Spell.GetSpellInfo(spellId)
+            if spellInfo == nil then
                 --spell was probably removed from game or file is corrupted, remove spell from list
-                srslylawlUI_Saved[auraType][spellListKey][spellId] = nil
+                srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType, true)
                 srslylawlUI.Log("Spell with ID " ..
                     spellId ..
                     " no longer recognized by WoW client. Might have been removed - removing from saved variables.")
             else
+                if srslylawlUI_Saved[auraType].known[spellId] == nil then
+                    --data corrutped? spell known but not in the known category, add manually
+                    srslylawlUI.Auras_ManuallyAddSpell(spellId, auraType, true)
+                end
+                local name = spellInfo.name
+                local icon = spellInfo.iconID
                 local spell = { name = name, spellId = spellId, icon = icon }
                 if tostring(spellId) == tostring(filter) then
                     exactMatch = spell
@@ -1451,10 +1457,10 @@ function srslylawlUI.CreateConfigWindow()
 
                     if old then
                         srslylawlUI.Log("Damage reduction amount for spell " ..
-                            GetSpellInfo(id) .. " set from " .. old .. "% to " .. amount .. "%!")
+                            C_Spell.GetSpellName(id) .. " set from " .. old .. "% to " .. amount .. "%!")
                     else
                         srslylawlUI.Log("Damage reduction amount for spell " ..
-                            GetSpellInfo(id) .. " set to " .. amount .. "%!")
+                            C_Spell.GetSpellName(id) .. " set to " .. amount .. "%!")
                     end
                 end)
                 AddTooltip(attributePanel.DefensiveAmount,
@@ -1535,9 +1541,10 @@ function srslylawlUI.CreateConfigWindow()
         attributePanel:SetAttribute("spellId", spellId)
 
 
-        attributePanel.SpellIcon:SetTexture(select(3, GetSpellInfo(spellId)))
+        local spellInfo = C_Spell.GetSpellInfo(spellId)
+        attributePanel.SpellIcon:SetTexture(spellInfo.iconID)
         AddSpellTooltip(attributePanel.SpellIconFrame, spellId)
-        attributePanel.SpellName:SetText(select(1, GetSpellInfo(spellId)))
+        attributePanel.SpellName:SetText(spellInfo.name)
         attributePanel.RemoveSpell:SetText("Remove Spell from " .. auraType)
         AddTooltip(attributePanel.RemoveSpell,
             "WARNING: this will remove the spell from every >\"" ..
@@ -1546,6 +1553,7 @@ function srslylawlUI.CreateConfigWindow()
 
         local isBlacklisted = srslylawlUI_Saved[auraType].blackList[spellId] ~= nil or false
         local isWhitelisted = srslylawlUI_Saved[auraType].whiteList[spellId] ~= nil or false
+
         local autoDetect = srslylawlUI_Saved[auraType].known[spellId].autoDetect == nil or
             srslylawlUI_Saved[auraType].known[spellId].autoDetect
         AddTooltip(attributePanel.LastParsedText,
@@ -2113,7 +2121,11 @@ function srslylawlUI.CreateConfigWindow()
                                 AddTooltip(barHide,
                                     "Display bar even when it's idle, such as having full mana/energy, or combopoints/rage being empty")
                             else
-                                barControl:Add(barEnabled, barHeight, barPriority, reverseFill)
+                                local castBarFontSize = CreateCustomSlider("FontSize", tabParent, 0.5, 100,
+                                    p .. ".fontSize", 0.5,
+                                    1,
+                                    srslylawlUI.UpdateEverything)
+                                barControl:Add(barEnabled, barHeight, barPriority, castBarFontSize, reverseFill)
                             end
                             barControl:SetPoint("TOPLEFT", cAnchor.bounds, "BOTTOMLEFT", 0, 0)
                             table.insert(cFrame.playerPowerBarControls, #cFrame.playerPowerBarControls + 1,
@@ -2215,9 +2227,14 @@ function srslylawlUI.CreateConfigWindow()
                         function()
                             unitFrame:ReRegisterAll()
                         end)
+                    local castBarFontSize = CreateCustomSlider("FontSize", tabParent, 0.5, 100, path .. "cast.fontSize",
+                        0.5, 1,
+                        function()
+                            unitFrame:ReRegisterAll()
+                        end)
                     local castReverseFill = CreateSettingsCheckButton("Reverse fill direction", tabParent,
                         path .. "cast.reversed", function() unitFrame:ReRegisterAll() end, true)
-                    castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority, castReverseFill)
+                    castBarControl:Add(castBarEnabled, castBarHeight, castBarPriority, castBarFontSize, castReverseFill)
                     castBarControl:ChainToControl(powerBarControl)
                     local ccbarControl = CreateConfigControl(tabParent, unitName .. " CrowdControl", nil, unit)
                     local ccbarEnabled = CreateSettingsCheckButton("Disable", tabParent, path .. "ccbar.disabled",

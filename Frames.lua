@@ -281,9 +281,9 @@ function srslylawlUI.CreateCustomFontString(frame, name, fontSize, template, mod
     end
 
     function fString:ScaleToFit(w, h, baseSize)
-        local factor = math.min(w, h) / baseSize
-        self:SetFont("Fonts\\FRIZQT__.TTF", (math.max(srslylawlUI.Utils_ScuffedRound(self.fontSize * factor), 1)))
-        self.w, self.h, self.baseSize = w, h, baseSize
+        -- local factor = math.min(w, h) / baseSize
+        -- self:SetFont("Fonts\\FRIZQT__.TTF", (math.max(srslylawlUI.Utils_ScuffedRound(self.fontSize * factor), 1)))
+        -- self.w, self.h, self.baseSize = w, h, baseSize
 
         if self.isLimited then
             self:Limit()
@@ -1503,9 +1503,10 @@ function srslylawlUI.CreateCastBar(parent, unit)
         h = h or srslylawlUI.Utils_PixelFromScreenToCode(self:GetHeight())
         h = math.max(1, h)
         srslylawlUI.Utils_SetSizePixelPerfect(cBar.Icon, h, h)
-        local default = srslylawlUI.GetDefaultByUnit("cast.height", unitsType, unit)
-        self.StatusBar.Timer:ScaleToFit(h, h, default)
-        self.StatusBar.SpellName:ScaleToFit(h, h, default)
+        local fontSize = srslylawlUI.GetSettingByUnit("cast.fontSize", unitsType, unit)
+        self.StatusBar.SpellName:ChangeFontSize(fontSize)
+        self.StatusBar.Timer:ChangeFontSize(fontSize)
+        -- self.StatusBar.SpellName:ScaleToFit(h, h, default)
     end
 
     cBar.unit = unit

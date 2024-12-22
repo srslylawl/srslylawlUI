@@ -1686,7 +1686,7 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
     end
 
     local function ProcessID(spellId, debuffIndex, unit)
-        local spellName = GetSpellInfo(spellId)
+        local spellName = C_Spell.GetSpellName(spellId)
         local debuffText = srslylawlUI.TryGetAuraText(false, debuffIndex, unit)
         local isKnown = srslylawlUI_Saved.debuffs.known[spellId] ~= nil
 
@@ -1744,27 +1744,32 @@ function srslylawlUI.Auras_RememberDebuff(spellId, debuffIndex, unit)
     ProcessID(spellId, debuffIndex, unit)
 end
 
-function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
+function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType, silent)
     -- we dont have the same tooltip that we get from unit buffindex and slot, so we dont save it
     -- it should get added/updated though once we ever see it on any party members
 
-    local name, rank, icon, castTime, minRange, maxRange, spellId = GetSpellInfo(IDorName)
-
-    if name == nil then
-        if IDorName == "" or IDorName == nil then
-            srslylawlUI.Log("No spell ID entered, type one into the textbox.")
-        else
-            srslylawlUI.Log("Spell " .. IDorName .. " not found. Make sure you typed the name/spell ID correctly.")
+    local spellInfo = C_Spell.GetSpellInfo(IDorName)
+    if spellInfo == nil then
+        if not silent then
+            if IDorName == "" or IDorName == nil then
+                srslylawlUI.Log("No spell ID entered, type one into the textbox.")
+            else
+                srslylawlUI.Log("Spell " .. IDorName .. " not found. Make sure you typed the name/spell ID correctly.")
+            end
         end
         return
     end
+    local name = spellInfo.name
+    local spellId = spellInfo.spellID
 
     local link = C_Spell.GetSpellLink(spellId)
 
     local isKnown = srslylawlUI_Saved[auraType].known[spellId] ~= nil
 
     if isKnown then
-        srslylawlUI.Log(link .. " is already known.")
+        if not silent then
+            srslylawlUI.Log(link .. " is already known.")
+        end
     else
         local spell = {}
         spell.name = name
@@ -1780,11 +1785,13 @@ function srslylawlUI.Auras_ManuallyAddSpell(IDorName, auraType)
 
 
         srslylawlUI_Saved[auraType].known[spellId] = spell
-        srslylawlUI.Log("New spell added: " .. link .. "!")
+        if not silent then
+            srslylawlUI.Log("New spell added: " .. link .. "!")
+        end
     end
 end
 
-function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
+function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType, silent)
     srslylawlUI_Saved[auraType].known[spellId] = nil
     local link = C_Spell.GetSpellLink(spellId)
 
@@ -1792,11 +1799,14 @@ function srslylawlUI.Auras_ManuallyRemoveSpell(spellId, auraType)
         if category[spellId] ~= nil then
             category[spellId] = nil
             srslylawlUI_Saved[auraType][k][spellId] = nil
-            srslylawlUI.Log(link .. " removed from " .. k .. "!")
+            if not silent then
+                srslylawlUI.Log(link .. " removed from " .. k .. "!")
+            end
         end
     end
-
-    srslylawlUI.Log(link .. " removed from " .. auraType .. "!")
+    if not silent then
+        srslylawlUI.Log(link .. " removed from " .. auraType .. "!")
+    end
 end
 
 function srslylawlUI.Auras_BlacklistSpell(spellId, auraType)
