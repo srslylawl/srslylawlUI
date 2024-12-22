@@ -10,7 +10,7 @@ srslylawlUI = srslylawlUI or {}
 #############################################################
 ]]
 
-local version = "1.58"
+local version = "1.59"
 
 srslylawlUI.loadedSettings = {}
 srslylawlUI.buffs = {
@@ -110,7 +110,6 @@ local debugString = ""
 
 --[[ TODO:
 raidicon sometimes missing after reload or roster change
-castbar text size
 plus minus button for sliders
 let cc bar show multiple ccs
 totem bar
